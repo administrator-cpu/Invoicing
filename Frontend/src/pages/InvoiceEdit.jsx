@@ -1,61 +1,54 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ChevronLeft, Save, Plus, Trash2 } from 'lucide-react';
-import { useInvoiceDetails, useUpdateInvoice } from '@/features/invoices/hooks/useInvoices';
+import apiClient from '@/config/axios';
 import { useCompanyProfiles } from '@/features/company/hooks/useCompany';
-
-const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
-
-const formatToInputDate = (isoString) => {
-  if (!isoString) return '';
-  return new Date(isoString).toISOString().split('T')[0];
-};
-
-const calculateProRataAmount = (rate, qty, startDate, endDate) => {
-  if (!startDate || !endDate || !rate || !qty) return 0;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (end < start) return 0;
-
-  const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
-  const billingDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-  const monthlyAmount = rate * qty;
-
-  if (billingDays === daysInMonth) return round2(monthlyAmount);
-  return round2((monthlyAmount / daysInMonth) * billingDays);
-};
+import { useInvoiceDetails, useUpdateInvoice } from '@/features/invoices/hooks/useInvoices';
+import { InvoiceStatusTooltip } from '@/components/InvoiceStatusTooltip';
 
 const invoiceSchema = z.object({
-  companyProfileId: z.string().min(1, 'Select a billing profile to generate GST'), // Added
+  companyProfileId: z.string().min(1, 'Select an issuing company node'),
   invoiceDate: z.string().min(1, 'Required'),
   dueDate: z.string().min(1, 'Required'),
   taxType: z.enum(['IGST', 'CGST_SGST']),
   items: z.array(
     z.object({
       connectionId: z.string().optional(),
-      fabCircuitId: z.string().optional(),
+      circuitId: z.string().optional(),
       description: z.string().min(1, 'Description required'),
-      hsn: z.string().optional(),
-      qty: z.coerce.number().min(0.1, 'Required'),
-      rate: z.coerce.number().min(0.01, 'Required'),
-      startDate: z.string().min(1, 'Required'),
-      endDate: z.string().min(1, 'Required'),
+      sacCode: z.string().default('998422'),
+      qty: z.coerce.number().min(0.1),
+      rate: z.coerce.number().min(0.01),
+      startDate: z.string().min(1),
+      endDate: z.string().min(1),
+      amount: z.coerce.number(),
+      statusSnapshot: z.string().default('Active') // Track status metadata safely
     })
   ).min(1, 'Add at least one item'),
+}).refine((data) => new Date(data.dueDate) > new Date(data.invoiceDate), {
+  message: "Due date must fall on a timeline greater than the billing date.",
+  path: ["dueDate"]
 });
+
+const formatToInputDate = (isoString) => {
+  if (!isoString) return '';
+  return new Date(isoString).toISOString().split('T')[0];
+};
 
 const InvoiceEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  
   const { data: companyProfiles } = useCompanyProfiles();
   const { data: invoice, isLoading, isError } = useInvoiceDetails(id);
   const { mutate: updateInvoice, isPending: isSaving } = useUpdateInvoice();
 
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm({
+  const [generationPool, setGenerationPool] = useState([]);
+
+  const { register, control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(invoiceSchema),
     defaultValues: { companyProfileId: '', invoiceDate: '', dueDate: '', taxType: 'IGST', items: [] }
   });
@@ -64,6 +57,7 @@ const InvoiceEdit = () => {
   const watchItems = useWatch({ control, name: 'items' });
   const watchTaxType = useWatch({ control, name: 'taxType' });
 
+  // 1. Initial Data Re-hydration from Draft Snapshot
   useEffect(() => {
     if (invoice) {
       if (invoice.status !== 'DRAFT') {
@@ -78,16 +72,28 @@ const InvoiceEdit = () => {
         dueDate: formatToInputDate(invoice.dates?.dueDate),
         taxType: invoice.financials?.taxes?.isInterstate ? 'IGST' : 'CGST_SGST',
         items: invoice.items.map(item => ({
-          connectionId: item.connectionId,
-          fabCircuitId: item.fabCircuitId,
+          connectionId: item.connectionId || '',
+          circuitId: item.circuitId || '',
           description: item.description,
-          hsn: item.sacCode,
+          sacCode: item.sacCode || '998422',
           qty: item.qty,
           rate: item.rate,
           startDate: formatToInputDate(item.periodStart),
-          endDate: formatToInputDate(item.periodEnd)
+          endDate: formatToInputDate(item.periodEnd),
+          amount: item.amount,
+          statusSnapshot: item.statusSnapshot || 'Active'
         }))
       });
+
+      // 2. Fetch customer's current live status to re-populate pre-live addition pools
+      if (invoice.customerSnapshot?.crmCustomerId) {
+        apiClient.get(`/crm/customers/${invoice.customerSnapshot.crmCustomerId}`)
+          .then(res => {
+            const connections = res.data?.data?.connections || [];
+            setGenerationPool(connections.filter(c => c.status === 'Generation Status'));
+          })
+          .catch(err => console.error("Error syncing real-time CRM state records", err));
+      }
     }
   }, [invoice, reset, id, navigate]);
 
@@ -100,27 +106,40 @@ const InvoiceEdit = () => {
   }
 
   if (isError || !invoice) {
-    return <div className="text-center py-12 text-red-500">Failed to load invoice workspace.</div>;
+    return <div className="text-center py-12 text-sm text-red-500">Failed to load invoice workspace.</div>;
   }
 
-  const subtotal = round2((watchItems || []).reduce((sum, item) => {
-    return sum + calculateProRataAmount(parseFloat(item?.rate || 0), parseFloat(item?.qty || 0), item?.startDate, item?.endDate);
-  }, 0));
+  const handleInjectGenerationItem = (e) => {
+    const targetId = e.target.value;
+    if (!targetId) return;
 
-  const applyIgst = watchTaxType === 'IGST';
-  const masterTotalTax = round2(subtotal * 0.18);
-  const grandTotal = round2(subtotal + masterTotalTax);
+    const targetConn = generationPool.find(c => c.connectionId === targetId);
+    if (!targetConn) return;
 
-  let igst = applyIgst ? masterTotalTax : 0;
-  let cgst = applyIgst ? 0 : round2(masterTotalTax / 2);
-  let sgst = applyIgst ? 0 : round2(masterTotalTax - cgst);
+    const today = new Date();
+    append({
+      connectionId: targetConn.connectionId,
+      circuitId: targetConn.circuitId,
+      description: targetConn.description,
+      sacCode: '998422',
+      qty: targetConn.qty || 1,
+      rate: targetConn.currentRate || 0,
+      startDate: formatToInputDate(invoice.dates?.billingCycleStart) || new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0],
+      endDate: formatToInputDate(invoice.dates?.billingCycleEnd) || new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0],
+      amount: targetConn.currentRate || 0,
+      statusSnapshot: 'Generation Status'
+    });
+
+    e.target.value = '';
+  };
+
+  // Recalculate live field totals
+  const subtotal = (watchItems || []).reduce((sum, item) => sum + parseFloat(item?.amount || 0), 0);
+  const taxMultiplier = watchTaxType === 'IGST' ? 0.18 : 0.18;
+  const grandTotal = subtotal + (subtotal * taxMultiplier);
 
   const onSubmit = (data) => {
     const selectedCompany = companyProfiles?.find(p => p._id === data.companyProfileId);
-    if (!selectedCompany) {
-      alert("Please select a valid company billing profile.");
-      return;
-    }
 
     const payload = {
       customer: {
@@ -128,27 +147,18 @@ const InvoiceEdit = () => {
         name: invoice.customerSnapshot.name,
         email: invoice.customerSnapshot.email
       },
-      selectedGstProfile: {
-        label: invoice.customerSnapshot.billingProfile.label,
-        gstNumber: invoice.customerSnapshot.billingProfile.gstNumber,
-        address: invoice.customerSnapshot.billingProfile.address
-      },
-      selectedCompanyProfile: {
-        _id: selectedCompany._id,
-        label: selectedCompany.label,
-        gstNumber: selectedCompany.gstNumber,
-        address: selectedCompany.address
-      },
-      periodStart: new Date(`${data.items[0]?.startDate}T00:00:00.000Z`).toISOString(),
-      periodEnd: new Date(`${data.items[0]?.endDate}T23:59:59.999Z`).toISOString(),
+      selectedGstProfile: invoice.customerSnapshot.billingProfile,
+      selectedCompanyProfile: selectedCompany,
+      periodStart: new Date(data.items[0]?.startDate).toISOString(),
+      periodEnd: new Date(data.items[0]?.endDate).toISOString(),
       invoiceDate: new Date(data.invoiceDate).toISOString(),
       dueDate: new Date(data.dueDate).toISOString(),
-      applyIgst,
+      applyIgst: data.taxType === 'IGST',
       discount: 0,
       items: data.items.map(item => ({
         ...item,
-        periodStart: new Date(`${item.startDate}T00:00:00.000Z`).toISOString(),
-        periodEnd: new Date(`${item.endDate}T23:59:59.999Z`).toISOString()
+        periodStart: new Date(item.startDate).toISOString(),
+        periodEnd: new Date(item.endDate).toISOString()
       }))
     };
 
@@ -156,156 +166,129 @@ const InvoiceEdit = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto text-sm pb-12">
       <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-        <button type="button" onClick={() => navigate(`/invoices/${id}`)} className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:white cursor-pointer">
+        <button type="button" onClick={() => navigate(`/invoices/${id}`)} className="flex items-center text-slate-500 font-medium hover:text-slate-900 cursor-pointer">
           <ChevronLeft className="w-4 h-4 mr-1" /> Discard Modifications
         </button>
-        <button type="submit" form="edit-invoice-form" disabled={isSaving} className="flex items-center px-4 py-2 bg-primary hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50">
+        <button type="submit" form="edit-invoice-form" disabled={isSaving} className="flex items-center px-4 py-2 bg-primary hover:bg-indigo-600 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50">
           <Save className="w-4 h-4 mr-2" /> {isSaving ? 'Updating...' : 'Update Draft'}
         </button>
       </div>
 
       <form id="edit-invoice-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        
+        {/* Customer Header Box Panel */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-
-          {/* Box Header: Target Customer Details */}
           <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <div>
               <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Target Customer</span>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
-                {invoice.customerSnapshot?.name}
-              </h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{invoice.customerSnapshot?.name}</h3>
             </div>
-            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-              {invoice.customerSnapshot?.email}
-            </div>
+            <div className="text-xs font-mono text-slate-500 dark:text-slate-400">{invoice.customerSnapshot?.email}</div>
           </div>
 
-          {/* Cleaned 3-Column Inputs Grid */}
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Bill From (Your Company)</label>
-              <select
-                {...register('companyProfileId')}
-                className={`w-full px-3 py-2 text-sm border rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary outline-none transition-colors ${errors.companyProfileId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
-                  }`}
-              >
+              <select {...register('companyProfileId')} className={`w-full px-3 py-2 border rounded-lg bg-transparent text-slate-900 dark:text-white outline-none ${errors.companyProfileId ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`}>
                 <option value="" className="dark:bg-slate-900">-- Select Profile --</option>
-                {companyProfiles?.map(profile => (
-                  <option key={profile._id} value={profile._id} className="dark:bg-slate-900">
-                    {profile.label} ({profile.gstNumber})
-                  </option>
-                ))}
+                {companyProfiles?.map(p => <option key={p._id} value={p._id} className="dark:bg-slate-900">{p.label}</option>)}
               </select>
-              {errors.companyProfileId && <p className="text-red-500 text-xs mt-1">{errors.companyProfileId.message}</p>}
             </div>
-
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Invoice Date</label>
-              <input
-                type="date"
-                {...register('invoiceDate')}
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary transition-colors"
-              />
-              {errors.invoiceDate && <p className="text-red-500 text-xs mt-1">{errors.invoiceDate.message}</p>}
+              <input type="date" {...register('invoiceDate')} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none" />
             </div>
-
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Due Date</label>
-              <input
-                type="date"
-                {...register('dueDate')}
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary transition-colors"
-              />
+              <input type="date" {...register('dueDate')} className={`w-full px-3 py-2 border bg-transparent rounded-lg text-slate-900 dark:text-white outline-none ${errors.dueDate ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'}`} />
               {errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate.message}</p>}
             </div>
-
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        {/* Ledger Grid Data Table */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Connection Accounts</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Edit parameters or manually expand the link tree.</p>
+            </div>
+            {generationPool.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-semibold text-slate-400 uppercase">Pre-Live Additions:</span>
+                <select onChange={handleInjectGenerationItem} defaultValue="" className="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-slate-50 dark:bg-slate-800 outline-none font-medium text-slate-900 dark:text-white">
+                  <option value="">-- Inject Generation Element --</option>
+                  {generationPool.map(g => <option key={g.connectionId} value={g.connectionId}>{g.circuitId || g.description}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800 font-medium">
+            <table className="w-full text-left whitespace-nowrap min-w-[1100px]">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold text-xs uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 w-64">Description</th>
-                  <th className="px-3 py-3 w-24">SAC</th>
-                  <th className="px-3 py-3 w-24">BW/Qty</th>
-                  <th className="px-3 py-3 w-28">Rate (₹)</th>
-                  <th className="px-3 py-3 w-40">Start Date</th>
-                  <th className="px-3 py-3 w-40">End Date</th>
-                  <th className="px-4 py-3 w-32 text-right">Amount</th>
+                  <th className="px-4 py-3 w-72">Line Breakdown Description</th>
+                  <th className="px-3 py-3 w-20 text-center">SAC</th>
+                  <th className="px-3 py-3 w-20 text-center">Qty</th>
+                  <th className="px-3 py-3 w-28 text-right">Rate (₹)</th>
+                  <th className="px-3 py-3 w-36">Billing Start</th>
+                  <th className="px-3 py-3 w-36">Billing End</th>
+                  <th className="px-4 py-3 w-28 text-right">Subtotal</th>
                   <th className="w-12"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                {fields.map((field, index) => {
-                  const rAmount = calculateProRataAmount(parseFloat(watchItems[index]?.rate || 0), parseFloat(watchItems[index]?.qty || 0), watchItems[index]?.startDate, watchItems[index]?.endDate);
-                  return (
-                    <tr key={field.id} className="align-top hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                      <td className="p-2 pl-4"><input type="text" {...register(`items.${index}.description`)} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary rounded-md outline-none text-slate-900 dark:text-white" /></td>
-                      <td className="p-2"><input type="text" {...register(`items.${index}.hsn`)} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary rounded-md outline-none text-slate-900 dark:text-white font-mono" /></td>
-                      <td className="p-2"><input type="text" {...register(`items.${index}.qty`)} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary rounded-md outline-none text-slate-900 dark:text-white font-mono" /></td>
-                      <td className="p-2"><input type="text" {...register(`items.${index}.rate`)} className="w-full px-3 py-2 bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary rounded-md outline-none text-slate-900 dark:text-white font-mono" /></td>
-                      <td className="p-2"><input type="date" {...register(`items.${index}.startDate`)} className="w-full px-2 py-2 bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary text-sm rounded-md outline-none text-slate-900 dark:text-white" /></td>
-                      <td className="p-2"><input type="date" {...register(`items.${index}.endDate`)} className="w-full px-2 py-2 bg-transparent border border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-primary text-sm rounded-md outline-none text-slate-900 dark:text-white" /></td>
-                      <td className="p-2 pr-4 text-right font-semibold text-slate-900 dark:text-white pt-4 font-mono">₹{rAmount.toFixed(2)}</td>
-                      <td className="p-2 text-center pt-3 pr-2">
-                        <button type="button" onClick={() => remove(index)} disabled={fields.length === 1} className="p-2 text-slate-400 hover:text-red-500 disabled:opacity-30 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                {fields.map((field, index) => (
+                  <tr key={field.id} className="align-top hover:bg-slate-50/30 dark:hover:bg-slate-800/10">
+                    <td className="p-2 pl-4">
+                      <div className="flex items-center space-x-2">
+                        {/* RENDER THE RE-EXPORTED HOVER STATUS Badges */}
+                        <InvoiceStatusTooltip state={watchItems?.[index]?.statusSnapshot} />
+                        <input type="text" {...register(`items.${index}.description`)} className="w-full px-2 py-1.5 bg-transparent border border-transparent border-b-slate-100 dark:border-b-slate-800 focus:border-primary outline-none font-semibold text-slate-900 dark:text-white" />
+                      </div>
+                    </td>
+                    <td className="p-2"><input type="text" {...register(`items.${index}.sacCode`)} className="w-full px-2 py-1.5 text-center bg-transparent border border-transparent border-b-slate-100 dark:border-b-slate-800 outline-none font-mono text-xs text-slate-500" /></td>
+                    <td className="p-2"><input type="number" step="any" {...register(`items.${index}.qty`)} className="w-full px-2 py-1.5 text-center bg-transparent border border-transparent border-b-slate-100 dark:border-b-slate-800 outline-none font-mono" /></td>
+                    <td className="p-2"><input type="number" step="any" {...register(`items.${index}.rate`)} className="w-full px-2 py-1.5 text-right bg-transparent border border-transparent border-b-slate-100 dark:border-b-slate-800 outline-none font-mono" /></td>
+                    <td className="p-2"><input type="date" {...register(`items.${index}.startDate`)} className="w-full px-2 py-1 bg-transparent border border-transparent border-b-slate-100 dark:border-b-slate-800 text-xs outline-none" /></td>
+                    <td className="p-2"><input type="date" {...register(`items.${index}.endDate`)} className="w-full px-2 py-1 bg-transparent border border-transparent border-b-slate-100 dark:border-b-slate-800 text-xs outline-none" /></td>
+                    <td className="p-2 pr-4 text-right pt-4 font-bold text-slate-900 dark:text-white font-mono">₹{parseFloat(watchItems?.[index]?.amount || 0).toFixed(2)}</td>
+                    <td className="p-2 text-center pt-3 pr-4">
+                      <button type="button" onClick={() => remove(index)} className="text-slate-400 hover:text-red-500 rounded p-1 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-            <button type="button" onClick={() => append({ description: '', hsn: '998422', qty: 1, rate: 0, startDate: formatToInputDate(invoice.dates?.billingCycleStart), endDate: formatToInputDate(invoice.dates?.billingCycleEnd) })} className="text-sm font-medium text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-indigo-400 cursor-pointer flex items-center">
-              <Plus className="w-4 h-4 mr-1" /> Add Custom Line Item
-            </button>
-          </div>
         </div>
 
+        {/* Totals Section */}
         <div className="flex justify-end">
-          <div className="w-full md:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-3 shadow-sm">
-            <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <span>Taxable Subtotal</span>
-              <span className="font-semibold text-slate-900 dark:text-white font-mono">₹{subtotal.toFixed(2)}</span>
+          <div className="w-full md:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-3 shadow-sm font-medium">
+            <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <span className="text-slate-400">Taxable Subtotal</span>
+              <span className="font-bold font-mono text-slate-900 dark:text-white">₹{subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center text-sm text-slate-600 dark:text-slate-400 py-1">
-              <span className="font-medium text-slate-900 dark:text-white">Apply Taxes</span>
-              <select {...register('taxType')} className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs rounded-md outline-none">
+            <div className="flex justify-between items-center py-1">
+              <span className="text-slate-500">Tax System Setup</span>
+              <select {...register('taxType')} className="px-2 py-1 border border-slate-200 dark:border-slate-700 text-xs rounded-md bg-transparent outline-none text-slate-900 dark:text-white">
                 <option value="IGST">IGST (18%)</option>
-                <option value="CGST_SGST">CGST (9%) & SGST (9%)</option>
+                <option value="CGST_SGST">CGST & SGST (9% + 9%)</option>
               </select>
             </div>
-            {applyIgst ? (
-              <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                <span>IGST (18%)</span>
-                <span className="font-medium text-slate-900 dark:text-white font-mono">₹{igst.toFixed(2)}</span>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                  <span>CGST (9%)</span>
-                  <span className="font-medium text-slate-900 dark:text-white font-mono">₹{cgst.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                  <span>SGST (9%)</span>
-                  <span className="font-medium text-slate-900 dark:text-white font-mono">₹{sgst.toFixed(2)}</span>
-                </div>
-              </>
-            )}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center font-bold">
-              <span className="text-slate-900 dark:text-white">Grand Total</span>
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center font-bold">
+              <span className="text-slate-900 dark:text-white text-base">Grand Total</span>
               <span className="text-xl text-primary dark:text-indigo-400 font-mono">₹{grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
+
       </form>
     </div>
   );

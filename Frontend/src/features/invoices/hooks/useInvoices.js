@@ -1,6 +1,15 @@
-import { useMutation,useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/config/axios';
+
+export const usePreviewInvoice = () => {
+  return useMutation({
+    mutationFn: async (previewPayload) => {
+      const response = await apiClient.post('/invoices/preview', previewPayload);
+      return response.data;
+    }
+  });
+};
 
 export const useCreateInvoice = () => {
   const queryClient = useQueryClient();
@@ -8,7 +17,7 @@ export const useCreateInvoice = () => {
 
   return useMutation({
     mutationFn: async (invoicePayload) => {
-      return await apiClient.post('/invoices/draft', invoicePayload); 
+      return await apiClient.post('/invoices/draft', invoicePayload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -21,15 +30,21 @@ export const useInvoices = (filters) => {
   return useQuery({
     queryKey: ['invoices', filters],
     queryFn: async () => {
-      const { status, page = 1, limit = 10 } = filters;
-      
+      const { status, page = 1, limit = 10, searchDate, searchMonth } = filters;
+
       let queryStr = `?page=${page}&limit=${limit}`;
       if (status && status !== 'ALL') {
         queryStr += `&status=${status}`;
       }
+      if (searchDate) {
+        queryStr += `&date=${searchDate}`; // Format: YYYY-MM-DD
+      }
+      if (searchMonth) {
+        queryStr += `&month=${searchMonth}`; // Format: YYYY-MM
+      }
 
       const response = await apiClient.get(`/invoices${queryStr}`);
-      return response.data; 
+      return response.data;
     },
     placeholderData: (previousData) => previousData,
   });

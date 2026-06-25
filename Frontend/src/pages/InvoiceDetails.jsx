@@ -190,8 +190,11 @@ const InvoiceDetails = () => {
             <div className="font-medium text-slate-900 dark:text-white">
               Bill Date: <span className="font-normal font-mono text-slate-600 dark:text-slate-400">{formatDate(invoice.dates?.invoiceDate)}</span>
             </div>
-            <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-mono">
-              INV-NO: {invoice.invoiceNumber}
+            <div className="font-semibold text-slate-900 dark:text-white">
+              Due Date:{' '}
+              <span className="font-normal font-mono text-slate-600 dark:text-slate-400">
+                {formatDate(invoice.dates?.dueDate)}
+              </span>
             </div>
           </div>
         </div>

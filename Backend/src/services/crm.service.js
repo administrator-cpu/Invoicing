@@ -28,9 +28,9 @@ const handleCrmError = (error, context) => {
  * @desc - Fetches a list of customers for the search dropdown
  * @param {String} searchQuery - The name or email to search for
  */
-export const searchCrmCustomers = async (search, page, limit) => {
+export const searchCrmCustomers = async (search, page, limit, sort = 'recent') => {
   try {
-    const response = await crmClient.get(`/customers?search=${search}&page=${page}&limit=${limit}`);
+    const response = await crmClient.get(`/customers?search=${search}&page=${page}&limit=${limit}&sort=${sort}`);
     return response.data;
   } catch (error) {
     handleCrmError(error, 'searchCrmCustomers');
