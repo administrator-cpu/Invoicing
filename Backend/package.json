@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:invoice-css": "tailwindcss -i ./src/modules/Invoice/pdf/styles/input.css -o ./src/modules/Invoice/pdf/styles/output.css --minify",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
@@ -23,10 +26,20 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.2.0",
     "mongoose": "^9.6.2",
     "morgan": "^1.10.1",
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
+    "puppeteer": "^25.2.0",
     "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "@tailwindcss/cli": "^4.3.1",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2",
+    "tailwindcss": "^4.3.1",
+    "vitest": "^4.1.9"
   }
 }

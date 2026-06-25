@@ -11,11 +11,11 @@ import AppError from './utils/AppError.js';
 import logger from './utils/logger.js';
 
 /* ROUTES IMPORT */
-import authRouter from './Auth/auth.routes.js';
-import crmRouter from './crmProxy/crmRoutes.js';
-import invoiceRouter from './Invoice/invoice.routes.js';
-import companyProfileRouter from './CompanyProfile/companyProfile.routes.js';
-import dashboardRouter from './Dashboard/dashboard.routes.js';
+import authRouter from './modules/Auth/auth.routes.js';
+import crmRouter from './modules/crmProxy/crmRoutes.js';
+import invoiceRouter from './modules/Invoice/invoice.routes.js';
+import companyProfileRouter from './modules/CompanyProfile/companyProfile.routes.js';
+import dashboardRouter from './modules/Dashboard/dashboard.routes.js';
 
 const app = express();
 

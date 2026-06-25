@@ -18,7 +18,7 @@ import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import DashboardLayout from '@/layouts/DashboardLayout';
 
 function App() {
-  const { setUser, clearAuth, setCheckingAuth } = useAuthStore();
+  const { setUser, clearAuth, isCheckingAuth, setCheckingAuth } = useAuthStore();
   const { theme } = useThemeStore();
 
   useEffect(() => {
@@ -36,19 +36,27 @@ function App() {
         setUser(response.data.user);
       } catch (error) {
         clearAuth();
-      } finally {
-        setCheckingAuth(false);
       }
     };
-
     verifyUser();
   }, [setUser, clearAuth, setCheckingAuth]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#EAECEF]">
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-4 border-gray-200" />
+          <div className="absolute inset-0 rounded-full border-4 border-t-orange-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />  
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         {/* PROTECTED ROUTES */}
         <Route element={<ProtectedRoute />}>
           <Route element={<DashboardLayout />}>

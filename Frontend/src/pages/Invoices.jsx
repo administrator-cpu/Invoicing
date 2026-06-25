@@ -16,12 +16,22 @@ const Invoices = () => {
 
   const [currentStatus, setCurrentStatus] = useState(location.state?.status || 'ALL');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchDate, setSearchDate] = useState('');
+  const [searchMonth, setSearchMonth] = useState('');
 
   const { data, isLoading, isError } = useInvoices({
     status: currentStatus,
     page: currentPage,
-    limit: 10
+    limit: 10,
+    searchDate,
+    searchMonth
   });
+
+  const clearTemporalFilters = () => {
+    setSearchDate('');
+    setSearchMonth('');
+    setCurrentPage(1);
+  };
 
   const invoices = data?.invoices || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
@@ -80,6 +90,46 @@ const Invoices = () => {
             )}
           </button>
         ))}
+      </div>
+
+      {/* TEMPORAL SEARCH AND DATE FILTER TRAY BAR */}
+      <div className="grid grid-cols-1 sm:flex sm:items-end gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-sm">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Exact Date</label>
+          <input
+            type="date"
+            value={searchDate}
+            onChange={(e) => {
+              setSearchDate(e.target.value);
+              setSearchMonth('');
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Month Period</label>
+          <input
+            type="month"
+            value={searchMonth}
+            onChange={(e) => {
+              setSearchMonth(e.target.value);
+              setSearchDate('');
+              setCurrentPage(1);
+            }}
+            className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        {(searchDate || searchMonth) && (
+          <button
+            onClick={clearTemporalFilters}
+            className="text-xs font-semibold text-red-500 hover:text-red-600 pb-2.5 hover:underline cursor-pointer transition-colors sm:ml-2"
+          >
+            Clear Date Rules
+          </button>
+        )}
       </div>
 
       {/* Master Ledger Grid Container */}
