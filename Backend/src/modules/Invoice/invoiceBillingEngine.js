@@ -1,3 +1,5 @@
+import { connect } from "mongoose";
+
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -14,13 +16,12 @@ export const buildInvoiceItems = ({
   const cycleEnd = new Date(billingCycleEnd);
 
   const allItems = [];
-  console.log("Connections count:", connections.length);
 
   for (const conn of connections) {
-    console.log("Connection:", conn.opportunityId);
-    console.log("History:", conn.history);
+    const isBillable = conn.status === "Active" || conn.status === "Notice Period";
+    if (!isBillable) continue;
+
     const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
-    console.log("wasEverActive =", wasEverActive);
     if (!wasEverActive) continue;
 
     const connectionItems = buildConnectionSegments(conn, cycleStart, cycleEnd, billingMode);
@@ -124,11 +125,37 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       crmConnectionSnapshot: {
         connectionId: connection.crmConnectionId || connection._id?.toString(),
         opportunityId: connection.opportunityId,
+        commercials: {
+          mrc: segment.mrc,
+          ratePerMb: segment.ratePerMb,
+          otc: connection.commercials?.otc ?? 0,
+          advance: connection.commercials?.advance ?? 0
+        },
+        providerCost: {
+          mrc: connection.providerCost?.mrc ?? 0,
+          ratePerMb: connection.providerCost?.ratePerMb ?? 0,
+          updatedAt: connection.providerCost?.updatedAt ?? null
+        },
+        technicalDetails: {
+          aEnd: {
+            btsId: connection.technicalDetails?.aEnd?.btsId || "",
+            address: connection.technicalDetails?.aEnd?.address || "",
+            latitude: connection.technicalDetails?.aEnd?.latitude || "",
+            longitude: connection.technicalDetails?.aEnd?.longitude || ""
+          },
+          bEnd: {
+            btsId: connection.technicalDetails?.bEnd?.btsId || "",
+            address: connection.technicalDetails?.bEnd?.address || "",
+            latitude: connection.technicalDetails?.bEnd?.latitude || "",
+            longitude: connection.technicalDetails?.bEnd?.longitude || ""
+          }
+        },
         circuitId: connection.fabCircuitId,
         serviceType: segment.serviceType,
         bandwidth: segment.bandwidth,
         ratePerMb: segment.ratePerMb,
         mrc: segment.mrc,
+        acceptanceDate: connection.acceptanceDate || null,
         activationDateAtBilling: segment.action === "ACTIVATED" ? segment.effectiveDate : undefined,
         historyEventType: segment.action
       },
@@ -145,7 +172,8 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         calculationType,
         daysCharged: billedDays
       },
-      statusSnapshot: terminationDate ? "DISCONNECT_PENDING" : "BILLABLE"
+      statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
+      connectionStatus: connection.status,
     });
   }
 
@@ -178,28 +206,36 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
 
   if (totalIpCount <= 0 || totalIpCost <= 0) return [];
 
-  const ratePerIp = round2(totalIpCost / totalIpCount);
+  const ratePerIp = round2(totalIpCost);
+  const totalAmount = round2(totalIpCount * ratePerIp);
 
   return [{
     sourceType: "IP_ADDRESS",
     crmHistoryRefId: null,
     crmConnectionSnapshot: {
-      connectionId: connection._id?.toString() || connection.crmConnectionId,
+      connectionId: connection.crmConnectionId,
       opportunityId: connection.opportunityId,
+      circuitId: connection.fabCircuitId,
+      bandwidth: connection.bandwidth,
+      serviceType: connection.serviceType,
+      technicalDetails: connection.technicalDetails,
+      acceptanceDate: connection.acceptanceDate,
+      ipCount: connection.ips.count,
+      ipCost: connection.ips.cost
     },
-    description: `Static IP charges — ${totalIpCount} IP${totalIpCount > 1 ? "s" : ""} @ ₹${ratePerIp}/IP`,
+    description: `IP charges — ${connection.opportunityId}`,
     sacCode: "998422",
     qty: totalIpCount,
     rate: ratePerIp,
     periodStart: cycleStart,
     periodEnd: cycleEnd,
-    amount: round2(totalIpCost),
+    amount: totalAmount,
     billingMeta: {
       billingMode,
       calculationType: "IP_ADDITION",
       daysCharged: daysInclusive(cycleStart, cycleEnd)
     },
-    statusSnapshot: "BILLABLE"
+    statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
   }];
 }
 
@@ -221,8 +257,11 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
       sourceType: "MANUAL_SERVICE",
       crmHistoryRefId: entry._id?.toString() || null,
       crmConnectionSnapshot: {
-        connectionId: connection._id?.toString() || connection.crmConnectionId,
+        connectionId: connection.crmConnectionId,
         opportunityId: connection.opportunityId,
+        bandwidth: connection.bandwidth,
+        technicalDetails: connection.technicalDetails,
+        acceptanceDate: connection.acceptanceDate,
         historyEventType: "SHIFTING"
       },
       description: `[MANUAL REQUIRED] Shifting charges — ${connection.opportunityId} (effective ${eventDate.toDateString()})`,
@@ -237,7 +276,7 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
         calculationType: "SHIFTING",
         daysCharged: 1
       },
-      statusSnapshot: "BILLABLE"
+      statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE"
     });
   }
 
@@ -268,12 +307,12 @@ function buildDescription(segment, connection) {
   const id = connection.opportunityId || connection.fabCircuitId || "";
 
   const labels = {
-    ACTIVATED: "Monthly charge",
+    ACTIVATED: "",
     UPGRADE: "Post-upgrade charge",
     DOWNGRADE: "Post-downgrade charge",
     RATE_REVISION: "Post-rate revision charge"
   };
 
   const label = labels[segment.action] || "Charge";
-  return `${label} — ${base}${id ? ` (${id})` : ""}`;
+  return `${label} - ${id ? ` ${id}` : ""}`;
 }

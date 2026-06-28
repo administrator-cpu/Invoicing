@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import puppeteer from "puppeteer";
 import Invoice from './invoice.model.js';
 import catchAsync from '../../utils/catchAsync.js';
 import AppError from '../../utils/AppError.js';
@@ -6,6 +7,7 @@ import { generateNextInvoiceNumber, validateAndRecalculateInvoice } from './invo
 import { generateBillingFingerprint } from '../../utils/billingFingerprint.js';
 import { buildInvoiceItems } from './invoiceBillingEngine.js';
 import CompanyProfile from '../CompanyProfile/companyProfile.model.js';
+import { buildInvoiceHTML } from "../../utils/invoicePdfTemplate.js";
 import { getCrmCustomerDetails, getCrmCustomerConnections } from "../../services/crm.service.js";
 
 export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
@@ -30,9 +32,9 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     return next(new AppError("Customer not found.", 404));
   }
 
-  const invoiceConnections = (connections.connections || []).map(connection => ({
+  const invoiceConnections = (Array.isArray(connections?.connections) ? connections.connections : []).map(connection => ({
     ...connection,
-    selected: connection.billingStatus === "BILLABLE",
+    selected: connection.isBillable,
     editable: true
   }));
 
@@ -71,8 +73,8 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
  */
 export const previewInvoice = catchAsync(async (req, res, next) => {
   const {
-    connections = [], manualItems = [],
-    billingCycleStart, billingCycleEnd, billingMode = "POSTPAID", applyIgst, discount = 0
+    customerId, connections = [], manualItems = [],
+    billingCycleStart, billingCycleEnd, billingMode = "POSTPAID", selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
   } = req.body;
 
   const hasConnections = Array.isArray(connections) && connections.length > 0;
@@ -83,13 +85,36 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
   if (!billingCycleStart || !billingCycleEnd) {
     return next(new AppError("billingCycleStart and billingCycleEnd are required.", 400));
   }
-  console.log("========== PREVIEW ==========");
-  console.log("Connections received:", JSON.stringify(connections, null, 2));
+
+  for (const connection of connections) {
+    if (!connection.crmConnectionId) {
+      return next(new AppError("Connection ID is missing.", 400));
+    }
+    if (!Array.isArray(connection.history)) {
+      return next(new AppError("Connection history is missing.", 400));
+    }
+  }
+
+  const customerState = selectedCustomerBillingProfile.address.state;
+  const companyState = selectedCompanyProfile.address.state;
+
+  const start = new Date(billingCycleStart);
+  const end = new Date(billingCycleEnd);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return next(new AppError("Invalid billing cycle dates.", 400));
+  }
+  if (end < start) {
+    return next(new AppError("Invalid billing cycle. Billing cycle end cannot be before start", 400));
+  }
+  if (start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear()) {
+    return next(new AppError("Billing cycle cannot span multiple months in this version.", 400));
+  }
+
   const engineItems = buildInvoiceItems({
     connections,
     manualItems,
-    billingCycleStart: new Date(billingCycleStart),
-    billingCycleEnd: new Date(billingCycleEnd),
+    billingCycleStart: start,
+    billingCycleEnd: end,
     billingMode
   });
 
@@ -97,7 +122,7 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
     return next(new AppError("No billable items found for the selected connections and cycle.", 400));
   }
 
-  const { verifiedItems, financials } = validateAndRecalculateInvoice(engineItems, applyIgst, discount);
+  const { verifiedItems, financials } = validateAndRecalculateInvoice(engineItems, customerState, companyState, discount);
 
   res.status(200).json({
     status: "success",
@@ -207,8 +232,22 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
 
   const { version, invoiceDate, dueDate, items, applyIgst, discount = 0 } = req.body;
 
+  if (!Array.isArray(items) || items.length === 0) {
+    return next(new AppError("Invoice must contain at least one item.", 400));
+  }
   if (version === undefined || version === null) {
     return next(new AppError("Invoice version is required.", 400));
+  }
+
+  const existingInvoice = await Invoice.findById(req.params.id)
+    .select("status");
+
+  if (!existingInvoice) {
+    return next(new AppError("Invoice not found.", 404));
+  }
+  if (existingInvoice.status !== "DRAFT") {
+    return next(
+      new AppError("Only draft invoices can be edited.", 400));
   }
 
   const { verifiedItems, financials } = validateAndRecalculateInvoice(items, applyIgst, discount);
@@ -253,7 +292,8 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
     status: "success",
     message: "Draft invoice updated successfully.",
     data: {
-      invoice
+      invoice,
+      version: invoice.__v
     }
   });
 });
@@ -264,7 +304,7 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
  */
 export const cancelInvoice = catchAsync(async (req, res, next) => {
 
-  const invoice = await Invoice.findById(req.params.id);
+  const invoice = await Invoice.findById(req.params.id).select("status audit");
   if (!invoice) return next(new AppError('Invoice not found', 404));
 
   if (invoice.status !== 'DRAFT') {
@@ -299,7 +339,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
   let finalizedInvoice;
   try {
     session.startTransaction();
-    const draftInvoice = await Invoice.findById(req.params.id).select("status datesaudit").session(session);
+    const draftInvoice = await Invoice.findById(req.params.id).select("status dates audit").session(session);
 
     if (!draftInvoice) {
       throw new AppError("Invoice not found", 404);
@@ -309,6 +349,13 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
     }
 
     const invoiceNumber = await generateNextInvoiceNumber(draftInvoice.dates.invoiceDate, session);
+    const exists = await Invoice.exists({ invoiceNumber }).session(session);
+    if (exists) {
+      throw new AppError(
+        "Generated invoice number already exists.",
+        409
+      );
+    }
     finalizedInvoice = await Invoice.findOneAndUpdate(
       {
         _id: req.params.id,
@@ -331,6 +378,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
       throw new AppError("Invoice was already finalized by another user.", 409);
     }
     await session.commitTransaction();
+    finalizedInvoice = await Invoice.findById(req.params.id).lean();
   }
   catch (err) {
     await session.abortTransaction();
@@ -344,6 +392,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
     status: "success",
     message: "Invoice successfully finalized and locked",
     data: {
+      invoiceNumber: finalizedInvoice.invoiceNumber,
       invoice: finalizedInvoice
     }
   });
@@ -394,6 +443,54 @@ export const getInvoiceById = catchAsync(async (req, res, next) => {
     status: 'success',
     data: { invoice }
   });
+});
+
+export const downloadInvoicePdf = catchAsync(async (req, res) => {
+
+  const invoice = await Invoice.findById(req.params.id).lean();
+
+  if (!invoice) {
+    throw new AppError("Invoice not found", 404);
+  }
+
+  const html = buildInvoiceHTML(invoice);
+
+  const browser = await puppeteer.launch({
+    headless: true
+  });
+
+  const page = await browser.newPage();
+
+  await page.setContent(html, {
+    waitUntil: "networkidle0"
+  });
+
+  await page.emulateMediaType("screen");
+
+  const pdf = await page.pdf({
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
+    displayHeaderFooter: false,
+    margin: {
+      top: "0px",
+      right: "0px",
+      bottom: "0px",
+      left: "0px"
+    }
+  });
+
+  await browser.close();
+
+  res.setHeader("Content-Type", "application/pdf");
+
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="${invoice.invoiceNumber || "Invoice"}.pdf"`
+  );
+
+  res.send(pdf);
+
 });
 
 /**

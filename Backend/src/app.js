@@ -62,8 +62,8 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 app.options(/.*/, cors());
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "20kb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 app.get("/health", (req, res) => {

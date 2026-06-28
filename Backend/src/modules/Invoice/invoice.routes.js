@@ -2,7 +2,7 @@ import express from 'express';
 import {
   previewInvoice, createDraftInvoice,
   finalizeInvoice, getInvoices, getInvoiceById, getInvoiceWorkspace,
-  updateDraftInvoice, cancelInvoice,
+  updateDraftInvoice, cancelInvoice, downloadInvoicePdf,
   recordPayment, generateAdjustmentInvoice, updatePaymentStatus
 } from './invoice.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
@@ -22,6 +22,7 @@ router.use(restrictTo('Admin'));
 router.get("/workspace/:customerId", getInvoiceWorkspace);
 router.get('/', getInvoices);
 router.get('/:id', getInvoiceById);
+router.get('/:id/pdf', downloadInvoicePdf);
 
 // --- WRITE ROUTES ---
 router.post('/preview', previewInvoice);

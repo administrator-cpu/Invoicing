@@ -7,6 +7,7 @@ import {
   useCompanyProfiles, useCreateCompanyProfile,
   useUpdateCompanyProfile, useDeactivateCompanyProfile
 } from '@/features/company/hooks/useCompany';
+import INDIAN_STATES from '@/features/company/constants/states';
 
 const profileSchema = z.object({
   label: z.string().min(1, 'Label is required (e.g., Delhi HQ)'),
@@ -14,7 +15,9 @@ const profileSchema = z.object({
   address: z.object({
     street: z.string().min(1, 'Street is required'),
     city: z.string().min(1, 'City is required'),
-    state: z.string().min(1, 'State is required'),
+    state: z.string().min(1, "State is required").refine((value) => INDIAN_STATES.includes(value), {
+      message: "Please select a state."
+    }),
     pincode: z.string().min(6, 'Pincode is required'),
   }),
 });
@@ -111,10 +114,10 @@ const CompanyProfiles = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {profiles?.map((profile) => (
           <div key={profile._id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col h-full transition-colors relative group">
-            
+
             {/* Hover Action Buttons inside profile cards */}
             <div className="absolute top-4 right-4 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
+              <button
                 onClick={() => handleOpenEditModal(profile)}
                 className="p-1.5 text-slate-500 hover:text-primary dark:hover:text-indigo-400 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Edit Profile"
@@ -122,7 +125,7 @@ const CompanyProfiles = () => {
                 <Edit2 className="w-4 h-4" />
               </button>
               {profile.isActive && (
-                <button 
+                <button
                   onClick={() => handleDeleteClick(profile._id)}
                   className="p-1.5 text-slate-500 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
                   title="Deactivate Profile"
@@ -205,7 +208,12 @@ const CompanyProfiles = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
-                  <input {...register('address.state')} placeholder="Delhi" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" />
+                  <select {...register('address.state')} placeholder="Delhi" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" >
+                    <option value="">---- Select State ----</option>
+                    {INDIAN_STATES.map(state => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
                   {errors.address?.state && <p className="text-red-500 text-xs mt-1">{errors.address.state.message}</p>}
                 </div>
 

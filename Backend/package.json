@@ -32,6 +32,7 @@
     "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "puppeteer": "^25.2.0",
+    "to-words": "^5.6.1",
     "winston": "^3.19.0"
   },
   "devDependencies": {
