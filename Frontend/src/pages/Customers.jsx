@@ -4,27 +4,30 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchCustomers, useCustomerDetails } from '@/features/crm/hooks/useCrm';
 import { useNavigate } from 'react-router-dom'
 
-const getWorkflowBadge = (status) => {
+const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
   if (s === 'ACTIVE') return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20';
+  if (s === 'NOTICE PERIOD') return 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20';
   if (s === 'GENERATION') return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20';
+  if (s === 'APPROVED') return 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20';
   if (s === 'PENDING') return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20';
+  if (s === 'DISCONNECTED') return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
   if (s === 'CANCELLED' || s === 'REJECTED') return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
   return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
 };
 
-const getBillingBadge = (status) => {
-  const s = status?.toUpperCase() || '';
-  if (s === 'BILLABLE') return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20';
-  if (s === 'DISCONNECT_PENDING') return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20';
-  return 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-};
+// const getBillingBadge = (status) => {
+//   const s = status?.toUpperCase() || '';
+//   if (s === 'BILLABLE') return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20';
+//   if (s === 'DISCONNECT_PENDING') return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20';
+//   return 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+// };
 
 const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const connections = customer.connections || [];
-  const activeCount = customer.connectionCount ?? connections.filter(c => c.workflowStatus?.toUpperCase() === 'ACTIVE').length;
+  const activeCount = customer.connectionCount ?? connections.filter(c => c.status === 'Active' || c.status === 'Notice Period').length;
 
   return (
     <div
@@ -111,15 +114,9 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
                     <div></div> {/* Spacer */}
 
                     <div>
-                      <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Workflow Status</span>
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded border ${getWorkflowBadge(conn.workflowStatus)}`}>
-                        {conn.workflowStatus || 'UNKNOWN'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Billing Status</span>
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded border ${getBillingBadge(conn.billingStatus)}`}>
-                        {conn.billingStatus || 'N/A'}
+                      <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</span>
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded border ${getStatusBadge(conn.status)}`}>
+                        {conn.status || 'UNKNOWN'}
                       </span>
                     </div>
                   </div>
@@ -130,7 +127,7 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
           ) : (
             <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center">
               <AlertCircle className="w-8 h-8 text-slate-400 mb-2 opacity-50" />
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No provisioned services found.</p>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No connections found.</p>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">This customer currently has no connections attached to their profile.</p>
             </div>
           )}

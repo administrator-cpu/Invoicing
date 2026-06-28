@@ -51,19 +51,20 @@ export const generateNextInvoiceNumber = async (invoiceDate = new Date(), sessio
 /**
   @desc Calculates 18% GST distribution based on manual subtotal and user choice
  */
-export const calculateTaxes = (subTotal, applyIgst) => {
+export const calculateTaxes = (subTotal, customerState, companyState) => {
 
+  const isInterstate = customerState !== companyState;
   const masterTotalTax = round2(subTotal * 0.18);
 
   const taxes = {
-    isInterstate: applyIgst,
+    isInterstate,
     totalTax: masterTotalTax,
-    igstRate: applyIgst ? 18 : 0,
-    igstAmount: applyIgst ? masterTotalTax : 0,
-    cgstRate: applyIgst ? 0 : 9,
-    cgstAmount: applyIgst ? 0 : round2(masterTotalTax / 2),
-    sgstRate: applyIgst ? 0 : 9,
-    sgstAmount: applyIgst ? 0 : round2(masterTotalTax - round2(masterTotalTax / 2))
+    igstRate: isInterstate ? 18 : 0,
+    igstAmount: isInterstate ? masterTotalTax : 0,
+    cgstRate: isInterstate ? 0 : 9,
+    cgstAmount: isInterstate ? 0 : round2(masterTotalTax / 2),
+    sgstRate: isInterstate ? 0 : 9,
+    sgstAmount: isInterstate ? 0 : round2(masterTotalTax - round2(masterTotalTax / 2))
   };
 
   return taxes;
@@ -72,7 +73,7 @@ export const calculateTaxes = (subTotal, applyIgst) => {
 /**
  * @desc Takes the frontend line items and independently verifies the math.
  */
-export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount = 0) => {
+export const validateAndRecalculateInvoice = (incomingItems, customerState, companyState, discount = 0) => {
   if (!Array.isArray(incomingItems) || incomingItems.length === 0) {
     throw new AppError("Invoice must contain at least one line item.", 400);
   }
@@ -90,8 +91,12 @@ export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount
       throw new AppError(`Invalid sourceType at row ${index + 1}`, 400);
     }
 
-    const displayRate = Number(item.rate || 0);   // rate per Mbps (display only)
+    const displayRate = Number(item.rate ?? 0);
     const mrc = Number(item.mrc ?? item.amount ?? 0);
+    if (!Number.isFinite(mrc) || mrc < 0) {
+      throw new AppError(`Invalid MRC at row ${index + 1}`, 400);
+    }
+
     const qty = Number(item.qty || 1);
 
     if ((!Number.isFinite(displayRate) || displayRate < 0)) {
@@ -126,7 +131,7 @@ export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount
     const originalEngineValues = item.originalEngineValues || (item.crmConnectionSnapshot
       ? {
         rate: item.rate ?? null,
-        // amount: item.amount ?? null,
+        mrc: item.mrc ?? null,
         description: item.description ?? null,
         periodStart: item.periodStart ?? null,
         periodEnd: item.periodEnd ?? null,
@@ -137,6 +142,7 @@ export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount
     const wasEdited = !!originalEngineValues &&
       (
         Number(originalEngineValues.rate) !== displayRate ||
+        Number(originalEngineValues.mrc) !== mrc ||
         Number(originalEngineValues.qty) !== qty ||
         originalEngineValues.description !== item.description ||
         new Date(originalEngineValues.periodStart).getTime() !== pStart.getTime() ||
@@ -145,6 +151,7 @@ export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount
 
     verifiedItems.push({
       crmConnectionSnapshot: item.crmConnectionSnapshot || null,
+      connectionStatus: item.connectionStatus ?? item.crmConnectionSnapshot?.status ?? null,
       sourceType,
       crmHistoryRefId: item.crmHistoryRefId || null,
       description: item.description,
@@ -152,6 +159,7 @@ export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount
       qty,
       rate: displayRate,
       mrc,
+      isBillable: item.crmConnectionSnapshot?.isBillable ?? true,
       periodStart: pStart,
       periodEnd: pEnd,
       amount: expectedAmount,
@@ -168,10 +176,10 @@ export const validateAndRecalculateInvoice = (incomingItems, applyIgst, discount
   const finalSubTotal = round2(calculatedSubTotal);
   const finalDiscount = round2(Number(discount));
   if (finalDiscount < 0 || finalDiscount > finalSubTotal) {
-    throw new AppError("Invalid Discout Value.", 400);
+    throw new AppError("Invalid Discount Value.", 400);
   }
   const taxableBasis = round2(Math.max(0, finalSubTotal - finalDiscount));
-  const taxes = calculateTaxes(taxableBasis, applyIgst);
+  const taxes = calculateTaxes(taxableBasis, customerState, companyState);
   const grandTotal = round2(taxableBasis + taxes.totalTax);
 
   return {

@@ -2,7 +2,7 @@ import React from 'react';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Trash2, PlusCircle } from 'lucide-react';
 
-const getWorkflowBadge = (status) => {
+const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
   if (s === 'ACTIVE') return 'bg-green-100 text-green-700';
   if (s === 'NOTICE PERIOD') return 'bg-orange-100 text-[#EA580C]';
@@ -11,12 +11,12 @@ const getWorkflowBadge = (status) => {
   return 'bg-gray-100 text-gray-500';
 };
 
-const getBillingBadge = (status) => {
-  const s = status?.toUpperCase() || '';
-  if (s === 'BILLABLE') return 'bg-green-100 text-green-700';
-  if (s === 'NON_BILLABLE') return 'bg-gray-100 text-gray-500';
-  return 'bg-gray-100 text-gray-500';
-};
+// const getBillingBadge = (status) => {
+//   const s = status?.toUpperCase() || '';
+//   if (s === 'BILLABLE') return 'bg-green-100 text-green-700';
+//   if (s === 'NON_BILLABLE') return 'bg-gray-100 text-gray-500';
+//   return 'bg-gray-100 text-gray-500';
+// };
 
 export const ServiceItemsTable = () => {
   const { control, register, watch, setValue } = useFormContext();
@@ -41,7 +41,7 @@ export const ServiceItemsTable = () => {
       crmConnectionSnapshot: {
         connectionId: null, opportunityId: null, circuitId: null,
         serviceType: null, bandwidth: null, rateAtBilling: null,
-        activationDateAtBilling: null, historyEventType: null
+        acceptanceDateAtBilling: null, historyEventType: null
       },
       description: defaultDesc,
       sourceType: type,
@@ -54,10 +54,8 @@ export const ServiceItemsTable = () => {
       periodStart: billingCycleStart,
       periodEnd: billingCycleEnd,
       billingMeta: { billingMode: billingMode, calculationType: "FULL_MONTH", daysCharged: 30 },
-      statusSnapshot: "BILLABLE",
-      workflowStatus: "MANUAL"
+      status: "MANUAL"
     });
-    // Wipe authoritative financials to force a re-preview if items are added manually
     invalidatePreview();
   };
 
@@ -78,21 +76,22 @@ export const ServiceItemsTable = () => {
       </div>
 
       <div className="overflow-x-auto flex-grow">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full table-fixed border-collapse text-sm">
           <thead>
             <tr className="bg-white border-b border-gray-100">
-              <th className="px-4 py-4 w-10"></th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Service Type</th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider w-24">Bandwidth / Qty</th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider w-36">Billing Period</th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider w-28">Rate</th>
-              <th className="px-4 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider w-32">Amount</th>
-              <th className="px-4 py-4 w-10"></th>
+              <th className="w-[4%] px-3 py-3"></th>
+              <th className="w-[24%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
+              <th className="w-[7%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">SAC Code</th>
+              <th className="w-[8%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Service Type</th>
+              <th className="w-[7%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">BW/Qty</th>
+              <th className="w-[10%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+              <th className="w-[13%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Billing Period</th>
+              <th className="w-[8%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
+              <th className="w-[9%] px-3 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
+              <th className="w-[4%] px-3 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-400">
             {fields.map((field, index) => {
               const isSelected = watch(`items.${index}.isSelected`);
               const sourceType = watch(`items.${index}.sourceType`);
@@ -100,7 +99,7 @@ export const ServiceItemsTable = () => {
               return (
                 <tr key={field.id} className={`transition-colors ${isSelected ? 'bg-white' : 'bg-gray-50/50 opacity-50'}`}>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     <input
                       type="checkbox"
                       {...register(`items.${index}.isSelected`, { onChange: () => invalidatePreview() })}
@@ -108,22 +107,32 @@ export const ServiceItemsTable = () => {
                     />
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     <input
                       {...register(`items.${index}.description`)}
-                      className="w-full bg-transparent border border-transparent hover:border-gray-200 rounded p-1 text-sm font-bold text-gray-900 focus:border-[#EA580C] outline-none"
+                      className="w-full resize-none overflow-hidden break-words whitespace-pre-wrap bg-transparent border border-transparent hover:border-gray-200 rounded p-1 text-sm font-bold text-gray-900 focus:border-[#EA580C] outline-none"
                     />
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
+                    <input
+                      {...register(`items.${index}.sacCode`, {
+                        onChange: () => invalidatePreview()
+                      })}
+                      className="w-20 border border-gray-200 rounded-lg p-2 text-sm text-center font-mono focus:ring-1 focus:ring-[#EA580C] outline-none"
+                      placeholder="998422"
+                    />
+                  </td>
+
+                  <td className="px-3 py-3">
                     <span className="text-sm font-semibold text-gray-600">
                       {sourceType === 'CONNECTION' ? field.crmConnectionSnapshot.serviceType :
-                        sourceType === 'IP_CHARGE' ? 'IP' :
+                        sourceType === 'IP_ADDRESS' ? 'IP' :
                           sourceType === 'OTC' ? '-' : 'Manual'}
                     </span>
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     {sourceType === 'CONNECTION' ? (
                       <span className="text-sm font-bold text-gray-900 px-2">
                         {field.crmConnectionSnapshot.bandwidth || 'N/A'}
@@ -132,52 +141,49 @@ export const ServiceItemsTable = () => {
                       <span className="text-sm font-bold text-gray-400 px-2">-</span>
                     ) : (
                       <input
-                        type="number"
+                        type="number" step="any"
                         {...register(`items.${index}.qty`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
                         className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
                       />
                     )}
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     {sourceType === 'CONNECTION' ? (
                       <div className="flex flex-col gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getWorkflowBadge(field.workflowStatus)}`}>
-                          WF: {field.workflowStatus}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getBillingBadge(field.statusSnapshot)}`}>
-                          BILL: {field.statusSnapshot}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(field.status)}`}>
+                          {field.status}
                         </span>
                       </div>
                     ) : (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getBillingBadge(field.statusSnapshot)}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(field.statusSnapshot)}`}>
                         {field.statusSnapshot}
                       </span>
                     )}
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     <div className="flex flex-col gap-1.5">
                       <input type="date" {...register(`items.${index}.periodStart`, { onChange: () => invalidatePreview() })} className="w-full border border-gray-200 rounded p-1 text-xs text-gray-700 focus:ring-1 focus:ring-[#EA580C] outline-none" />
                       <input type="date" {...register(`items.${index}.periodEnd`, { onChange: () => invalidatePreview() })} className="w-full border border-gray-200 rounded p-1 text-xs text-gray-700 focus:ring-1 focus:ring-[#EA580C] outline-none" />
                     </div>
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     {sourceType === 'OTC' ? (
                       <span className="text-sm font-bold text-gray-400 px-2">-</span>
                     ) : (
                       <input
-                        type="number"
+                        type="number" step="any"
                         {...register(`items.${index}.rate`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
                         className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
                       />
                     )}
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3">
                     <input
-                      type="number"
+                      type="number" step="any"
                       {...register(`items.${index}.amount`, {
                         valueAsNumber: true,
                         onChange: () => {
@@ -189,7 +195,7 @@ export const ServiceItemsTable = () => {
                     />
                   </td>
 
-                  <td className="px-4 py-4 text-right">
+                  <td className="px-3 py-3 text-right">
                     <button type="button" onClick={() => { remove(index); invalidatePreview(); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
                       <Trash2 size={18} />
                     </button>
@@ -209,7 +215,7 @@ export const ServiceItemsTable = () => {
         <button type="button" onClick={() => addManualItem('OTC', 'One Time Installation Charge', 3000)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
           <PlusCircle size={16} /> OTC Charge
         </button>
-        <button type="button" onClick={() => addManualItem('IP_CHARGE', 'Additional Public IP Charge', 1500)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
+        <button type="button" onClick={() => addManualItem('IP_ADDRESS', 'Additional Public IP Charge', 1500)} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
           <PlusCircle size={16} /> Add IP
         </button>
       </div>

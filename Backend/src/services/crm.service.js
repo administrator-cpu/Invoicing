@@ -4,7 +4,7 @@ import logger from '../utils/logger.js';
 
 const crmClient = axios.create({
   baseURL: process.env.CRM_API_BASE_URL,
-  timeout: 10000,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
     'x-api-key': process.env.INTERNAL_CRM_SECRET

@@ -11,10 +11,10 @@
 
   --color-bg-app: #F8FAFC;
   --color-bg-card: #FFFFFF;
-  
+
   --color-text-main: #0F172A;
   --color-text-muted: #475569;
-  
+
   --color-status-danger: #DC2626;
 }
 
@@ -24,5 +24,64 @@
     color: var(--color-text-main);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff;
+    margin: 0;
+    padding: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  button,
+  nav,
+  aside,
+  .no-print {
+    display: none !important;
+  }
+
+  .printing-sheet {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: white;
+  }
+
+  .page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  img {
+    max-width: 100%;
   }
 }

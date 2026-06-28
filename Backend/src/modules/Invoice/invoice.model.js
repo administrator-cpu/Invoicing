@@ -9,9 +9,31 @@ const invoiceItemSchema = new mongoose.Schema({
     circuitId: { type: String },
     serviceType: { type: String },
     bandwidth: { type: String },
-    rateAtBilling: { type: Number },
+    ratePerMb: { type: Number },
+    mrc: { type: Number },
+    acceptanceDate: { type: Date },
     activationDateAtBilling: { type: Date },
-    historyEventType: { type: String }
+    historyEventType: { type: String },
+    ipCount: { type: Number, default: 0 },
+    ipCost: { type: Number, default: 0 },
+    providerCost: {
+      otc: { type: Number, default: 0 },
+      mrc: { type: Number, default: 0 }
+    },
+    technicalDetails: {
+      aEnd: {
+        btsId: { type: String },
+        address: { type: String },
+        latitude: { type: String },
+        longitude: { type: String }
+      },
+      bEnd: {
+        btsId: { type: String },
+        address: { type: String },
+        latitude: { type: String },
+        longitude: { type: String }
+      }
+    }
   },
   description: {
     type: String,
@@ -25,7 +47,6 @@ const invoiceItemSchema = new mongoose.Schema({
   crmHistoryRefId: { type: String, default: null },
   sacCode: {
     type: String,
-    default: '998422'
   },
   qty: {
     type: Number,
@@ -51,7 +72,7 @@ const invoiceItemSchema = new mongoose.Schema({
   originalEngineValues: {
     rate: { type: Number, default: null },
     amount: { type: Number, default: null },
-    qty: {type: Number, default: null},
+    qty: { type: Number, default: null },
     description: { type: String, default: null },
     periodStart: { type: Date, default: null },
     periodEnd: { type: Date, default: null }
@@ -93,7 +114,7 @@ const invoiceItemSchema = new mongoose.Schema({
 const InvoiceSchema = new mongoose.Schema({
   invoiceNumber: {
     type: String,
-    unique: true,
+    // unique: true,
     sparse: true,
     default: null
   },

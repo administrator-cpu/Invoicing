@@ -92,6 +92,70 @@ const Invoices = () => {
         ))}
       </div>
 
+      {/* Accounts Receivable Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <p className="text-xs uppercase text-slate-500 font-semibold">
+            Total Invoice Value
+          </p>
+          <h2 className="text-2xl font-bold mt-2">
+            ₹{(
+              invoices.reduce(
+                (sum, inv) => sum + (inv.financials?.grandTotal || 0),
+                0
+              )
+            ).toLocaleString("en-IN")}
+          </h2>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <p className="text-xs uppercase text-slate-500 font-semibold">
+            Total Received
+          </p>
+          <h2 className="text-2xl font-bold text-green-600 mt-2">
+            ₹{(
+              invoices.reduce(
+                (sum, inv) => sum + (inv.financials?.amountPaid || 0),
+                0
+              )
+            ).toLocaleString("en-IN")}
+          </h2>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <p className="text-xs uppercase text-slate-500 font-semibold">
+            Outstanding
+          </p>
+          <h2 className="text-2xl font-bold text-red-600 mt-2">
+            ₹{(
+              invoices.reduce(
+                (sum, inv) => sum + (inv.financials?.balanceDue || 0),
+                0
+              )
+            ).toLocaleString("en-IN")}
+          </h2>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <p className="text-xs uppercase text-slate-500 font-semibold">
+            Finalized
+          </p>
+          <h2 className="text-2xl font-bold mt-2">
+            {invoices.filter(i => i.status === "FINALIZED").length}
+          </h2>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+          <p className="text-xs uppercase text-slate-500 font-semibold">
+            Drafts
+          </p>
+          <h2 className="text-2xl font-bold text-amber-500 mt-2">
+            {invoices.filter(i => i.status === "DRAFT").length}
+          </h2>
+        </div>
+
+      </div>
+
       {/* TEMPORAL SEARCH AND DATE FILTER TRAY BAR */}
       <div className="grid grid-cols-1 sm:flex sm:items-end gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-sm">
         <div className="flex flex-col gap-1.5">
@@ -158,26 +222,48 @@ const Invoices = () => {
 
         {!isLoading && !isError && invoices.length > 0 && (
           <div className="flex flex-col h-full">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
+            <div className="w-full px-3">
+              <table className="w-full text-left text-sm border-separate border-spacing-0">
                 <thead className="bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-medium text-xs uppercase tracking-wider">
                   <tr>
-                    <th className="px-6 py-3.5">Invoice ID</th>
-                    <th className="px-6 py-3.5">Customer Name</th>
-                    <th className="px-6 py-3.5">Billing Date</th>
-                    <th className="px-6 py-3.5">Due Date</th> {/* ADDED */}
-                    <th className="px-6 py-3.5 text-right">Grand Total</th>
-                    <th className="px-6 py-3.5 text-center">State Status</th>
-                    <th className="px-6 py-3.5 w-12"></th>
+                    <th className="w-[12%] px-4 py-3">Invoice</th>
+                    <th className="w-[20%] px-4 py-3">Customer</th>
+                    <th className="w-[10%] px-4 py-3">Bill Date</th>
+                    <th className="w-[10%] px-4 py-3">Due</th>
+                    <th className="w-[9%] px-4 py-3 text-right">Total</th>
+                    <th className="w-[9%] px-4 py-3 text-right">Received</th>
+                    {/* <th className="w-[9%] px-4 py-3 text-right">Balance</th> */}
+                    <th className="w-[10%] px-4 py-3 text-center">Payment</th>
+                    <th className="w-[7%] px-4 py-3 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
                   {invoices.map((invoice) => (
-                    <tr key={invoice._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                      <td className="px-6 py-4 font-mono font-medium text-slate-900 dark:text-white uppercase tracking-wider text-xs">
-                        {invoice.invoiceNumber}
+                    <tr
+                      key={invoice._id}
+                      onClick={() => navigate(`/invoices/${invoice._id}`)}
+                      className="cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-150"
+                    >
+                      <td className="px-4 py-3 font-mono font-medium uppercase tracking-wider text-xs">
+                        {invoice.invoiceNumber ? (
+                          <span className="text-slate-900 dark:text-white">
+                            {invoice.invoiceNumber}
+                          </span>
+                        ) : invoice.status === "DRAFT" ? (
+                          <span className="text-blue-600 font-semibold">
+                            Pending
+                          </span>
+                        ) : invoice.status === "CANCELLED" ? (
+                          <span className="text-red-600 font-semibold">
+                            Cancelled
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">
+                            N/A
+                          </span>
+                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <div className="font-semibold text-slate-900 dark:text-white max-w-xs truncate">
                           {invoice.customerSnapshot?.name}
                         </div>
@@ -185,7 +271,7 @@ const Invoices = () => {
                           {invoice.customerSnapshot?.email}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
                         {new Date(invoice.dates?.invoiceDate).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -193,29 +279,49 @@ const Invoices = () => {
                         })}
                       </td>
                       {/* ADDED DUE DATE ROW CELL */}
-                      <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
                         {invoice.dates?.dueDate ? new Date(invoice.dates.dueDate).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric'
                         }) : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono">
-                        ₹{invoice.financials?.grandTotal?.toFixed(2)}
+                      <td className="px-3 py-4 text-right font-bold text-slate-900 dark:text-white font-mono whitespace-nowrap">
+                        ₹{(invoice.financials?.grandTotal ?? 0).toFixed(2)}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-3 text-right font-mono font-semibold">
+                        {invoice.status === "FINALIZED" ? (
+                          <>₹{(invoice.financials?.amountPaid ?? 0).toFixed(2)}</>
+                        ) : (
+                          <span className="text-slate-400 italic">N/A</span>
+                        )}
+                      </td>
+                      {/* <td className="px-3 py-4 text-right font-bold text-red-400 dark:text-white font-mono whitespace-nowrap">
+                        ₹{invoice.financials?.balanceDue?.toFixed(2)}
+                      </td> */}
+                      <td className="px-4 py-3 text-center">
+                        {invoice.status !== "FINALIZED" ? (
+                          <span className="text-slate-400 italic">
+                            N/A
+                          </span>
+                        ) : invoice.financials?.balanceDue === 0 ? (
+                          <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+                            PAID
+                          </span>
+                        ) : invoice.financials?.amountPaid > 0 ? (
+                          <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[11px] font-semibold">
+                            PARTIAL
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-semibold">
+                            UNPAID
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-center">
                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyles(invoice.status)}`}>
                           {invoice.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => navigate(`/invoices/${invoice._id}`)}
-                          className="p-1.5 text-slate-400 hover:text-primary dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
-                          title="Manage Invoice"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
                       </td>
                     </tr>
                   ))}

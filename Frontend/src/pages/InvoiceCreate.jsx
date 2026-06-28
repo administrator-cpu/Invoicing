@@ -30,7 +30,7 @@ export default function InvoiceCreate() {
       invoiceDate: '', dueDate: '',
       billingCycleStart: '', billingCycleEnd: '',
       billingMode: 'POSTPAID',
-      discount: 0, applyIgst: true
+      discount: 0,
     }
   });
 
@@ -71,11 +71,11 @@ export default function InvoiceCreate() {
               bandwidth: conn.bandwidth || null,
               ratePerMb: conn.commercials?.ratePerMb || 0,
               mrc: conn.commercials?.mrc || 0,
-              activationDateAtBilling: conn.activationDate || null,
               historyEventType: null
             },
             description: conn.opportunityId || 'No Opportunity ID',
             sourceType: "CONNECTION",
+            sacCode: "998422",
             crmHistoryRefId: null,
             sacCode: "998422",
             qty: 1,
@@ -85,8 +85,7 @@ export default function InvoiceCreate() {
             periodStart: defaults.billingCycleStart,
             periodEnd: defaults.billingCycleEnd,
             billingMeta: { billingMode: defaults.billingMode || "POSTPAID", calculationType: "FULL_MONTH", daysCharged: 30 },
-            statusSnapshot: conn.billingStatus,
-            workflowStatus: conn.workflowStatus
+            status: conn.status || null
           };
         })
       });
@@ -96,6 +95,9 @@ export default function InvoiceCreate() {
   const handlePreview = () => {
     const formData = getValues();
 
+    const selectedCustomerBillingProfile = workspaceData.customer.billingProfile.find(p => p._id === formData.selectedGstProfileId);
+    const selectedCompanyProfile = workspaceData.companyProfiles.find(p => p._id === formData.selectedCompanyProfileId);
+
     const connections = formData.items.filter(item => item.isSelected && item.sourceType === "CONNECTION")
       .map(item => ({
         crmConnectionId: item.crmConnectionSnapshot.connectionId,
@@ -104,12 +106,17 @@ export default function InvoiceCreate() {
         serviceType: item.crmConnectionSnapshot.serviceType,
         bandwidth: item.crmConnectionSnapshot.bandwidth,
         commercials: {
-          mrc: item.crmConnectionSnapshot.mrc
+          mrc: item.commercials?.mrc || 0,
+          ratePerMb: item.commercials?.ratePerMb || 0,
+          otc: item.commercials?.otc || 0,
+          advance: item.commercials?.advance || 0
         },
         history: item.history || [],
         ips: item.ips || {},
         technicalDetails: item.technicalDetails || {},
-        acceptanceDate: item.crmConnectionSnapshot.activationDateAtBilling,
+        acceptanceDate: item.originalConnection?.acceptanceDate ?? null,
+        status: item.originalConnection.status,
+        providerCost: item.originalConnection.providerCost || {},
         terminationDetails: item.terminationDetails || null
       }));
 
@@ -131,13 +138,13 @@ export default function InvoiceCreate() {
       billingCycleEnd: formData.billingCycleEnd,
       billingMode: formData.billingMode,
       discount: formData.discount,
-      applyIgst: formData.applyIgst
+      selectedCustomerBillingProfile,
+      selectedCompanyProfile,
     };
 
     // 3. Send to API and replace table/summary with Canonical Backend Response
     previewInvoice(previewPayload, {
       onSuccess: (data) => {
-        console.log("PREVIEW RESPONSE", data);
         setValue('items', data.items.map(item => ({ ...item, isSelected: true })));
         setValue('financials', data.financials);
         setValue('previewVersion', data.previewVersion);
@@ -153,7 +160,7 @@ export default function InvoiceCreate() {
 
     const finalItems = formData.items
       .filter(item => item.isSelected)
-      .map(({ isSelected, workflowStatus, ...strictItemSchema }) => strictItemSchema);
+      .map(({ isSelected, status, ...strictItemSchema }) => strictItemSchema);
 
     saveDraft({
       customer: workspaceData.customer,
@@ -166,7 +173,6 @@ export default function InvoiceCreate() {
       billingCycleEnd: formData.billingCycleEnd,
       billingMode: formData.billingMode,
       discount: formData.discount,
-      applyIgst: formData.applyIgst
     });
   };
 
@@ -334,10 +340,36 @@ export default function InvoiceCreate() {
                         <span className="font-semibold text-[#EA580C]">-{formatINR(financials.discount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Total Taxes</span>
-                      <span className="font-semibold text-gray-900">{formatINR(financials.taxes.totalTax)}</span>
-                    </div>
+                    {financials.taxes.isInterstate ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">
+                          IGST ({financials.taxes.igstRate}%)
+                        </span>
+                        <span className="font-semibold text-gray-900">
+                          {formatINR(financials.taxes.igstAmount)}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">
+                            CGST ({financials.taxes.cgstRate}%)
+                          </span>
+                          <span className="font-semibold text-gray-900">
+                            {formatINR(financials.taxes.cgstAmount)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">
+                            SGST ({financials.taxes.sgstRate}%)
+                          </span>
+                          <span className="font-semibold text-gray-900">
+                            {formatINR(financials.taxes.sgstAmount)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-900 font-black text-lg">Grand Total</span>
