@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,6 +18,13 @@ const loginSchema = z.object({
 const Login = () => {
   const navigate = useNavigate();
   const setUser = useAuthStore((state) => state.setUser);
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [step, setStep] = useState('LOGIN');
   const [showPassword, setShowPassword] = useState(false);
