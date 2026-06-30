@@ -130,40 +130,26 @@ export const buildInvoiceHTML = (invoice) => {
 };
 
 function buildHeader(invoice) {
+  // Assuming this resolves to a path or base64 string your PDF generator can read!
   const logoPath = path.join(process.cwd(), "assets", "fab5.png");
 
   return `
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #fed7aa; padding-bottom: 32px; font-family: sans-serif;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #fed7aa; padding-bottom: 20px; font-family: sans-serif;">
 
     <div style="display: flex; flex-direction: column; gap: 8px;">
-      <img src="${logo}" style="height: 80px; width: auto; object-fit: contain;" alt="Company Logo" />
-      <div style="font-size: 14px; line-height: 24px;">
-        <h2 style="font-size: 16px; font-weight: bold; color: #dc2626; text-transform: uppercase; margin: 0;">
-          FAB FIVE NETWORK PRIVATE LIMITED
-        </h2>
-        <p style="margin: 0;">
-          ${invoice.companySnapshot?.address?.street || ''}
-        </p>
-        <p style="margin: 0;">
-          ${invoice.companySnapshot?.address?.city || ''}, 
-          ${invoice.companySnapshot?.address?.state || ''}
-        </p>
-        <p style="margin: 0;">
-          ${invoice.companySnapshot?.address?.country || ''} 
-          ${invoice.companySnapshot?.address?.pincode || ''}
-        </p>
-      </div>
+      <img src="${logo}" style="height: 110px; width: auto; object-fit: contain;" alt="Company Logo" />
     </div>
 
     <div style="text-align: right;">
-      <h1 style="font-size: 36px; font-weight: 900; color: #ea580c; letter-spacing: 0.025em; margin: 0;">
+      <h1 style="font-size: 30px; font-weight: 900; letter-spacing: 0.025em; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
         TAX INVOICE
       </h1>
+      
       <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-top: 4px; margin-bottom: 20px;">
         Original Copy for Recipient
       </p>
       
-      <div style="font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 14px; display: flex; flex-direction: column; gap: 4px; border: 1px solid #fdba74; border-radius: 4px; padding: 8px;">
         <div style="display: flex; justify-content: space-between; gap: 32px;">
           <span style="font-weight: 600;">Bill No. :</span>
           <span style="font-family: monospace;">${invoice.invoiceNumber || "Draft"}</span>
@@ -177,6 +163,7 @@ function buildHeader(invoice) {
           <span>${formatDate(invoice.dates?.dueDate)}</span>
         </div>
       </div>
+
     </div>
 
   </div>
@@ -184,83 +171,103 @@ function buildHeader(invoice) {
 }
 
 function buildBilling(invoice) {
-  const customer = invoice.customerSnapshot;
+  // Customer Data
+  const customer = invoice.customerSnapshot || {};
   const billing = customer.billingProfile || {};
   const address = billing.address || {};
 
-  const taxes = invoice.financials.taxes || {};
+  // Company Data
+  const company = invoice.companySnapshot || {};
+  const companyAddress = company.address || {};
+
+  // Financials
+  const taxes = invoice.financials?.taxes || {};
   const financials = invoice.financials || {};
 
-  const stateCode = billing.gstNumber ? billing.gstNumber.substring(0, 2) : "-";
+  // Reusable Gradient Header Style
+  const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;";
 
   return `
-  <div style="display: flex; gap: 32px; margin-top: 32px; align-items: stretch; font-family: 'Inter', sans-serif;">
+  <div style="display: flex; gap: 32px; margin-top:20px; align-items: stretch; font-family: 'Inter', sans-serif;">
     
-    <div style="flex: 2; display: flex; flex-direction: column; gap: 20px;">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
       
       <div style="border: 1px solid #fdba74; border-radius: 4px; display: flex; flex-direction: column; flex: 1;">
-        <div style="background-color: #f97316; color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-          Billing Address
+        <div style="${headerStyle}">
+          Billed From
         </div>
-        <div style="padding: 20px;">
-          <h3 style="font-weight: bold; font-size: 18px; margin-bottom: 24px; color: #000;">
-            ${customer.name || '-'}
+        <div style="padding: 20px; display: flex; flex-direction: column; flex: 1;">
+          <h3 style="font-weight: bold; font-size: 16px; margin: 0 0 8px 0; color: #111827;">
+            ${company.name || "FAB FIVE NETWORK PRIVATE LIMITED"}
           </h3>
-          <div style="font-size: 12px; line-height: 1.6; color: #222;">
-            <p style="margin: 0;">${address.street || "-"}</p>
-            <p style="margin: 0;">${address.city || ""}</p>
-            <p style="margin: 0;">${address.state || ""} ${address.pincode || ""}</p>
+          <div style="font-size: 12px; line-height: 1.6; color: #374151;">
+            <p style="margin: 0;">${companyAddress.street || ""}</p>
+            <p style="margin: 0;">
+              ${companyAddress.city || ""}${companyAddress.city ? ", " : ""}
+              ${companyAddress.state || ""}
+            </p>
+            <p style="margin: 0;">${companyAddress.pincode || ""}</p>
+          </div>
+          
+          <div style="margin-top: auto; padding-top: 16px;">
+            <div style="border-top: 1px dashed #fed7aa; padding-top: 16px; font-size: 12px; display: flex; justify-content: space-between;">
+              <span style="color: #4b5563;">Company GSTIN</span>
+              <span style="font-weight: 500; color: #111827;">${company.gstNumber || "-"}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div style="border: 1px solid #fdba74; border-radius: 4px; display: flex; flex-direction: column; flex: 1;">
-        <div style="background-color: #f97316; color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-          GSTIN Details
+        <div style="${headerStyle}">
+          Billed To
         </div>
-        <div style="padding: 20px; font-size: 12px; display: flex; flex-direction: column; gap: 12px; color: #222;">
-          <div style="display: flex; justify-content: space-between;">
-            <span>Customer GSTIN</span>
-            <span>${billing.gstNumber || "-"}</span>
+        <div style="padding: 20px; display: flex; flex-direction: column; flex: 1;">
+          <h3 style="font-weight: bold; font-size: 16px; margin: 0 0 8px 0; color: #111827;">
+            ${customer.name || "-"}
+          </h3>
+          <div style="font-size: 12px; line-height: 1.6; color: #374151;">
+            <p style="margin: 0;">${address.street || "-"}</p>
+            <p style="margin: 0;">${address.city || ""}</p>
+            <p style="margin: 0;">${address.state || ""} ${address.pincode || ""}</p>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>Place of Supply</span>
-            <span>${address.state || "-"}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>State Code</span>
-            <span>${stateCode}</span>
+          
+          <div style="margin-top: auto; padding-top: 16px;">
+            <div style="border-top: 1px dashed #fed7aa; padding-top: 16px; font-size: 12px; display: flex; justify-content: space-between;">
+              <span style="color: #4b5563;">Customer GSTIN</span>
+              <span style="font-weight: 500; color: #111827;">${billing.gstNumber || "-"}</span>
+            </div>
           </div>
         </div>
       </div>
 
     </div>
 
-    <div style="flex: 3; display: flex; flex-direction: column;">
+    <div style="flex: 1; display: flex; flex-direction: column;">
       
       <div style="border: 1px solid #fdba74; border-radius: 4px; display: flex; flex-direction: column; flex: 1;">
-        <div style="background-color: #f97316; color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+        <div style="${headerStyle}">
           Summary Of Charges
         </div>
         
-        <div style="padding: 24px; font-size: 12px; display: flex; flex-direction: column; color: #222;">
+        <div style="padding: 24px; font-size: 12px; display: flex; flex-direction: column; flex: 1; color: #374151;">
           
           <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
             <span>Recurring Charges</span>
-            <span>₹${money(financials.subTotal)}</span>
+            <span style="font-weight: 500;">₹${money(financials.subTotal)}</span>
           </div>
           
           <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
             <span>One Time Charges</span>
-            <span>₹0.00</span>
+            <span style="font-weight: 500;">₹0.00</span>
           </div>
           
           <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
             <span>Discount</span>
-            <span>₹${money(financials.discount)}</span>
+            <span style="font-weight: 500;">₹${money(financials.discount)}</span>
           </div>
           
-          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 16px;">
             <span>Sub Total</span>
             <span>₹${money(financials.subTotal)}</span>
           </div>
@@ -268,31 +275,38 @@ function buildBilling(invoice) {
           ${taxes.isInterstate ? `
             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
               <span>IGST (18%)</span>
-              <span>₹${money(taxes.igstAmount)}</span>
+              <span style="font-weight: 500;">₹${money(taxes.igstAmount)}</span>
             </div>
           ` : `
             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
               <span>CGST (9%)</span>
-              <span>₹${money(taxes.cgstAmount)}</span>
+              <span style="font-weight: 500;">₹${money(taxes.cgstAmount)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
               <span>SGST (9%)</span>
-              <span>₹${money(taxes.sgstAmount)}</span>
+              <span style="font-weight: 500;">₹${money(taxes.sgstAmount)}</span>
             </div>
           `}
 
-          <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 32px;">
-            <span>Total (INR)</span>
-            <span>₹${money(financials.grandTotal)}</span>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: bold; color: #111827; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+            <span>Total Tax</span>
+            <span>₹${money(taxes.totalTax)}</span>
           </div>
 
-          <div style="border-top: 1px solid #fdba74; margin-top: 24px; padding-top: 16px;">
-            <p style="font-size: 12px; color: #4b5563; margin: 0; font-weight: 600;">
-              Amount in Words :
-            </p>
-            <p style="margin-top: 8px; margin-bottom: 0; font-size: 12px; font-weight: 500; font-style: italic; color: #222;">
-              ${toWords.convert(financials.grandTotal)}
-            </p>
+          <div style="margin-top: auto; padding-top: 32px;">
+            <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 18px; border-top: 1px solid #e5e7eb; padding-top: 16px; color: #111827;">
+              <span>Total (INR)</span>
+              <span style="color: #ea580c;">₹${money(financials.grandTotal)}</span>
+            </div>
+
+            <div style="border-top: 1px solid #fdba74; margin-top: 24px; padding-top: 16px;">
+              <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.025em; margin: 0; font-weight: bold;">
+                Amount in Words
+              </p>
+              <p style="margin-top: 8px; margin-bottom: 0; font-size: 12px; font-weight: 600; font-style: italic; color: #1f2937;">
+                ${toWords.convert(financials.grandTotal)}
+              </p>
+            </div>
           </div>
 
         </div>
@@ -320,6 +334,8 @@ function buildPaymentDetails() {
     }
   ];
 
+  const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;";
+
   // Map through the array to generate the table rows
   const bankRows = BANKS.map(bank => `
     <tr>
@@ -339,9 +355,9 @@ function buildPaymentDetails() {
   `).join('');
 
   return `
-  <div style="margin-top: 32px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; font-family: 'Inter', sans-serif;">
+  <div style="margin-top: 32px; border: 1px solid #fdba74; border-radius: 8px; overflow: hidden; font-family: 'Inter', sans-serif;">
     
-    <div style="background-color: #f97316; color: white; padding: 8px 16px; border-bottom: 1px solid #cbd5e1;">
+    <div style="${headerStyle}; color: white; padding: 8px 16px; border-bottom: 1px solid #cbd5e1;">
       <h3 style="margin: 0; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.025em;">
         Payment Instructions
       </h3>
@@ -386,9 +402,10 @@ function buildPaymentDetails() {
 }
 
 function buildItems(invoice, isInterstate) {
-  const rows = (invoice.items || []).map((item) => {
+  const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;";
+  const rows = (invoice.items || []).map((item, index, array) => {
     const taxableAmount = Number(item.mrc ?? item.amount ?? 0);
-    const lineTax = round2(taxableAmount * 0.18);
+    const lineTax = taxableAmount * 0.18;
 
     const aEnd = item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address || item.technicalDetails?.aEnd?.address || "-";
     const bEnd = item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address || item.technicalDetails?.bEnd?.address || "-";
@@ -398,75 +415,121 @@ function buildItems(invoice, isInterstate) {
     const dateTop = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
     const dateBottom = dateObj.getFullYear();
 
-    const cellStyle = "padding:8px; font-size:10px; border:1px solid #fdba74; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word;";
+    // Determine if we need a bottom border (divide-y)
+    const isLastRow = index === array.length - 1;
+    const rowBorder = isLastRow ? "" : "border-bottom: 1px solid #ffedd5;";
+
+    // Reusable vertical divider for cells (divide-x)
+    const tdDivideX = "border-right: 1px solid #ffedd5;";
 
     return `
-      <tr>
-        <td style="padding:10px; font-size:11px; border: 1px solid #fdba74;">${item.description || "-"}</td>
-        <td style="padding:10px; text-align:center; font-family:monospace; font-size:10px; border: 1px solid #fdba74;">${item.sacCode || "-"}</td>
-        <td style="padding:10px; text-align:center; font-size:10px; border: 1px solid #fdba74;">
-            <div style="font-weight:600;">${dateTop}</div>
-            <div style="color:#666;">${dateBottom}</div>
+      <tr style="${rowBorder}">
+        <td style="padding: 16px 8px; vertical-align: top; color: #111827; font-weight: 500; word-wrap: break-word; ${tdDivideX}">${item.description || "-"}</td>
+        
+        <td style="padding: 16px 4px; vertical-align: top; text-align: center; font-family: monospace; color: #6b7280; font-size: 11px; ${tdDivideX}">${item.sacCode || "-"}</td>
+        
+        <td style="padding: 16px 8px; vertical-align: top; text-align: center; color: #4b5563; font-size: 12px; ${tdDivideX}">
+            <span style="display: block; font-weight: 500;">${dateTop}</span>
+            <span style="display: block; color: #9ca3af;">${dateBottom}</span>
         </td>
-        <td style="padding:10px; text-align:center; font-weight:bold; border: 1px solid #fdba74;">${item.crmConnectionSnapshot?.bandwidth || "-"}</td>
-        <td style="padding:10px; font-size:10px; line-height:1.4; border: 1px solid #fdba74; word-wrap: break-word;">${aEnd}</td>
-        <td style="padding:10px; font-size:10px; line-height:1.4; border: 1px solid #fdba74; word-wrap: break-word;">${bEnd}</td>
-        <td style="padding:10px; text-align:right; border: 1px solid #fdba74;">₹${money(taxableAmount)}</td>
+        
+        <td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #374151; font-family: monospace; font-size: 12px; ${tdDivideX}">${item.crmConnectionSnapshot?.bandwidth || "-"}</td>
+        
+        <td style="padding: 16px 8px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${aEnd}</td>
+        
+        <td style="padding: 16px 8px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${bEnd}</td>
+        
+        <td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #111827; font-weight: 500; ${tdDivideX}">₹${money(taxableAmount)}</td>
         
         ${isInterstate
-        ? `<td style="padding:10px; text-align:right; border: 1px solid #fdba74;">₹${money(lineTax)}</td>`
-        : `<td style="padding:10px; text-align:right; border: 1px solid #fdba74;">₹${money(lineTax / 2)}</td>
-             <td style="padding:10px; text-align:right; border: 1px solid #fdba74;">₹${money(lineTax / 2)}</td>`
+        ? `<td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax)}</td>`
+        : `<td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax / 2)}</td>
+           <td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax / 2)}</td>`
       }
         
-        <td style="padding:10px; text-align:right; font-weight:bold; color:#ea580c; border: 1px solid #fdba74;">₹${money(taxableAmount + lineTax)}</td>
+        <td style="padding: 16px 8px; vertical-align: top; text-align: right; font-weight: bold; color: #ea580c;">₹${money(taxableAmount + lineTax)}</td>
       </tr>
     `;
   }).join("");
 
-  return `
-    <h2 style="margin-bottom:18px; color:#ea580c; font-size:22px; font-weight:bold;">SUMMARY OF ITEMS</h2>
+  const thDivideX = "border-right: 1px solid #fb923c;";
+  const thStyle = "padding: 12px 8px; font-weight: 600; letter-spacing: 0.025em; line-height: 1.25; text-align: center;";
 
-    <table style="width:100%; border-collapse:collapse; table-layout:fixed; border:1px solid #fdba74; font-family: 'Inter', sans-serif;">
-      <thead>
-        <tr style="background:#ea580c; color:white;">
-          <th style="width:18%; padding:10px; border:1px solid #fdba74; font-size:12px;">Service<br>Description</th>
-          <th style="width:6%; padding:10px; border:1px solid #fdba74; font-size:12px;">SAC</th>
-          <th style="width:8%; padding:10px; border:1px solid #fdba74; font-size:12px;">Billing<br>Period</th>
-          <th style="width:5%; padding:10px; border:1px solid #fdba74; font-size:12px;">BW</th>
-          <th style="width:14%; padding:10px; border:1px solid #fdba74; font-size:12px;">A End Address</th>
-          <th style="width:14%; padding:10px; border:1px solid #fdba74; font-size:12px;">B End Address</th>
-          <th style="width:10%; padding:10px; border:1px solid #fdba74; font-size:12px; text-align:right;">Charge</th>
-          ${isInterstate
-      ? `<th style="width:10%; padding:10px; border:1px solid #fdba74; font-size:12px; text-align:right;">IGST</th>`
-      : `<th style="width:7%; padding:10px; border:1px solid #fdba74; font-size:12px; text-align:right;">CGST</th>
-               <th style="width:7%; padding:10px; border:1px solid #fdba74; font-size:12px; text-align:right;">SGST</th>`
+  return `
+    <div style="font-family: 'Inter', sans-serif;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e5e7eb; padding-bottom: 24px;">
+        
+        <div>
+          <h1 style="font-size: 30px; font-weight: bold; letter-spacing: -0.025em; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
+            Summary of Items
+          </h1>
+          <p style="color: #6b7280; margin-top: 8px; margin-bottom: 0; font-size: 16px;">
+            Detailed breakdown of billed services
+          </p>
+        </div>
+
+        <div style="margin-top: 40px;">
+          <p style="font-size: 14px; font-weight: bold; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
+            All amounts are in INR
+          </p>
+        </div>
+        
+      </div>
+
+      <div style="margin-top: 32px; background-color: #ffffff; border: 1px solid #fed7aa; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border-radius: 12px; overflow: hidden;">
+        
+        <table style="width: 100%; font-size: 14px; text-align: left; table-layout: fixed; border-collapse: collapse;">
+          
+          <thead style="${headerStyle}">
+            <tr>
+              <th style="width: 18%; ${thStyle} ${thDivideX}">Service<br/>Description</th>
+              <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">SAC</th>
+              <th style="width: 7%; ${thStyle} ${thDivideX}">Billing<br/>Date</th>
+              <th style="width: 4%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW</th>
+              <th style="width: 14%; ${thStyle} ${thDivideX}">A End<br/>Address</th>
+              <th style="width: 14%; ${thStyle} ${thDivideX}">B End<br/>Address</th>
+              <th style="width: 11%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
+              
+              ${isInterstate
+      ? `<th style="width: 12%; ${thStyle} ${thDivideX}">IGST</th>`
+      : `<th style="width: 6%; ${thStyle} ${thDivideX}">CGST</th>
+                <th style="width: 6%; ${thStyle} ${thDivideX}">SGST</th>`
     }
-          <th style="width:11%; padding:10px; border:1px solid #fdba74; font-size:12px; text-align:right;">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-      <tfoot>
-        <tr style="background:#fff7ed; font-weight:bold;">
-          <td colspan="${isInterstate ? 8 : 9}" style="padding:12px; text-align:right; border:1px solid #fdba74; font-size:13px;">
-            Grand Total
-          </td>
-          <td style="padding:12px; text-align:right; border:1px solid #fdba74; font-size:13px; color:#ea580c; font-weight:bold;">
-            ₹${money(invoice.financials.grandTotal)}
-          </td>
-        </tr>
-      </tfoot>
-    </table>
+              
+              <th style="width: 14%; ${thStyle}">Total</th>
+            </tr>
+          </thead>
+          
+          <tbody>
+            ${rows}
+          </tbody>
+          
+          <tfoot style="background-color: #fff7ed; border-top: 2px solid #fed7aa;">
+            <tr>
+              <td colspan="${isInterstate ? 8 : 9}" style="padding: 16px; text-align: right; font-weight: bold; color: #1f2937; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; border-right: 1px solid #fed7aa;">
+                Grand Total
+              </td>
+              <td style="padding: 16px 8px; text-align: right; font-weight: 900; font-size: 14px; color: #ea580c;">
+                ₹${money(invoice.financials?.grandTotal)}
+              </td>
+            </tr>
+          </tfoot>
+          
+        </table>
+        
+      </div>
+      
+    </div>
   `;
 }
 
 function buildTerms() {
+  const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;";
   return `
   <div style="border: 1px solid #fdba74; border-radius: 8px; margin-top: 32px; overflow: hidden; font-family: 'Inter', sans-serif;">
     
-    <div style="background-color: #f97316; color: white; padding: 8px 16px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.025em;">
+    <div style="${headerStyle}; color: white; padding: 8px 16px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 0.025em;">
       Terms & Conditions
     </div>
     
