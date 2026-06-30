@@ -3,7 +3,8 @@ import catchAsync from '../../utils/catchAsync.js';
 import {
   searchCrmCustomers,
   getCrmCustomerDetails,
-  getCrmCustomerConnections
+  getCrmCustomerConnections,
+  getCrmDashboardConnections
 } from '../../services/crm.service.js';
 
 const cache = new NodeCache({ stdTTL: 300, checkperiod: 320 });
@@ -26,7 +27,7 @@ export const searchCustomers = catchAsync(async (req, res, next) => {
   const customersWithConnections = await Promise.all(customers.map(async customer => {
     const customerId = customer._id || customer.id;
     try {
-      const connections = await getCrmCustomerConnections(customerId);
+      const connections = await getCrmDashboardConnections(customerId);
       return {
         ...customer,
         connectionCount: connections.count || 0,

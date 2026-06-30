@@ -93,6 +93,7 @@ export const ServiceItemsTable = () => {
           </thead>
           <tbody className="divide-y divide-gray-400">
             {fields.map((field, index) => {
+              const item = watch(`items.${index}`);
               const isSelected = watch(`items.${index}.isSelected`);
               const sourceType = watch(`items.${index}.sourceType`);
 
@@ -112,6 +113,11 @@ export const ServiceItemsTable = () => {
                       {...register(`items.${index}.description`)}
                       className="w-full resize-none overflow-hidden break-words whitespace-pre-wrap bg-transparent border border-transparent hover:border-gray-200 rounded p-1 text-sm font-bold text-gray-900 focus:border-[#EA580C] outline-none"
                     />
+                    {item.billingMeta?.calculationType === "PRORATA" && (
+                      <div className="mt-1 text-[10px] font-semibold text-orange-600">
+                        PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
+                      </div>
+                    )}
                   </td>
 
                   <td className="px-3 py-3">
@@ -126,7 +132,7 @@ export const ServiceItemsTable = () => {
 
                   <td className="px-3 py-3">
                     <span className="text-sm font-semibold text-gray-600">
-                      {sourceType === 'CONNECTION' ? field.crmConnectionSnapshot.serviceType :
+                      {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
                         sourceType === 'IP_ADDRESS' ? 'IP' :
                           sourceType === 'OTC' ? '-' : 'Manual'}
                     </span>
@@ -135,7 +141,7 @@ export const ServiceItemsTable = () => {
                   <td className="px-3 py-3">
                     {sourceType === 'CONNECTION' ? (
                       <span className="text-sm font-bold text-gray-900 px-2">
-                        {field.crmConnectionSnapshot.bandwidth || 'N/A'}
+                        {item.crmConnectionSnapshot.bandwidth || 'N/A'}
                       </span>
                     ) : sourceType === 'OTC' ? (
                       <span className="text-sm font-bold text-gray-400 px-2">-</span>
@@ -151,13 +157,13 @@ export const ServiceItemsTable = () => {
                   <td className="px-3 py-3">
                     {sourceType === 'CONNECTION' ? (
                       <div className="flex flex-col gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(field.status)}`}>
-                          {field.status}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(item.status)}`}>
+                          {item.status}
                         </span>
                       </div>
                     ) : (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(field.statusSnapshot)}`}>
-                        {field.statusSnapshot}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(item.statusSnapshot)}`}>
+                        {item.statusSnapshot}
                       </span>
                     )}
                   </td>
@@ -170,12 +176,18 @@ export const ServiceItemsTable = () => {
                   </td>
 
                   <td className="px-3 py-3">
-                    {sourceType === 'OTC' ? (
-                      <span className="text-sm font-bold text-gray-400 px-2">-</span>
+                    {sourceType === "CONNECTION" || sourceType === "IP_ADDRESS" ? (
+                      <span className="block px-2 py-2 text-sm font-semibold text-gray-700">
+                        {item.rate}
+                      </span>
                     ) : (
                       <input
-                        type="number" step="any"
-                        {...register(`items.${index}.rate`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
+                        type="number"
+                        step="0.01"
+                        {...register(`items.${index}.rate`, {
+                          valueAsNumber: true,
+                          onChange: invalidatePreview
+                        })}
                         className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
                       />
                     )}

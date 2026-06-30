@@ -24,7 +24,7 @@ const InvoiceItemsSection = ({ invoice }) => {
       {/* Header */}
       <div className="flex justify-between items-start border-b pb-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-[#F58220] via-[#E04924] via-45% to-[#9A0D14] bg-clip-text text-transparent">
             Summary of Items
           </h1>
           <p className="text-gray-500 mt-2">
@@ -32,7 +32,7 @@ const InvoiceItemsSection = ({ invoice }) => {
           </p>
         </div>
 
-        <div className="text-sm">
+        <div className="text-sm mt-10 bg-linear-to-r from-[#F58220] via-[#E04924] via-45% to-[#9A0D14] bg-clip-text text-transparent">
           <p>
             <b>All amounts are in INR</b>
           </p>
@@ -83,7 +83,7 @@ const InvoiceItemsSection = ({ invoice }) => {
         <InvoiceItemsTable invoice={invoice} />
       </div>
 
-      {/* Totals */}
+      {/* Totals
       <div className="flex justify-end mt-10">
         <div className="w-[380px] rounded-xl border p-6">
           <div className="flex justify-between mb-3">
@@ -119,7 +119,7 @@ const InvoiceItemsSection = ({ invoice }) => {
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Terms & Conditions */}
       

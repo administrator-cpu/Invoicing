@@ -114,7 +114,6 @@ const invoiceItemSchema = new mongoose.Schema({
 const InvoiceSchema = new mongoose.Schema({
   invoiceNumber: {
     type: String,
-    // unique: true,
     sparse: true,
     default: null
   },

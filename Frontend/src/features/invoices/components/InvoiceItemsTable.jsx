@@ -33,26 +33,26 @@ export default function InvoiceItemsTable({ invoice }) {
       <div className="w-full">
         {/* Added 'divide-x divide-orange-100' to the table elements to draw vertical lines between every column */}
         <table className="w-full text-sm text-left table-fixed border-collapse">
-          <thead className="bg-[#ea580c] text-white">
+          <thead className="bg-logo-gradient text-white">
             <tr className="divide-x divide-orange-400">
-              <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight">Service<br/>Description</th>
+              <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight text-center">Service<br/>Description</th>
               <th className="py-3 px-1 w-[6%] font-semibold tracking-wide text-center">SAC</th>
               <th className="py-3 px-2 w-[7%] font-semibold tracking-wide leading-tight text-center">Billing<br/>Date</th>
               <th className="py-3 px-1 w-[4%] font-semibold tracking-wide text-center">BW</th>
-              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide leading-tight">A End<br/>Address</th>
-              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide leading-tight">B End<br/>Address</th>
-              <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-right">Charge</th>
+              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide leading-tight text-center">A End<br/>Address</th>
+              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide leading-tight text-center">B End<br/>Address</th>
+              <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-right text-center">Charge</th>
               
               {isInterstate ? (
-                <th className="py-3 px-2 w-[12%] font-semibold tracking-wide text-right">IGST</th>
+                <th className="py-3 px-2 w-[12%] font-semibold tracking-wide text-center">IGST</th>
               ) : (
                 <>
-                  <th className="py-3 px-2 w-[6%] font-semibold tracking-wide text-right">CGST</th>
-                  <th className="py-3 px-2 w-[6%] font-semibold tracking-wide text-right">SGST</th>
+                  <th className="py-3 px-2 w-[6%] font-semibold tracking-wide text-center ">CGST</th>
+                  <th className="py-3 px-2 w-[6%] font-semibold tracking-wide text-center">SGST</th>
                 </>
               )}
               
-              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-right">Total</th>
+              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-center">Total</th>
             </tr>
           </thead>
           
@@ -74,7 +74,7 @@ export default function InvoiceItemsTable({ invoice }) {
                     <span className="block font-medium">{dateSplit.top}</span>
                     <span className="block text-gray-400">{dateSplit.bottom}</span>
                   </td>
-                  <td className="py-4 px-1 align-top text-center text-gray-700 font-semibold text-xs">
+                  <td className="py-4 px-1 align-top text-center text-gray-700 font-mono text-xs">
                     {item.crmConnectionSnapshot?.bandwidth || "-"}
                   </td>
                   <td className="py-4 px-2 align-top text-gray-500 text-xs whitespace-pre-wrap break-words">
