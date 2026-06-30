@@ -81,14 +81,14 @@ export default function InvoiceBillingInfo({ invoice }) {
                   <span className="text-gray-600">Customer GSTIN</span>
                   <span className="font-medium text-gray-900">{billing?.gstNumber || "-"}</span>
                 </div>
-                <div className="flex justify-between">
+                {/* <div className="flex justify-between">
                   <span className="text-gray-600">Place of Supply</span>
                   <span className="font-medium text-gray-900">{billing?.address?.state || "-"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">State Code</span>
                   <span className="font-medium text-gray-900">{getStateCode(billing?.gstNumber)}</span>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

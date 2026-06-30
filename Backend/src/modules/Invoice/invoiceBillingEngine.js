@@ -310,7 +310,6 @@ function getDaysInMonth(date) {
 }
 
 function buildDescription(segment, connection) {
-  const base = `${segment.serviceType} ${segment.bandwidth}`.trim();
   const id = connection.opportunityId || connection.fabCircuitId || "";
 
   const labels = {
@@ -320,6 +319,6 @@ function buildDescription(segment, connection) {
     RATE_REVISION: "Post-rate revision charge"
   };
 
-  const label = labels[segment.action] || "";
-  return `${label} - ${id ? ` ${id}` : ""}`;
+  const label = labels[segment.action];
+  return label ? `${label} - ${id}` : `${id}`;
 }

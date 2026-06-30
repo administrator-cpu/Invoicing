@@ -120,8 +120,6 @@ const InvoiceItemsSection = ({ invoice }) => {
           </div>
         </div>
       </div> */}
-
-      {/* Terms & Conditions */}
       
     </div>
   );
