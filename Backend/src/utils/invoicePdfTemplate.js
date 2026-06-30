@@ -165,15 +165,15 @@ function buildHeader(invoice) {
       
       <div style="font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; gap: 32px;">
-          <span style="font-weight: 600;">Invoice No</span>
+          <span style="font-weight: 600;">Bill No. :</span>
           <span style="font-family: monospace;">${invoice.invoiceNumber || "Draft"}</span>
         </div>
         <div style="display: flex; justify-content: space-between; gap: 32px;">
-          <span style="font-weight: 600;">Invoice Date</span>
+          <span style="font-weight: 600;">Bill Date :</span>
           <span>${formatDate(invoice.dates?.invoiceDate)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; gap: 32px;">
-          <span style="font-weight: 600;">Due Date</span>
+          <span style="font-weight: 600;">Due Date :</span>
           <span>${formatDate(invoice.dates?.dueDate)}</span>
         </div>
       </div>

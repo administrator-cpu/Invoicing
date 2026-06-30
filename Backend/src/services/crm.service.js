@@ -26,7 +26,7 @@ const handleCrmError = (error, context) => {
 
 /**
  * @desc - Fetches a list of customers for the search dropdown
- * @param {String} searchQuery - The name or email to search for
+ * @param {String} searchQuery - The name or email to search for customers
  */
 export const searchCrmCustomers = async (search, page, limit, sort = 'recent') => {
   try {
@@ -60,5 +60,21 @@ export const getCrmCustomerConnections = async (customerId) => {
     return response.data;
   } catch (error) {
     handleCrmError(error, 'getCrmCustomerConnections');
+  }
+};
+
+/** 
+ * @desc - Fetches all connections for a specific customer, including their history arrays
+ * @param {String} customerId - The CRM Customer ID
+ */
+export const getCrmDashboardConnections = async (customerId) => {
+  try {
+    const response = await crmClient.get(
+      `/${customerId}/dashboard-connections`
+    );
+
+    return response.data;
+  } catch (error) {
+    handleCrmError(error, "getCrmDashboardConnections");
   }
 };

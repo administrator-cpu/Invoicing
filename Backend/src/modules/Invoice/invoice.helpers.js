@@ -53,7 +53,10 @@ export const generateNextInvoiceNumber = async (invoiceDate = new Date(), sessio
  */
 export const calculateTaxes = (subTotal, customerState, companyState) => {
 
-  const isInterstate = customerState !== companyState;
+  const normalizedCustomerState = customerState?.trim().toUpperCase();
+  const normalizedCompanyState = companyState?.trim().toUpperCase();
+
+  const isInterstate = normalizedCustomerState !== normalizedCompanyState;
   const masterTotalTax = round2(subTotal * 0.18);
 
   const taxes = {
@@ -92,11 +95,14 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     }
 
     const displayRate = Number(item.rate ?? 0);
-    const mrc = Number(item.mrc ?? item.amount ?? 0);
-    if (!Number.isFinite(mrc) || mrc < 0) {
-      throw new AppError(`Invalid MRC at row ${index + 1}`, 400);
-    }
+    let monthlyMrc = null;
+    if (sourceType === "CONNECTION") {
+      monthlyMrc = Number(item.billingMeta?.monthlyMrc ?? item.mrc);
 
+      if (!Number.isFinite(monthlyMrc) || monthlyMrc < 0) {
+        throw new AppError(`Invalid MRC at row ${index + 1}`, 400);
+      }
+    }
     const qty = Number(item.qty || 1);
 
     if ((!Number.isFinite(displayRate) || displayRate < 0)) {
@@ -122,16 +128,42 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     const daysInMonth = new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0).getDate();
     const billedDays = Math.round((pEnd - pStart) / MS_PER_DAY) + 1;
 
-    const expectedAmount = billedDays >= daysInMonth
-      ? round2(mrc * qty)
-      : round2(((mrc * qty) / daysInMonth) * billedDays);
+    let expectedAmount;
+
+    switch (sourceType) {
+      case "CONNECTION":
+        expectedAmount =
+          billedDays >= daysInMonth
+            ? round2(monthlyMrc * qty)
+            : round2(((monthlyMrc * qty) / daysInMonth) * billedDays);
+        break;
+
+      case "IP_ADDRESS": {
+        const monthlyIpCharge = Number(item.billingMeta?.monthlyMrc ?? (displayRate * qty));
+
+        expectedAmount = billedDays >= daysInMonth
+          ? round2(monthlyIpCharge)
+          : round2((monthlyIpCharge / daysInMonth) * billedDays);
+
+        monthlyMrc = monthlyIpCharge;
+        break;
+      }
+
+      case "MANUAL_SERVICE":
+      case "OTC":
+        expectedAmount = round2(displayRate * qty);
+        break;
+
+      default:
+        expectedAmount = round2(Number(item.amount || 0));
+    }
 
     calculatedSubTotal += expectedAmount;
 
     const originalEngineValues = item.originalEngineValues || (item.crmConnectionSnapshot
       ? {
         rate: item.rate ?? null,
-        mrc: item.mrc ?? null,
+        mrc: monthlyMrc,
         description: item.description ?? null,
         periodStart: item.periodStart ?? null,
         periodEnd: item.periodEnd ?? null,
@@ -142,7 +174,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     const wasEdited = !!originalEngineValues &&
       (
         Number(originalEngineValues.rate) !== displayRate ||
-        Number(originalEngineValues.mrc) !== mrc ||
+        Number(originalEngineValues.mrc) !== monthlyMrc ||
         Number(originalEngineValues.qty) !== qty ||
         originalEngineValues.description !== item.description ||
         new Date(originalEngineValues.periodStart).getTime() !== pStart.getTime() ||
@@ -158,14 +190,32 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
       sacCode: item.sacCode || "998422",
       qty,
       rate: displayRate,
-      mrc,
+      mrc: monthlyMrc,
       isBillable: item.crmConnectionSnapshot?.isBillable ?? true,
       periodStart: pStart,
       periodEnd: pEnd,
       amount: expectedAmount,
       billingMeta: {
         ...(item.billingMeta || {}),
-        daysCharged: billedDays
+        monthlyMrc,
+        daysCharged: billedDays,
+        daysInMonth,
+        calculationType:
+          item.billingMeta?.originalCalculationType === "IP_ADDITION"
+            ? (
+              billedDays === daysInMonth
+                ? "IP_ADDITION"
+                : "PRORATA"
+            )
+            : (
+              item.billingMeta?.originalCalculationType ??
+              (
+                billedDays === daysInMonth
+                  ? "FULL_MONTH"
+                  : "PRORATA"
+              )
+            ),
+        originalCalculationType: item.billingMeta?.originalCalculationType
       },
       originalEngineValues,
       wasEdited,

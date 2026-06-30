@@ -105,6 +105,8 @@ export default function InvoiceCreate() {
         fabCircuitId: item.crmConnectionSnapshot.circuitId,
         serviceType: item.crmConnectionSnapshot.serviceType,
         bandwidth: item.crmConnectionSnapshot.bandwidth,
+        periodStart: item.periodStart,
+        periodEnd: item.periodEnd,
         commercials: {
           mrc: item.commercials?.mrc || 0,
           ratePerMb: item.commercials?.ratePerMb || 0,
@@ -145,11 +147,37 @@ export default function InvoiceCreate() {
     // 3. Send to API and replace table/summary with Canonical Backend Response
     previewInvoice(previewPayload, {
       onSuccess: (data) => {
-        setValue('items', data.items.map(item => ({ ...item, isSelected: true })));
-        setValue('financials', data.financials);
-        setValue('previewVersion', data.previewVersion);
-        setValue('previewGeneratedAt', data.previewGeneratedAt);
-        setValue('previewExpired', false);
+        const currentItems = getValues("items");
+        const mergedItems = data.items.map((backendItem) => {
+          const existing = currentItems.find(
+            i =>
+              i.crmConnectionSnapshot?.connectionId ===
+              backendItem.crmConnectionSnapshot?.connectionId &&
+              i.sourceType === backendItem.sourceType
+          );
+          return {
+            ...backendItem,
+            periodStart: backendItem.periodStart
+              ? new Date(backendItem.periodStart).toISOString().split("T")[0]
+              : "",
+            periodEnd: backendItem.periodEnd
+              ? new Date(backendItem.periodEnd).toISOString().split("T")[0]
+              : "",
+            isSelected: true,
+            status: existing?.status ?? backendItem.status,
+            history: existing?.history ?? [],
+            ips: existing?.ips ?? {},
+            commercials: existing?.commercials ?? {},
+            technicalDetails: existing?.technicalDetails ?? {},
+            originalConnection: existing?.originalConnection ?? null,
+            terminationDetails: existing?.terminationDetails ?? null,
+          };
+        });
+        setValue("items", mergedItems);
+        setValue("financials", data.financials);
+        setValue("previewVersion", data.previewVersion);
+        setValue("previewGeneratedAt", data.previewGeneratedAt);
+        setValue("previewExpired", false);
       }
     });
   };

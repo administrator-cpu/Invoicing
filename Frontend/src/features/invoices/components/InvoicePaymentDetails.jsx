@@ -15,9 +15,9 @@ const BANKS = [
 
 export default function InvoicePaymentDetails() {
   return (
-    <div className="mt-8 border border-slate-300 rounded-lg overflow-hidden">
+    <div className="mt-8 border border-orange-300 rounded-lg overflow-hidden">
 
-      <div className="text-white bg-orange-500 px-4 py-2 border-b">
+      <div className="text-white bg-logo-gradient px-4 py-2 border-b">
         <h3 className="font-bold text-sm uppercase tracking-wide">
           Payment Instructions
         </h3>

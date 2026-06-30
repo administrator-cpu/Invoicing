@@ -23,11 +23,10 @@ export const buildInvoiceItems = ({
 
     const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
     if (!wasEverActive) continue;
-
-    const connectionItems = buildConnectionSegments(conn, cycleStart, cycleEnd, billingMode);
+    const connectionItems = buildConnectionSegments(conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode);
     allItems.push(...connectionItems);
 
-    const ipItems = buildIpLines(conn, cycleStart, cycleEnd, billingMode);
+    const ipItems = buildIpLines(conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode);
     allItems.push(...ipItems);
 
     const shiftItems = buildShiftingMarkers(conn, cycleStart, cycleEnd);
@@ -92,6 +91,8 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
   for (let i = 0; i < rateSegments.length; i++) {
     const segment = rateSegments[i];
     const nextSegment = rateSegments[i + 1];
+    const ipMonthlyCharge = Number(connection.ips?.count || 0) * Number(connection.ips?.cost || 0);
+    const internetMrc = round2(Math.max(0, segment.mrc - ipMonthlyCharge));
 
     let segmentEnd = nextSegment
       ? new Date(nextSegment.effectiveDate.getTime() - MS_PER_DAY)
@@ -109,8 +110,8 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
     const isFullMonth = billedDays >= daysInMonth;
 
     const amount = isFullMonth
-      ? round2(segment.mrc)
-      : round2((segment.mrc / daysInMonth) * billedDays);
+      ? round2(internetMrc)
+      : round2((internetMrc / daysInMonth) * billedDays);
 
     let calculationType;
     if (segment.action === "ACTIVATED") {
@@ -126,7 +127,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         connectionId: connection.crmConnectionId || connection._id?.toString(),
         opportunityId: connection.opportunityId,
         commercials: {
-          mrc: segment.mrc,
+          mrc: internetMrc,
           ratePerMb: segment.ratePerMb,
           otc: connection.commercials?.otc ?? 0,
           advance: connection.commercials?.advance ?? 0
@@ -154,7 +155,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         serviceType: segment.serviceType,
         bandwidth: segment.bandwidth,
         ratePerMb: segment.ratePerMb,
-        mrc: segment.mrc,
+        mrc: internetMrc,
         acceptanceDate: connection.acceptanceDate || null,
         activationDateAtBilling: segment.action === "ACTIVATED" ? segment.effectiveDate : undefined,
         historyEventType: segment.action
@@ -162,15 +163,24 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       description: buildDescription(segment, connection),
       sacCode: "998422",
       qty: 1,
-      mrc: segment.mrc,
+      mrc: internetMrc,
       rate: segment.ratePerMb,
       periodStart: overlap.start,
       periodEnd: overlap.end,
-      amount,
+      amount: internetMrc,
       billingMeta: {
         billingMode,
         calculationType,
-        daysCharged: billedDays
+        originalCalculationType: calculationType,
+
+        monthlyMrc: internetMrc,
+        monthlyRatePerMb: segment.ratePerMb,
+
+        originalPeriodStart: overlap.start,
+        originalPeriodEnd: overlap.end,
+
+        daysCharged: billedDays,
+        daysInMonth
       },
       statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
       connectionStatus: connection.status,
@@ -184,30 +194,24 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
  * @desc - IP line builder
 */
 function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
-  const sortedHistory = [...(connection.history || [])]
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sortedHistory = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  let totalIpCount = 0;
-  let totalIpCost = 0;
+  let totalIpCount = Number(connection.ips?.count || 0);
+  const ratePerIp = Number(connection.ips?.cost || 0);
 
-  const createdEntry = sortedHistory.find(h => h.action === "CREATED");
-  if (createdEntry?.ips?.count > 0) {
-    totalIpCount += Number(createdEntry.ips.count || 0);
-    totalIpCost += Number(createdEntry.ips.cost || 0);
-  }
+  console.log({
+    opportunity: connection.opportunityId,
+    cycleStart,
+    cycleEnd
+  });
 
-  for (const entry of sortedHistory) {
-    if (entry.action !== "IP_ADDITION") continue;
-    if (new Date(entry.date) > cycleEnd) continue;
+  if (totalIpCount <= 0 || ratePerIp <= 0) return [];
+  const daysInMonth = getDaysInMonth(cycleStart);
+  const billedDays = daysInclusive(cycleStart, cycleEnd);
 
-    totalIpCount += Number(entry.ips?.count || 0);
-    totalIpCost += Number(entry.ips?.cost || 0);
-  }
+  const monthlyAmount = round2(totalIpCount * ratePerIp);
 
-  if (totalIpCount <= 0 || totalIpCost <= 0) return [];
-
-  const ratePerIp = round2(totalIpCost);
-  const totalAmount = round2(totalIpCount * ratePerIp);
+  const totalAmount = billedDays >= daysInMonth ? monthlyAmount : round2((monthlyAmount / daysInMonth) * billedDays);
 
   return [{
     sourceType: "IP_ADDRESS",
@@ -232,8 +236,11 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
     amount: totalAmount,
     billingMeta: {
       billingMode,
-      calculationType: "IP_ADDITION",
-      daysCharged: daysInclusive(cycleStart, cycleEnd)
+      calculationType: billedDays === daysInMonth ? "IP_ADDITION" : "PRORATA",
+      originalCalculationType: "IP_ADDITION",
+      monthlyMrc: monthlyAmount,
+      daysCharged: billedDays,
+      daysInMonth
     },
     statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
   }];
@@ -313,6 +320,6 @@ function buildDescription(segment, connection) {
     RATE_REVISION: "Post-rate revision charge"
   };
 
-  const label = labels[segment.action] || "Charge";
+  const label = labels[segment.action] || "";
   return `${label} - ${id ? ` ${id}` : ""}`;
 }

@@ -148,7 +148,7 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
 export const createDraftInvoice = catchAsync(async (req, res, next) => {
   const {
     customer, selectedGstProfile, selectedCompanyProfile, items, billingCycleStart, billingCycleEnd,
-    invoiceDate, dueDate, applyIgst, discount = 0, billingMode = "POSTPAID"
+    invoiceDate, dueDate, discount = 0, billingMode = "POSTPAID"
   } = req.body;
 
   if (!customer || !selectedGstProfile || !selectedCompanyProfile) {
@@ -158,7 +158,10 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
     return next(new AppError("billingCycleStart and billingCycleEnd are required.", 400));
   }
 
-  const { verifiedItems, financials } = validateAndRecalculateInvoice(items, applyIgst, discount);
+  const customerState = selectedGstProfile.address.state;
+  const companyState = selectedCompanyProfile.address.state;
+
+  const { verifiedItems, financials } = validateAndRecalculateInvoice(items, customerState, companyState, discount);
 
   const billingFingerprint = generateBillingFingerprint({
     customerId: customer._id || customer.id,
