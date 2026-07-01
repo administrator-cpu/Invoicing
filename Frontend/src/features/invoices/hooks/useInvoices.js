@@ -80,6 +80,9 @@ export const useFinalizeInvoice = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoices', 'details', id] });
     },
+    onError: (error) => {
+      toast.error(error.message || "Something Went Wrong!");
+    },
   });
 };
 
@@ -92,6 +95,9 @@ export const useCancelInvoice = () => {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoices', 'details', id] });
+    },
+    onError: (error) => {
+      toast.error(error.message || "Something Went Wrong!");
     },
   });
 };
@@ -108,6 +114,9 @@ export const useUpdateInvoice = () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoices', 'details', id] });
       navigate(`/invoices/${id}`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Something Went Wrong!");
     },
   });
 };
