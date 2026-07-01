@@ -63,8 +63,28 @@ app.use('/api', limiter);
 
 app.options(/.*/, cors());
 app.use(express.json({ limit: "10mb" }));
+app.use((req, res, next) => {
+  logger.debug(`${req.method} ${req.originalUrl}`, {
+    body: req.body,
+    params: req.params,
+    query: req.query,
+  });
+  next();
+});
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    logger.info("Incoming Request", {
+      method: req.method,
+      url: req.originalUrl,
+      body: req.body,
+      params: req.params,
+      query: req.query,
+    });
+    next();
+  });
+}
 
 app.get("/health", (req, res) => {
   const dbState = mongoose.connection.readyState === 1 ? "connected" : "disconnected";

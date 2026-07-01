@@ -1,32 +1,51 @@
-import winston from 'winston';
+import winston from "winston";
 
-const logFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  winston.format.splat(),
-  winston.format.json()
-);
+const { combine, timestamp, errors, json, colorize, printf } = winston.format;
 
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-  format: logFormat,
+  level: process.env.NODE_ENV === "development" ? "debug" : "info",
+
+  format: combine(
+    timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    errors({ stack: true }),
+    json()
+  ),
+
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.File({
+      filename: "logs/error.log",
+      level: "error",
+    }),
+
+    new winston.transports.File({
+      filename: "logs/combined.log",
+    }),
+  ],
+
+  exceptionHandlers: [
+    new winston.transports.File({
+      filename: "logs/exceptions.log",
+    }),
+  ],
+
+  rejectionHandlers: [
+    new winston.transports.File({
+      filename: "logs/rejections.log",
+    }),
   ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(
-          (info) => `${info.timestamp} ${info.level}: ${info.message}`
-        )
-      ),
-    })
-  );
-}
+logger.add(
+  new winston.transports.Console({
+    format: combine(
+      colorize(),
+      timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+      errors({ stack: true }),
+      printf(({ timestamp, level, message, stack }) =>
+        `${timestamp} ${level}: ${stack || message}`
+      )
+    ),
+  })
+);
 
 export default logger;
