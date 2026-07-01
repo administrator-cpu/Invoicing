@@ -26,7 +26,7 @@ export default function InvoiceBillingInfo({ invoice }) {
         {/* 1. BILLED FROM (Company Address & GST) */}
         <div className="border border-orange-300 rounded flex flex-col flex-1">
           <div className="bg-logo-gradient text-white px-4 py-2 font-bold text-lg">
-            Billed From
+            Bill From
           </div>
 
           <div className="p-5 flex-1 flex flex-col">
@@ -59,7 +59,7 @@ export default function InvoiceBillingInfo({ invoice }) {
         {/* 2. BILLED TO (Customer Address & GST) */}
         <div className="border border-orange-300 rounded flex flex-col flex-1">
           <div className="bg-logo-gradient text-white px-4 py-2 font-bold text-lg">
-            Billed To
+            Bill To
           </div>
 
           <div className="p-5 flex-1 flex flex-col">
