@@ -50,67 +50,52 @@ export const buildInvoiceHTML = (invoice) => {
         font-family: 'Inter', sans-serif;
       }
 
-      /* 1. Reset body to let our wrapper handle the spacing */
       html, body {
-        margin: 0;
-        padding: 0;
         background: white;
       }
 
-      /* 2. Global Page Settings - margin adds space between paper edge and border */
-      .page {
+      /* 1. STRICT LOCK FOR PAGE 1 (Untouched) */
+      .first-page {
         margin: 24px;
         width: calc(100% - 48px);
         padding: 32px;
         border: 2px solid #fdba74;
         border-radius: 12px;
         box-sizing: border-box;
-        page-break-after: always;
-        position: relative;
-      }
-
-      /* 3. Strict lock for Page 1 */
-      .first-page {
         height: calc(100vh - 48px);
         overflow: hidden;
+        page-break-after: always; /* Forces everything after this to Page 2 */
       }
 
-      /* 4. For Page 2+ (Service Items), allow it to stretch if needed, but maintain minimum height */
+      /* 2. NATURAL FLOW FOR PAGE 2+ */
       .subsequent-page {
-        min-height: calc(100vh - 48px);
-        height: auto;
-      }
-
-      .page:last-child {
-        page-break-after: auto;
+        padding: 32px 24px; 
+        width: 100%;
       }
 
       table {
         width: 100%;
         border-collapse: collapse;
+        page-break-inside: auto; /* Allows the table itself to split across pages */
       }
 
-      th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        font-size: 11px;
-        vertical-align: top;
+      tr {
+        page-break-inside: avoid; /* Prevents a single row from being cut in half horizontally! */
+        page-break-after: auto;
       }
 
-      th {
-        background: #f97316;
-        color: white;
+      thead {
+        display: table-header-group; /* Forces the header gradient to repeat on EVERY new page! */
       }
 
-      .summary-table td {
-        border: none;
-        padding: 3px 0;
+      tfoot {
+        display: table-footer-group; /* Keeps the Grand Total at the very bottom */
       }
     </style>
   </head>
   <body>
 
-    <div class="page first-page">
+    <div class="first-page">
       ${buildHeader(invoice)}
       ${buildBilling(invoice)}
       
@@ -119,9 +104,12 @@ export const buildInvoiceHTML = (invoice) => {
       </div>
     </div>
     
-    <div class="page subsequent-page">
+    <div class="subsequent-page">
       ${buildItems(invoice, isInterstate)}
-      ${buildTerms()}
+      
+      <div style="margin-top: 40px;">
+        ${buildTerms()}
+      </div>
     </div>
 
   </body>
@@ -134,33 +122,45 @@ function buildHeader(invoice) {
   const logoPath = path.join(process.cwd(), "assets", "fab5.png");
 
   return `
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #fed7aa; padding-bottom: 20px; font-family: sans-serif;">
+  <div style="border-bottom: 2px solid #fed7aa; padding-bottom: 20px; font-family: sans-serif;">
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-      <img src="${logo}" style="height: 110px; width: auto; object-fit: contain;" alt="Company Logo" />
-    </div>
-
-    <div style="text-align: right;">
-      <h1 style="font-size: 30px; font-weight: 900; letter-spacing: 0.025em; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
-        TAX INVOICE
-      </h1>
-      
-      <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-top: 4px; margin-bottom: 20px;">
+    <div style="text-align: right; margin-bottom: 12px;">
+      <p style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
         Original Copy for Recipient
       </p>
-      
-      <div style="font-size: 14px; display: flex; flex-direction: column; gap: 4px; border: 1px solid #fdba74; border-radius: 4px; padding: 8px;">
-        <div style="display: flex; justify-content: space-between; gap: 32px;">
-          <span style="font-weight: 600;">Bill No. :</span>
-          <span style="font-family: monospace;">${invoice.invoiceNumber || "Draft"}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; gap: 32px;">
-          <span style="font-weight: 600;">Bill Date :</span>
-          <span>${formatDate(invoice.dates?.invoiceDate)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; gap: 32px;">
-          <span style="font-weight: 600;">Due Date :</span>
-          <span>${formatDate(invoice.dates?.dueDate)}</span>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 32px; width: 100%;">
+
+      <div style="flex: 1; display: flex; justify-content: flex-start;">
+        <img src="${logo}" style="height: 70px; width: auto; object-fit: contain;" alt="Company Logo" />
+      </div>
+
+      <div style="flex: 1; display: flex; justify-content: center; text-align: center;">
+        <h1 style="font-size: 24px; font-weight: 900; letter-spacing: 0.025em; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
+          TAX INVOICE
+        </h1>
+      </div>
+
+      <div style="flex: 1; display: flex; justify-content: flex-end;">
+        
+        <div style="font-size: 12px; display: flex; flex-direction: column; gap: 6px; border: 1px solid #fdba74; border-radius: 8px; padding: 10px 12px; background-color: #fef8f4; min-width: 200px; box-sizing: border-box;">
+          
+          <div style="display: flex; justify-content: space-between; gap: 24px;">
+            <span style="font-weight: 600;">Bill No.</span>
+            <span style="font-family: monospace;">${invoice.invoiceNumber || "Draft"}</span>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; gap: 24px;">
+            <span style="font-weight: 600;">Bill Date</span>
+            <span>${formatDate(invoice.dates?.invoiceDate)}</span>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; gap: 24px;">
+            <span style="font-weight: 600;">Due Date</span>
+            <span>${formatDate(invoice.dates?.dueDate)}</span>
+          </div>
+
         </div>
       </div>
 
@@ -402,7 +402,6 @@ function buildPaymentDetails() {
 }
 
 function buildItems(invoice, isInterstate) {
-  const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white; padding: 8px 16px; font-weight: bold; font-size: 16px; border-top-left-radius: 3px; border-top-right-radius: 3px;";
   const rows = (invoice.items || []).map((item, index, array) => {
     const taxableAmount = Number(item.mrc ?? item.amount ?? 0);
     const lineTax = taxableAmount * 0.18;
@@ -429,7 +428,7 @@ function buildItems(invoice, isInterstate) {
 
     return `
       <tr style="${rowBorder}">
-        <td style="padding: 16px 8px; vertical-align: top; color: #111827; font-weight: 500; word-wrap: break-word; ${tdDivideX}">${item.description || "-"}</td>
+        <td style="padding: 16px 8px; vertical-align: top; color: #111827; text-align: center; font-size: 12px; font-weight: 200; word-wrap: break-word; ${tdDivideX}">${item.description || "-"}</td>
         
         <td style="padding: 16px 4px; vertical-align: top; text-align: center; font-family: monospace; color: #6b7280; font-size: 11px; ${tdDivideX}">${item.sacCode || "-"}</td>
         
@@ -440,23 +439,24 @@ function buildItems(invoice, isInterstate) {
         
         <td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #374151; font-family: monospace; font-size: 12px; ${tdDivideX}">${item.crmConnectionSnapshot?.bandwidth || "-"}</td>
         
-        <td style="padding: 16px 8px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${installationAddress}</td>
+        <td style="padding: 16px 4px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${installationAddress}</td>
         
-        <td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #111827; font-weight: 500; ${tdDivideX}">₹${money(taxableAmount)}</td>
+        <td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #111827; font-weight: 500; ${tdDivideX}">₹${money(taxableAmount)}</td>
         
         ${isInterstate
-        ? `<td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax)}</td>`
-        : `<td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax / 2)}</td>
-           <td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax / 2)}</td>`
+        ? `<td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax)}</td>`
+        : `<td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax / 2)}</td>
+           <td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #4b5563; font-size: 12px; ${tdDivideX}">₹${money(lineTax / 2)}</td>`
       }
         
-        <td style="padding: 16px 8px; vertical-align: top; text-align: right; font-weight: bold; color: #ea580c;">₹${money(taxableAmount + lineTax)}</td>
+        <td style="padding: 16px 4px; vertical-align: top; text-align: center; font-weight: bold; color: #ea580c;">₹${money(taxableAmount + lineTax)}</td>
       </tr>
     `;
   }).join("");
 
   const thDivideX = "border-right: 1px solid #fb923c;";
-  const thStyle = "padding: 12px 8px; font-weight: 600; letter-spacing: 0.025em; line-height: 1.25; text-align: center;";
+  const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white;";
+  const thStyle = "background-color: transparent; padding: 12px 8px; font-weight: 600; letter-spacing: 0.025em; line-height: 1.25; text-align: center;";
 
   return `
     <div style="font-family: 'Inter', sans-serif;">
@@ -480,7 +480,7 @@ function buildItems(invoice, isInterstate) {
         
       </div>
 
-      <div style="margin-top: 32px; background-color: #ffffff; border: 1px solid #fed7aa; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border-radius: 12px; overflow: hidden;">
+      <div style="margin-top: 32px; background-color: #ffffff; border: 1px solid #fed7aa;">
         
         <table style="width: 100%; font-size: 14px; text-align: left; table-layout: fixed; border-collapse: collapse;">
           
@@ -494,8 +494,8 @@ function buildItems(invoice, isInterstate) {
               <th style="width: 11%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
               
               ${isInterstate
-                ? `<th style="width: 14%; ${thStyle} ${thDivideX}">IGST</th>`
-                : `<th style="width: 7%; ${thStyle} ${thDivideX}">CGST</th>
+      ? `<th style="width: 14%; ${thStyle} ${thDivideX}">IGST</th>`
+      : `<th style="width: 7%; ${thStyle} ${thDivideX}">CGST</th>
                 <th style="width: 7%; ${thStyle} ${thDivideX}">SGST</th>`
     }
               
@@ -550,11 +550,11 @@ function buildTerms() {
           All such arbitration would take place within Delhi city limits.
         </li>
         <li style="margin-bottom: 8px;">
-          In case of queries reach out to <a href="mailto:billing@fab5network.com" style="color: #2563eb; text-decoration: underline;">billing@fab5network.com</a>
+          In case of queries reach out to billing@fab5network.com
         </li>
       </ol>
       
-      <p style="text-align: right; font-weight: bold; font-style: italic; color: #000;">
+      <p style="text-align: right; font-weight: bold; font-style: italic; color: #000; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
         Thank you for your business!
       </p>
     </div>

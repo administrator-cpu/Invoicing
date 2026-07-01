@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from "sonner";
 import { getMeApi } from '@/features/auth/api/authApi';
 import useAuthStore from '@/store/useAuthStore';
 import useThemeStore from '@/store/useThemeStore';
@@ -54,6 +55,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position='top-right' richColors closeButton duration={4000} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
