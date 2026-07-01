@@ -52,7 +52,7 @@ const startServer = async () => {
         error: reason?.message || String(reason),
         stack: reason?.stack,
       });
-      gracefulShutdown("unhandledRejection");
+      // gracefulShutdown("unhandledRejection");
     });
 
     process.on("uncaughtException", (err) => {
