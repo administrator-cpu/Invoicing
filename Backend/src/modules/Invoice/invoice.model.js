@@ -250,10 +250,10 @@ const InvoiceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-InvoiceSchema.index(
-  { billingFingerprint: 1 },
-  { unique: true, sparse: true }
-)
+// InvoiceSchema.index(
+//   { billingFingerprint: 1 },
+//   { unique: true, sparse: true }
+// )
 
 const Invoice = mongoose.model("Invoice", InvoiceSchema);
 

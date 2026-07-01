@@ -35,33 +35,32 @@ export default function InvoiceItemsTable({ invoice }) {
         <table className="w-full text-sm text-left table-fixed border-collapse">
           <thead className="bg-logo-gradient text-white">
             <tr className="divide-x divide-orange-400">
-              <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight text-center">Service<br/>Description</th>
+              <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight text-center">Service<br />Description</th>
               <th className="py-3 px-1 w-[6%] font-semibold tracking-wide text-center">SAC</th>
-              <th className="py-3 px-2 w-[7%] font-semibold tracking-wide leading-tight text-center">Billing<br/>Date</th>
-              <th className="py-3 px-1 w-[4%] font-semibold tracking-wide text-center">BW</th>
-              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide leading-tight text-center">A End<br/>Address</th>
-              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide leading-tight text-center">B End<br/>Address</th>
-              <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-right text-center">Charge</th>
-              
+              <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Date</th>
+              <th className="py-3 px-1 w-[8%] font-semibold tracking-wide text-center">BW</th>
+              <th className="py-3 px-2 w-[20%] font-semibold tracking-wide leading-tight text-center">Installation<br />Address</th>
+              <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-center">Charge</th>
+
               {isInterstate ? (
-                <th className="py-3 px-2 w-[12%] font-semibold tracking-wide text-center">IGST</th>
+                <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-center">IGST</th>
               ) : (
                 <>
-                  <th className="py-3 px-2 w-[6%] font-semibold tracking-wide text-center ">CGST</th>
-                  <th className="py-3 px-2 w-[6%] font-semibold tracking-wide text-center">SGST</th>
+                  <th className="py-3 px-2 w-[7%] font-semibold tracking-wide text-center ">CGST</th>
+                  <th className="py-3 px-2 w-[7%] font-semibold tracking-wide text-center">SGST</th>
                 </>
               )}
-              
+
               <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-center">Total</th>
             </tr>
           </thead>
-          
+
           <tbody className="divide-y divide-orange-100">
             {invoice.items?.map((item) => {
               const taxableAmount = Number(item.mrc ?? item.amount ?? 0);
               const lineTax = taxableAmount * 0.18;
               const dateSplit = formatSplitDate(item.periodStart);
-              
+
               return (
                 <tr key={item._id} className="hover:bg-orange-50/50 transition-colors divide-x divide-orange-100">
                   <td className="py-4 px-2 align-top text-gray-900 font-medium break-words">
@@ -78,15 +77,17 @@ export default function InvoiceItemsTable({ invoice }) {
                     {item.crmConnectionSnapshot?.bandwidth || "-"}
                   </td>
                   <td className="py-4 px-2 align-top text-gray-500 text-xs whitespace-pre-wrap break-words">
-                    {item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address || item.technicalDetails?.aEnd?.address || "-"}
-                  </td>
-                  <td className="py-4 px-2 align-top text-gray-500 text-xs whitespace-pre-wrap break-words">
-                    {item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address || item.technicalDetails?.bEnd?.address || "-"}
+                    {
+                      item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address ||
+                      item.technicalDetails?.bEnd?.address ||
+                      item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address ||
+                      item.technicalDetails?.aEnd?.address || "-"
+                    }
                   </td>
                   <td className="py-4 px-2 align-top text-right text-gray-900 font-medium">
                     {formatMoney(item.mrc ?? item.amount)}
                   </td>
-                  
+
                   {isInterstate ? (
                     <td className="py-4 px-2 align-top text-right text-gray-600 text-xs">
                       {formatMoney(lineTax)}
@@ -101,7 +102,7 @@ export default function InvoiceItemsTable({ invoice }) {
                       </td>
                     </>
                   )}
-                  
+
                   <td className="py-4 px-2 align-top text-right font-bold text-[#ea580c]">
                     {formatMoney(taxableAmount + lineTax)}
                   </td>
@@ -109,10 +110,10 @@ export default function InvoiceItemsTable({ invoice }) {
               );
             })}
           </tbody>
-          
+
           <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200">
             <tr className="divide-x divide-orange-200">
-              <td colSpan={isInterstate ? 8 : 9} className="py-4 px-4 text-right font-bold text-gray-800 uppercase tracking-wider text-xs">
+              <td colSpan={isInterstate ? 7 : 8} className="py-4 px-4 text-right font-bold text-gray-800 uppercase tracking-wider text-xs">
                 Grand Total
               </td>
               <td className="py-4 px-2 text-right font-black text-lg text-[#ea580c]">

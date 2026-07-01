@@ -407,8 +407,13 @@ function buildItems(invoice, isInterstate) {
     const taxableAmount = Number(item.mrc ?? item.amount ?? 0);
     const lineTax = taxableAmount * 0.18;
 
-    const aEnd = item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address || item.technicalDetails?.aEnd?.address || "-";
-    const bEnd = item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address || item.technicalDetails?.bEnd?.address || "-";
+    // Combined Installation Address matching frontend fallback logic
+    const installationAddress =
+      item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address ||
+      item.technicalDetails?.bEnd?.address ||
+      item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address ||
+      item.technicalDetails?.aEnd?.address ||
+      "-";
 
     // Split date for the two-line display
     const dateObj = new Date(item.periodStart);
@@ -435,9 +440,7 @@ function buildItems(invoice, isInterstate) {
         
         <td style="padding: 16px 4px; vertical-align: top; text-align: center; color: #374151; font-family: monospace; font-size: 12px; ${tdDivideX}">${item.crmConnectionSnapshot?.bandwidth || "-"}</td>
         
-        <td style="padding: 16px 8px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${aEnd}</td>
-        
-        <td style="padding: 16px 8px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${bEnd}</td>
+        <td style="padding: 16px 8px; vertical-align: top; color: #6b7280; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; ${tdDivideX}">${installationAddress}</td>
         
         <td style="padding: 16px 8px; vertical-align: top; text-align: right; color: #111827; font-weight: 500; ${tdDivideX}">₹${money(taxableAmount)}</td>
         
@@ -485,16 +488,15 @@ function buildItems(invoice, isInterstate) {
             <tr>
               <th style="width: 18%; ${thStyle} ${thDivideX}">Service<br/>Description</th>
               <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">SAC</th>
-              <th style="width: 7%; ${thStyle} ${thDivideX}">Billing<br/>Date</th>
-              <th style="width: 4%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW</th>
-              <th style="width: 14%; ${thStyle} ${thDivideX}">A End<br/>Address</th>
-              <th style="width: 14%; ${thStyle} ${thDivideX}">B End<br/>Address</th>
+              <th style="width: 9%; ${thStyle} ${thDivideX}">Billing<br/>Date</th>
+              <th style="width: 8%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW</th>
+              <th style="width: 20%; ${thStyle} ${thDivideX}">Installation<br/>Address</th>
               <th style="width: 11%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
               
               ${isInterstate
-      ? `<th style="width: 12%; ${thStyle} ${thDivideX}">IGST</th>`
-      : `<th style="width: 6%; ${thStyle} ${thDivideX}">CGST</th>
-                <th style="width: 6%; ${thStyle} ${thDivideX}">SGST</th>`
+                ? `<th style="width: 14%; ${thStyle} ${thDivideX}">IGST</th>`
+                : `<th style="width: 7%; ${thStyle} ${thDivideX}">CGST</th>
+                <th style="width: 7%; ${thStyle} ${thDivideX}">SGST</th>`
     }
               
               <th style="width: 14%; ${thStyle}">Total</th>
@@ -507,7 +509,7 @@ function buildItems(invoice, isInterstate) {
           
           <tfoot style="background-color: #fff7ed; border-top: 2px solid #fed7aa;">
             <tr>
-              <td colspan="${isInterstate ? 8 : 9}" style="padding: 16px; text-align: right; font-weight: bold; color: #1f2937; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; border-right: 1px solid #fed7aa;">
+              <td colspan="${isInterstate ? 7 : 8}" style="padding: 16px; text-align: right; font-weight: bold; color: #1f2937; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; border-right: 1px solid #fed7aa;">
                 Grand Total
               </td>
               <td style="padding: 16px 8px; text-align: right; font-weight: 900; font-size: 14px; color: #ea580c;">
@@ -552,7 +554,7 @@ function buildTerms() {
         </li>
       </ol>
       
-      <p style="text-align: center; margin-top: 32px; font-weight: bold; font-style: italic; color: #000;">
+      <p style="text-align: right; font-weight: bold; font-style: italic; color: #000;">
         Thank you for your business!
       </p>
     </div>
