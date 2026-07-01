@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/config/axios';
@@ -6,8 +7,12 @@ export const usePreviewInvoice = () => {
   return useMutation({
     mutationFn: async (previewPayload) => {
       const response = await apiClient.post('/invoices/preview', previewPayload);
+      toast.success('Preview Loaded Successfully!');
       return response.data;
-    }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Something Went Wrong!");
+    },
   });
 };
 
@@ -21,7 +26,11 @@ export const useCreateInvoice = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success('Invoice Created Successfully!');
       navigate('/invoices');
+    },
+    onError: (error) => {
+      toast.error(error.message || "Something Went Wrong!");
     },
   });
 };

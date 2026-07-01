@@ -16,6 +16,8 @@ export default function InvoiceCreate() {
 
   const { data: workspaceData, isLoading, isError } = useInvoiceWorkspace(customerId);
   const { mutate: saveDraft, isLoading: isSaving } = useCreateInvoice();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const submitLock = React.useRef(false);
   const { mutate: previewInvoice, isLoading: isPreviewing } = usePreviewInvoice();
 
   const methods = useForm({
@@ -183,6 +185,9 @@ export default function InvoiceCreate() {
   };
 
   const onSubmitDraft = (formData) => {
+    if (submitLock.current || isSaving) return;
+    submitLock.current = true;
+    setIsSubmitting(true);
     const selectedGstProfile = workspaceData.customer.billingProfile.find(p => p._id === formData.selectedGstProfileId);
     const selectedCompanyProfile = workspaceData.companyProfiles.find(p => p._id === formData.selectedCompanyProfileId);
 
@@ -190,18 +195,26 @@ export default function InvoiceCreate() {
       .filter(item => item.isSelected)
       .map(({ isSelected, status, ...strictItemSchema }) => strictItemSchema);
 
-    saveDraft({
-      customer: workspaceData.customer,
-      selectedGstProfile,
-      selectedCompanyProfile,
-      items: finalItems,
-      invoiceDate: formData.invoiceDate,
-      dueDate: formData.dueDate,
-      billingCycleStart: formData.billingCycleStart,
-      billingCycleEnd: formData.billingCycleEnd,
-      billingMode: formData.billingMode,
-      discount: formData.discount,
-    });
+    saveDraft(
+      {
+        customer: workspaceData.customer,
+        selectedGstProfile,
+        selectedCompanyProfile,
+        items: finalItems,
+        invoiceDate: formData.invoiceDate,
+        dueDate: formData.dueDate,
+        billingCycleStart: formData.billingCycleStart,
+        billingCycleEnd: formData.billingCycleEnd,
+        billingMode: formData.billingMode,
+        discount: formData.discount,
+      },
+      {
+        onSettled: () => {
+          submitLock.current = false;
+          setIsSubmitting(false);
+        }
+      }
+    );
   };
 
   if (!customerId) return <div className="p-8 text-center text-gray-500">No Customer Selected.</div>;
@@ -234,12 +247,12 @@ export default function InvoiceCreate() {
             <h1 className="text-xl font-bold text-gray-900">Billing Workspace</h1>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" className="px-6 py-2.5 rounded-full font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm">Cancel</button>
+            <button type="button" onClick={() => navigate("/customers")} className="px-6 py-2.5 rounded-full font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm">Cancel</button>
             <button type="button" onClick={handlePreview} disabled={isPreviewing} className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 hover:bg-orange-100 transition-colors text-sm flex items-center gap-2">
               <Calculator size={16} /> {isPreviewing ? 'Calculating...' : 'Preview Engine'}
             </button>
-            <button type="submit" disabled={isSaving || !watch("financials") || watch("previewExpired")} className="px-6 py-2.5 rounded-full font-medium text-white bg-[#09090B] hover:bg-gray-800 disabled:opacity-50 transition-colors text-sm shadow-md">
-              {isSaving ? 'Saving...' : 'Save Draft'}
+            <button type="submit" disabled={isSaving || isSubmitting || !watch("financials") || watch("previewExpired")} className="px-6 py-2.5 rounded-full font-medium text-white bg-[#09090B] hover:bg-gray-800 disabled:opacity-50 transition-colors text-sm shadow-md">
+              {isSaving || isSubmitting ? 'Saving...' : 'Save Draft'}
             </button>
           </div>
         </div>
