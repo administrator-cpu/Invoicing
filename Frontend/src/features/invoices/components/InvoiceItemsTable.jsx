@@ -22,6 +22,23 @@ const formatMoney = (num = 0) =>
     maximumFractionDigits: 2
   });
 
+const formatBillingCycle = (start, end) => {
+  if (!start || !end) return "-";
+
+  return {
+    start: new Date(start).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    end: new Date(end).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+  };
+};
+
 export default function InvoiceItemsTable({ invoice }) {
 
   const taxes = invoice.financials?.taxes;
@@ -37,7 +54,7 @@ export default function InvoiceItemsTable({ invoice }) {
             <tr className="divide-x divide-orange-400">
               <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight text-center">Service<br />Description</th>
               <th className="py-3 px-1 w-[6%] font-semibold tracking-wide text-center">SAC</th>
-              <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Date</th>
+              <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Cycle</th>
               <th className="py-3 px-1 w-[8%] font-semibold tracking-wide text-center">BW</th>
               <th className="py-3 px-2 w-[20%] font-semibold tracking-wide leading-tight text-center">Installation<br />Address</th>
               <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-center">Charge</th>
@@ -59,7 +76,7 @@ export default function InvoiceItemsTable({ invoice }) {
             {invoice.items?.map((item) => {
               const taxableAmount = Number(item.mrc ?? item.amount ?? 0);
               const lineTax = taxableAmount * 0.18;
-              const dateSplit = formatSplitDate(item.periodStart);
+              const billingCycle = formatBillingCycle(item.periodStart, item.periodEnd);
 
               return (
                 <tr key={item._id} className="hover:bg-orange-50/50 transition-colors divide-x divide-orange-100">
@@ -69,9 +86,10 @@ export default function InvoiceItemsTable({ invoice }) {
                   <td className="py-4 px-1 align-top text-center font-mono text-gray-500 text-[11px]">
                     {item.sacCode || "-"}
                   </td>
-                  <td className="py-4 px-2 align-top text-center text-gray-600 text-xs">
-                    <span className="block font-medium">{dateSplit.top}</span>
-                    <span className="block text-gray-400">{dateSplit.bottom}</span>
+                  <td className="py-4 px-2 align-top text-center text-gray-600 text-[11px] leading-5">
+                    <span className="block font-medium">{billingCycle.start}</span>
+                    <span className="block text-gray-400">to</span>
+                    <span className="block font-medium">{billingCycle.end}</span>
                   </td>
                   <td className="py-4 px-1 align-top text-center text-gray-700 font-mono text-xs">
                     {item.crmConnectionSnapshot?.bandwidth || "-"}
