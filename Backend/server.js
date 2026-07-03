@@ -3,12 +3,14 @@ import mongoose from 'mongoose';
 import app from './src/app.js';
 import { connectDB } from "./src/config/database.js";
 import logger from './src/utils/logger.js';
+import { initBrowser, closeBrowser } from "./src/services/pdfBrowser.js";
 
 const PORT = process.env.PORT || 4000;
 
 const startServer = async () => {
   try {
     await connectDB();
+    await initBrowser();
 
     const server = app.listen(PORT, () => {
       logger.info(`✅ Server Running on port ${PORT}`);
@@ -34,6 +36,7 @@ const startServer = async () => {
         try {
           await mongoose.connection.close(false);
           logger.info("✅ MongoDB disconnected gracefully");
+          await closeBrowser();
         } catch (err) {
           logger.error("❌ MongoDB shutdown error", { error: err.message });
         }
