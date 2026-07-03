@@ -7,7 +7,13 @@ export const initBrowser = async () => {
   if (!browser) {
     logger.info("Launching Playwright browser...");
     browser = await chromium.launch({
-      headless: true
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
     });
     logger.info("Playwright browser launched.");
   }

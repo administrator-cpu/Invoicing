@@ -370,16 +370,16 @@ function buildPaymentDetails() {
   // Map through the array to generate the table rows
   const bankRows = BANKS.map(bank => `
     <tr>
-      <td style="border: 1px solid #cbd5e1; padding: 8px 12px; font-weight: 500; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; font-weight: 500; color: #334155;">
         ${bank.bank}
       </td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px 12px; font-family: monospace; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; font-family: monospace; color: #334155;">
         ${bank.accountNumber}
       </td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px 12px; font-family: monospace; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; font-family: monospace; color: #334155;">
         ${bank.ifsc}
       </td>
-      <td style="border: 1px solid #cbd5e1; padding: 8px 12px; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; color: #334155;">
         ${bank.branch}
       </td>
     </tr>
@@ -404,16 +404,16 @@ function buildPaymentDetails() {
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 16px;">
         <thead>
           <tr style="background-color: #fff7ed; color: #c2410c;">
-            <th style="border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               Bank
             </th>
-            <th style="border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               Account Number
             </th>
-            <th style="border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               IFSC Code
             </th>
-            <th style="border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               Branch
             </th>
           </tr>
