@@ -54,7 +54,7 @@ export default function InvoiceItemsTable({ invoice }) {
             <tr className="divide-x divide-orange-400">
               <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight text-center">Service<br />Description</th>
               <th className="py-3 px-1 w-[6%] font-semibold tracking-wide text-center">SAC</th>
-              <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Cycle</th>
+              <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Period</th>
               <th className="py-3 px-1 w-[8%] font-semibold tracking-wide text-center">BW</th>
               <th className="py-3 px-2 w-[20%] font-semibold tracking-wide leading-tight text-center">Installation<br />Address</th>
               <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-center">Charge</th>

@@ -22,7 +22,9 @@ export const initBrowser = async () => {
 };
 
 export const getBrowser = async () => {
-  if (!browser) {
+  if (!browser || !browser.isConnected()) {
+    logger.info("Browser was dead or disconnected. Restarting...");
+    browser = null;
     return await initBrowser();
   }
 
