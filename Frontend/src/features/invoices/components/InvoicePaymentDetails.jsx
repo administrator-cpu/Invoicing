@@ -32,16 +32,16 @@ export default function InvoicePaymentDetails() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-orange-50 text-orange-700">
-              <th className="border px-3 py-2 text-left">
+              <th className="border px-3 py-2 text-center">
                 Bank
               </th>
-              <th className="border px-3 py-2 text-left">
+              <th className="border px-3 py-2 text-center">
                 Account Number
               </th>
-              <th className="border px-3 py-2 text-left">
+              <th className="border px-3 py-2 text-center">
                 IFSC Code
               </th>
-              <th className="border px-3 py-2 text-left">
+              <th className="border px-3 py-2 text-center">
                 Branch
               </th>
             </tr>
@@ -50,7 +50,7 @@ export default function InvoicePaymentDetails() {
             {BANKS.map((bank) => (
               <tr
                 key={bank.accountNumber}
-                className="hover:bg-slate-50"
+                className="hover:bg-slate-50 text-center"
               >
                 <td className="border px-3 py-2 font-medium">
                   {bank.bank}

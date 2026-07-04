@@ -370,16 +370,16 @@ function buildPaymentDetails() {
   // Map through the array to generate the table rows
   const bankRows = BANKS.map(bank => `
     <tr>
-      <td style="border: 1px solid #fdba74; padding: 8px 12px; font-weight: 500; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; font-weight: 500; color: #334155;">
         ${bank.bank}
       </td>
-      <td style="border: 1px solid #fdba74; padding: 8px 12px; font-family: monospace; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; font-family: monospace; color: #334155;">
         ${bank.accountNumber}
       </td>
-      <td style="border: 1px solid #fdba74; padding: 8px 12px; font-family: monospace; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; font-family: monospace; color: #334155;">
         ${bank.ifsc}
       </td>
-      <td style="border: 1px solid #fdba74; padding: 8px 12px; color: #334155;">
+      <td style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; color: #334155;">
         ${bank.branch}
       </td>
     </tr>
@@ -404,16 +404,16 @@ function buildPaymentDetails() {
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 16px;">
         <thead>
           <tr style="background-color: #fff7ed; color: #c2410c;">
-            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               Bank
             </th>
-            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               Account Number
             </th>
-            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               IFSC Code
             </th>
-            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: left; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
+            <th style="border: 1px solid #fdba74; padding: 8px 12px; text-align: center; background-color: #fff7ed; color: #c2410c; font-weight: bold;">
               Branch
             </th>
           </tr>
@@ -519,7 +519,7 @@ function buildItems(invoice, isInterstate) {
             <tr>
               <th style="width: 20%; ${thStyle} ${thDivideX}">Service<br/>Description</th>
               <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">SAC</th>
-              <th style="width: 12%; ${thStyle} ${thDivideX}">Billing<br/>Cycle</th>
+              <th style="width: 12%; ${thStyle} ${thDivideX}">Billing<br/>Period</th>
               <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW</th>
               <th style="width: 20%; ${thStyle} ${thDivideX}">Installation<br/>Address</th>
               <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
