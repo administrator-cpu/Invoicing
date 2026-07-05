@@ -20,6 +20,12 @@ export default function InvoiceCreate() {
   const submitLock = React.useRef(false);
   const { mutate: previewInvoice, isLoading: isPreviewing } = usePreviewInvoice();
 
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+
+  const firstDayOfMonth = `${year}-${month}-01`;
+  const defaultDueDate = `${year}-${month}-06`;
   const methods = useForm({
     defaultValues: {
       selectedGstProfileId: '',
@@ -29,9 +35,10 @@ export default function InvoiceCreate() {
       previewVersion: null,
       previewGeneratedAt: null,
       previewExpired: true,
-      invoiceDate: '', dueDate: '',
+      invoiceDate: firstDayOfMonth,
+      dueDate: defaultDueDate,
       billingCycleStart: '', billingCycleEnd: '',
-      billingMode: 'POSTPAID',
+      billingMode: 'PREPAID',
       discount: 0,
     }
   });
@@ -51,6 +58,9 @@ export default function InvoiceCreate() {
 
       reset({
         ...defaults,
+        invoiceDate: firstDayOfMonth,
+        dueDate: defaultDueDate,
+        billingMode: 'PREPAID',
         selectedGstProfileId: customer.billingProfile?.[0]?._id || '',
         selectedCompanyProfileId: companyProfiles?.[0]?._id || '',
         financials: null,
@@ -173,6 +183,11 @@ export default function InvoiceCreate() {
               : "",
             isSelected: true,
             status: existing?.status ?? backendItem.status,
+            billingOptions: existing?.billingOptions ?? {
+              connection: true,
+              ip: true,
+              shifting: true
+            },
             history: existing?.history ?? [],
             ips: existing?.ips ?? {},
             commercials: existing?.commercials ?? {},

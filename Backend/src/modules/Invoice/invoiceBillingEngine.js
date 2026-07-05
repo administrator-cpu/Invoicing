@@ -24,12 +24,10 @@ export const buildInvoiceItems = ({
 
   if (hasConnections) {
     for (const conn of connections) {
-      const isBillable = conn.status === "Active" || conn.status === "Notice Period";
       const options = conn.billingOptions || {};
       if (options.connection === false && options.ip === false && options.shifting === false) {
         throw new AppError(`At least one billing component must be selected for ${conn.opportunityId}.`, 400);
       }
-      if (!isBillable) continue;
 
       const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
       if (!wasEverActive) continue;
@@ -110,7 +108,9 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
     if (mrc <= 0) continue;
 
     rateSegments.push({
-      effectiveDate: new Date(entry.date),
+      effectiveDate: entry.action === "ACTIVATED"
+        ? (connection.acceptanceDate ? new Date(connection.acceptanceDate) : new Date(entry.date))
+        : new Date(entry.date),
       action: entry.action,
       mrc,
       ratePerMb: Number(entry.commercials?.ratePerMb || 0),
@@ -159,6 +159,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
     rows.push({
       sourceType: "CONNECTION",
       crmHistoryRefId: segment.historyId,
+      billingOptions: connection.billingOptions,
       crmConnectionSnapshot: {
         connectionId: connection.crmConnectionId || connection._id?.toString(),
         opportunityId: connection.opportunityId,
@@ -252,6 +253,7 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
   return [{
     sourceType: "IP_ADDRESS",
     crmHistoryRefId: null,
+    billingOptions: connection.billingOptions,
     crmConnectionSnapshot: {
       connectionId: connection.crmConnectionId,
       opportunityId: connection.opportunityId,
@@ -298,6 +300,7 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
 
     markers.push({
       sourceType: "MANUAL_SERVICE",
+      billingOptions: connection.billingOptions,
       crmHistoryRefId: entry._id?.toString() || null,
       crmConnectionSnapshot: {
         connectionId: connection.crmConnectionId,
