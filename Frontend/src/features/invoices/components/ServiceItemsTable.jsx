@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFieldArray, useFormContext } from 'react-hook-form';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 
 const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
@@ -24,20 +24,33 @@ export const ServiceItemsTable = () => {
     control,
     name: 'items'
   });
+  const [expandedRows, setExpandedRows] = React.useState({});
 
   const billingCycleStart = watch('billingCycleStart');
   const billingCycleEnd = watch('billingCycleEnd');
   const billingMode = watch('billingMode');
+  const items = watch("items");
   const invalidatePreview = () => {
     setValue("financials", null);
     setValue("previewVersion", null);
     setValue("previewGeneratedAt", null);
     setValue("previewExpired", true);
   };
+  const toggleExpanded = (index) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   const addManualItem = (type, defaultDesc, rate) => {
     append({
       isSelected: true,
+      billingOptions: {
+        connection: true,
+        ip: true,
+        shifting: true
+      },
       crmConnectionSnapshot: {
         connectionId: null, opportunityId: null, circuitId: null,
         serviceType: null, bandwidth: null, rateAtBilling: null,
@@ -98,122 +111,200 @@ export const ServiceItemsTable = () => {
               const sourceType = watch(`items.${index}.sourceType`);
 
               return (
-                <tr key={field.id} className={`transition-colors ${isSelected ? 'bg-white' : 'bg-gray-50/50 opacity-50'}`}>
+                <React.Fragment key={field.id}>
 
-                  <td className="px-3 py-3">
-                    <input
-                      type="checkbox"
-                      {...register(`items.${index}.isSelected`, { onChange: () => invalidatePreview() })}
-                      className="w-4 h-4 text-[#EA580C] bg-gray-100 border-gray-300 rounded focus:ring-[#EA580C] cursor-pointer"
-                    />
-                  </td>
+                  <tr key={field.id} className={`transition-colors ${isSelected ? 'bg-white' : 'bg-gray-50/50 opacity-50'}`}>
 
-                  <td className="px-3 py-3">
-                    <input
-                      {...register(`items.${index}.description`)}
-                      className="w-full resize-none overflow-hidden break-words whitespace-pre-wrap bg-transparent border border-transparent hover:border-gray-200 rounded p-1 text-sm font-bold text-gray-900 focus:border-[#EA580C] outline-none"
-                    />
-                    {item.billingMeta?.calculationType === "PRORATA" && (
-                      <div className="mt-1 text-[10px] font-semibold text-orange-600">
-                        PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
-                      </div>
-                    )}
-                  </td>
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        {...register(`items.${index}.isSelected`, { onChange: () => invalidatePreview() })}
+                        className="w-4 h-4 text-[#EA580C] bg-gray-100 border-gray-300 rounded focus:ring-[#EA580C] cursor-pointer"
+                      />
+                    </td>
 
-                  <td className="px-3 py-3">
-                    <input
-                      {...register(`items.${index}.sacCode`, {
-                        onChange: () => invalidatePreview()
-                      })}
-                      className="w-20 border border-gray-200 rounded-lg p-2 text-sm text-center font-mono focus:ring-1 focus:ring-[#EA580C] outline-none"
-                      placeholder="998422"
-                    />
-                  </td>
+                    <td className="px-3 py-3">
+                      <input
+                        {...register(`items.${index}.description`)}
+                        className="w-full resize-none overflow-hidden break-words whitespace-pre-wrap bg-transparent border border-transparent hover:border-gray-200 rounded p-1 text-sm font-bold text-gray-900 focus:border-[#EA580C] outline-none"
+                      />
+                      {sourceType === "CONNECTION" && (
+                        <button
+                          type="button" onClick={() => toggleExpanded(index)}
+                          className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[#EA580C] hover:text-orange-700 transition-colors"
+                        >
+                          <Settings2 size={14} />
+                          Billing Components
+                          {expandedRows[index]
+                            ? <ChevronUp size={14} />
+                            : <ChevronDown size={14} />}
+                        </button>
+                      )}
+                      {item.billingMeta?.calculationType === "PRORATA" && (
+                        <div className="mt-1 text-[10px] font-semibold text-orange-600">
+                          PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
+                        </div>
+                      )}
+                    </td>
 
-                  <td className="px-3 py-3">
-                    <span className="text-sm font-semibold text-gray-600">
-                      {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
-                        sourceType === 'IP_ADDRESS' ? 'IP' :
-                          sourceType === 'OTC' ? '-' : 'Manual'}
-                    </span>
-                  </td>
+                    <td className="px-3 py-3">
+                      <input
+                        {...register(`items.${index}.sacCode`, {
+                          onChange: () => invalidatePreview()
+                        })}
+                        className="w-20 border border-gray-200 rounded-lg p-2 text-sm text-center font-mono focus:ring-1 focus:ring-[#EA580C] outline-none"
+                        placeholder="998422"
+                      />
+                    </td>
 
-                  <td className="px-3 py-3">
-                    {sourceType === 'CONNECTION' ? (
-                      <span className="text-sm font-bold text-gray-900 px-2">
-                        {item.crmConnectionSnapshot.bandwidth || 'N/A'}
+                    <td className="px-3 py-3">
+                      <span className="text-sm font-semibold text-gray-600">
+                        {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
+                          sourceType === 'IP_ADDRESS' ? 'IP' :
+                            sourceType === 'OTC' ? '-' : 'Manual'}
                       </span>
-                    ) : sourceType === 'OTC' ? (
-                      <span className="text-sm font-bold text-gray-400 px-2">-</span>
-                    ) : (
+                    </td>
+
+                    <td className="px-3 py-3">
+                      {sourceType === 'CONNECTION' ? (
+                        <span className="text-sm font-bold text-gray-900 px-2">
+                          {item.crmConnectionSnapshot.bandwidth || 'N/A'}
+                        </span>
+                      ) : sourceType === 'OTC' ? (
+                        <span className="text-sm font-bold text-gray-400 px-2">-</span>
+                      ) : (
+                        <input
+                          type="number" step="any"
+                          {...register(`items.${index}.qty`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
+                          className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-3 py-3">
+                      {sourceType === 'CONNECTION' ? (
+                        <div className="flex flex-col gap-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(item.status)}`}>
+                            {item.status}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(item.statusSnapshot)}`}>
+                          {item.statusSnapshot}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-3 py-3">
+                      <div className="flex flex-col gap-1.5">
+                        <input type="date" {...register(`items.${index}.periodStart`, { onChange: () => invalidatePreview() })} className="w-full border border-gray-200 rounded p-1 text-xs text-gray-700 focus:ring-1 focus:ring-[#EA580C] outline-none" />
+                        <input type="date" {...register(`items.${index}.periodEnd`, { onChange: () => invalidatePreview() })} className="w-full border border-gray-200 rounded p-1 text-xs text-gray-700 focus:ring-1 focus:ring-[#EA580C] outline-none" />
+                      </div>
+                    </td>
+
+                    <td className="px-3 py-3">
+                      {sourceType === "CONNECTION" || sourceType === "IP_ADDRESS" ? (
+                        <span className="block px-2 py-2 text-sm font-semibold text-gray-700">
+                          {item.rate}
+                        </span>
+                      ) : (
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register(`items.${index}.rate`, {
+                            valueAsNumber: true,
+                            onChange: invalidatePreview
+                          })}
+                          className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-3 py-3">
                       <input
                         type="number" step="any"
-                        {...register(`items.${index}.qty`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
-                      />
-                    )}
-                  </td>
-
-                  <td className="px-3 py-3">
-                    {sourceType === 'CONNECTION' ? (
-                      <div className="flex flex-col gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(item.status)}`}>
-                          {item.status}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold w-max ${getStatusBadge(item.statusSnapshot)}`}>
-                        {item.statusSnapshot}
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="px-3 py-3">
-                    <div className="flex flex-col gap-1.5">
-                      <input type="date" {...register(`items.${index}.periodStart`, { onChange: () => invalidatePreview() })} className="w-full border border-gray-200 rounded p-1 text-xs text-gray-700 focus:ring-1 focus:ring-[#EA580C] outline-none" />
-                      <input type="date" {...register(`items.${index}.periodEnd`, { onChange: () => invalidatePreview() })} className="w-full border border-gray-200 rounded p-1 text-xs text-gray-700 focus:ring-1 focus:ring-[#EA580C] outline-none" />
-                    </div>
-                  </td>
-
-                  <td className="px-3 py-3">
-                    {sourceType === "CONNECTION" || sourceType === "IP_ADDRESS" ? (
-                      <span className="block px-2 py-2 text-sm font-semibold text-gray-700">
-                        {item.rate}
-                      </span>
-                    ) : (
-                      <input
-                        type="number"
-                        step="0.01"
-                        {...register(`items.${index}.rate`, {
+                        {...register(`items.${index}.amount`, {
                           valueAsNumber: true,
-                          onChange: invalidatePreview
+                          onChange: () => {
+                            setValue(`items.${index}.wasEdited`, true);
+                            invalidatePreview();
+                          }
                         })}
-                        className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-1 focus:ring-[#EA580C] outline-none"
+                        className="w-full border border-gray-200 rounded-lg p-2 text-sm font-bold focus:ring-1 focus:ring-[#EA580C] outline-none text-[#EA580C]"
                       />
-                    )}
-                  </td>
+                    </td>
 
-                  <td className="px-3 py-3">
-                    <input
-                      type="number" step="any"
-                      {...register(`items.${index}.amount`, {
-                        valueAsNumber: true,
-                        onChange: () => {
-                          setValue(`items.${index}.wasEdited`, true);
-                          invalidatePreview();
-                        }
-                      })}
-                      className="w-full border border-gray-200 rounded-lg p-2 text-sm font-bold focus:ring-1 focus:ring-[#EA580C] outline-none text-[#EA580C]"
-                    />
-                  </td>
+                    <td className="px-3 py-3 text-right">
+                      <button type="button" onClick={() => { remove(index); invalidatePreview(); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
 
-                  <td className="px-3 py-3 text-right">
-                    <button type="button" onClick={() => { remove(index); invalidatePreview(); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
+                  </tr>
 
-                </tr>
+                  {sourceType === "CONNECTION" && expandedRows[index] && (
+                    <tr>
+                      <td colSpan={10} className="bg-orange-50/40 px-6 py-4 border-b border-orange-100">
+
+                        <div className="space-y-4">
+
+                          <div> 
+                            <p className="text-xs text-gray-500 mt-1">
+                              Choose which billable components should be included in this invoice.
+                              At least one component must remain selected.
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-8">
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                              <input
+                                type="checkbox"
+                                {...register(
+                                  `items.${index}.billingOptions.connection`,
+                                  {
+                                    onChange: invalidatePreview
+                                  }
+                                )}
+                                className="rounded border-gray-300 text-[#EA580C] focus:ring-[#EA580C]"
+                              />
+                              Internet Charges
+                            </label>
+
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                              <input
+                                type="checkbox"
+                                {...register(
+                                  `items.${index}.billingOptions.ip`,
+                                  {
+                                    onChange: invalidatePreview
+                                  }
+                                )}
+                                className="rounded border-gray-300 text-[#EA580C] focus:ring-[#EA580C]"
+                              />
+                              Public IP Charges
+                            </label>
+
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                              <input
+                                type="checkbox"
+                                {...register(
+                                  `items.${index}.billingOptions.shifting`,
+                                  {
+                                    onChange: invalidatePreview
+                                  }
+                                )}
+                                className="rounded border-gray-300 text-[#EA580C] focus:ring-[#EA580C]"
+                              />
+                              Shifting Charges
+                            </label>
+                          </div>
+
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
+                </React.Fragment>
               );
             })}
           </tbody>

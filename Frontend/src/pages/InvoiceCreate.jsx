@@ -59,6 +59,11 @@ export default function InvoiceCreate() {
           const isSelected = conn.selected || false;
           return {
             isSelected,
+            billingOptions: {
+              connection: true,
+              ip: true,
+              shifting: true
+            },
             history: conn.history || [],
             ips: conn.ips || {},
             technicalDetails: conn.technicalDetails || {},
@@ -102,6 +107,7 @@ export default function InvoiceCreate() {
 
     const connections = formData.items.filter(item => item.isSelected && item.sourceType === "CONNECTION")
       .map(item => ({
+        billingOptions: item.billingOptions,
         crmConnectionId: item.crmConnectionSnapshot.connectionId,
         opportunityId: item.crmConnectionSnapshot.opportunityId,
         fabCircuitId: item.crmConnectionSnapshot.circuitId,
@@ -125,7 +131,7 @@ export default function InvoiceCreate() {
       }));
 
     const manualItems = formData.items.filter(
-      item => item.isSelected && item.sourceType !== "CONNECTION"
+      item => item.isSelected && (item.sourceType === "MANUAL_SERVICE" || item.sourceType === "OTC")
     ).map(item => ({
       description: item.description,
       qty: item.qty,

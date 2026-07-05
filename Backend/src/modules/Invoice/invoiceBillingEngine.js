@@ -1,4 +1,5 @@
 import { connect } from "mongoose";
+import AppError from "../../utils/AppError.js";
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -10,43 +11,78 @@ export const buildInvoiceItems = ({
   billingCycleEnd,
   billingMode = "POSTPAID"
 }) => {
-  if (!Array.isArray(connections) || connections.length === 0) return [];
+  const hasConnections = Array.isArray(connections) && connections.length > 0;
+  const hasManualItems = Array.isArray(manualItems) && manualItems.length > 0;
+  if (!hasConnections && !hasManualItems) {
+    return [];
+  }
 
   const cycleStart = new Date(billingCycleStart);
   const cycleEnd = new Date(billingCycleEnd);
 
   const allItems = [];
 
-  for (const conn of connections) {
-    const isBillable = conn.status === "Active" || conn.status === "Notice Period";
-    if (!isBillable) continue;
+  if (hasConnections) {
+    for (const conn of connections) {
+      const isBillable = conn.status === "Active" || conn.status === "Notice Period";
+      const options = conn.billingOptions || {};
+      if (options.connection === false && options.ip === false && options.shifting === false) {
+        throw new AppError(`At least one billing component must be selected for ${conn.opportunityId}.`, 400);
+      }
+      if (!isBillable) continue;
 
-    const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
-    if (!wasEverActive) continue;
-    const connectionItems = buildConnectionSegments(conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode);
-    allItems.push(...connectionItems);
+      const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
+      if (!wasEverActive) continue;
 
-    const ipItems = buildIpLines(conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode);
-    allItems.push(...ipItems);
+      if (conn.billingOptions?.connection !== false) {
+        const connectionItems = buildConnectionSegments(
+          conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
+        );
+        allItems.push(...connectionItems);
+      }
 
-    const shiftItems = buildShiftingMarkers(conn, cycleStart, cycleEnd);
-    allItems.push(...shiftItems);
+      if (conn.billingOptions?.ip !== false) {
+        const ipItems = buildIpLines(
+          conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
+        );
+        allItems.push(...ipItems);
+      }
+
+      if (conn.billingOptions?.shifting !== false) {
+        const shiftItems = buildShiftingMarkers(conn, cycleStart, cycleEnd);
+        allItems.push(...shiftItems);
+      }
+    }
   }
 
-  const validatedManualItems = manualItems.map(item => ({
-    ...item,
-    sourceType: "MANUAL_SERVICE",
-    qty: Number(item.qty),
-    rate: Number(item.rate),
-    periodStart: new Date(item.periodStart),
-    periodEnd: new Date(item.periodEnd),
-    amount: round2(item.qty * item.rate),
-    billingMeta: {
-      billingMode,
-      calculationType: "MANUAL"
-    },
-    statusSnapshot: "BILLABLE"
-  }));
+  const validatedManualItems = manualItems.map(item => {
+    const pStart = new Date(item.periodStart);
+    const pEnd = new Date(item.periodEnd);
+    const daysInMonth = getDaysInMonth(pStart);
+    const billedDays = daysInclusive(pStart, pEnd);
+    const monthlyAmount = round2(Number(item.qty) * Number(item.rate));
+    const amount = billedDays >= daysInMonth
+      ? monthlyAmount
+      : round2((monthlyAmount / daysInMonth) * billedDays);
+
+    return {
+      ...item,
+      sourceType: "MANUAL_SERVICE",
+      qty: Number(item.qty),
+      rate: Number(item.rate),
+      periodStart: new Date(item.periodStart),
+      periodEnd: new Date(item.periodEnd),
+      amount,
+      billingMeta: {
+        billingMode,
+        monthlyMrc: monthlyAmount,
+        daysCharged: billedDays,
+        daysInMonth,
+        calculationType: billedDays === daysInMonth ? "MANUAL" : "MANUAL_PRORATA",
+      },
+      statusSnapshot: "BILLABLE"
+    }
+  });
 
   allItems.push(...validatedManualItems);
 
