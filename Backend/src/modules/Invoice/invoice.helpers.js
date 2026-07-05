@@ -151,7 +151,13 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
 
       case "MANUAL_SERVICE":
       case "OTC":
-        expectedAmount = round2(displayRate * qty);
+        const monthlyManualAmount = Number(item.billingMeta?.monthlyMrc ?? (displayRate * qty));
+
+        expectedAmount = billedDays >= daysInMonth
+          ? round2(monthlyManualAmount)
+          : round2((monthlyManualAmount / daysInMonth) * billedDays);
+
+        monthlyMrc = monthlyManualAmount;
         break;
 
       default:
