@@ -100,21 +100,28 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
 
   if (terminationDate && terminationDate < cycleStart) return [];
 
+  const overrides = connection.invoiceOverrides || {};
   const rateSegments = [];
   for (const entry of sortedHistory) {
     if (!SEGMENT_ACTIONS.includes(entry.action)) continue;
 
-    const mrc = Number(entry.commercials?.mrc || 0);
-    if (mrc <= 0) continue;
+    const bandwidth = overrides.bandwidth ?? entry.bandwidth ?? "";
+    const ratePerMb = Number(overrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0);
+    const parsedBandwidth = Number.parseFloat(String(bandwidth));
+    const calculatedMrc = Number.isFinite(parsedBandwidth)
+      ? round2(parsedBandwidth * ratePerMb)
+      : Number(entry.commercials?.mrc || 0);
+
+    if (calculatedMrc <= 0) continue;
 
     rateSegments.push({
       effectiveDate: entry.action === "ACTIVATED"
         ? (connection.acceptanceDate ? new Date(connection.acceptanceDate) : new Date(entry.date))
         : new Date(entry.date),
       action: entry.action,
-      mrc,
-      ratePerMb: Number(entry.commercials?.ratePerMb || 0),
-      bandwidth: entry.bandwidth || "",
+      mrc: calculatedMrc,
+      ratePerMb: Number(overrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0),
+      bandwidth: overrides.bandwidth ?? entry.bandwidth ?? "",
       serviceType: entry.serviceType || connection.serviceType || "",
       historyId: entry._id?.toString() || null
     });
@@ -197,7 +204,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         activationDateAtBilling: segment.action === "ACTIVATED" ? segment.effectiveDate : undefined,
         historyEventType: segment.action
       },
-      description: buildDescription(segment, connection),
+      description: overrides.description ?? buildDescription(segment, connection),
       sacCode: "998422",
       qty: 1,
       mrc: internetMrc,
