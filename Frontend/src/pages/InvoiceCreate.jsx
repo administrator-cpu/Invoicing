@@ -17,6 +17,7 @@ export default function InvoiceCreate() {
   const { data: workspaceData, isLoading, isError } = useInvoiceWorkspace(customerId);
   const { mutate: saveDraft, isLoading: isSaving } = useCreateInvoice();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [editMode, setEditMode] = React.useState(false);
   const submitLock = React.useRef(false);
   const { mutate: previewInvoice, isLoading: isPreviewing } = usePreviewInvoice();
 
@@ -90,6 +91,13 @@ export default function InvoiceCreate() {
               mrc: conn.commercials?.mrc || 0,
               historyEventType: null
             },
+            invoiceOverrides: {
+              bandwidth: conn.bandwidth,
+              ratePerMb: conn.commercials?.ratePerMb || 0,
+              description: conn.opportunityId || "",
+              periodStart: defaults.billingCycleStart,
+              periodEnd: defaults.billingCycleEnd
+            },
             description: conn.opportunityId || 'No Opportunity ID',
             sourceType: "CONNECTION",
             sacCode: "998422",
@@ -116,29 +124,33 @@ export default function InvoiceCreate() {
     const selectedCompanyProfile = workspaceData.companyProfiles.find(p => p._id === formData.selectedCompanyProfileId);
 
     const connections = formData.items.filter(item => item.isSelected && item.sourceType === "CONNECTION")
-      .map(item => ({
-        billingOptions: item.billingOptions,
-        crmConnectionId: item.crmConnectionSnapshot.connectionId,
-        opportunityId: item.crmConnectionSnapshot.opportunityId,
-        fabCircuitId: item.crmConnectionSnapshot.circuitId,
-        serviceType: item.crmConnectionSnapshot.serviceType,
-        bandwidth: item.crmConnectionSnapshot.bandwidth,
-        periodStart: item.periodStart,
-        periodEnd: item.periodEnd,
-        commercials: {
-          mrc: item.commercials?.mrc || 0,
-          ratePerMb: item.commercials?.ratePerMb || 0,
-          otc: item.commercials?.otc || 0,
-          advance: item.commercials?.advance || 0
-        },
-        history: item.history || [],
-        ips: item.ips || {},
-        technicalDetails: item.technicalDetails || {},
-        acceptanceDate: item.originalConnection?.acceptanceDate ?? null,
-        status: item.originalConnection.status,
-        providerCost: item.originalConnection.providerCost || {},
-        terminationDetails: item.terminationDetails || null
-      }));
+      .map(item => {
+        const overrides = item.invoiceOverrides || {};
+        return {
+          invoiceOverrides: overrides,
+          billingOptions: item.billingOptions,
+          crmConnectionId: item.crmConnectionSnapshot.connectionId,
+          opportunityId: item.crmConnectionSnapshot.opportunityId,
+          fabCircuitId: item.crmConnectionSnapshot.circuitId,
+          serviceType: item.crmConnectionSnapshot.serviceType,
+          bandwidth: overrides.bandwidth ?? item.crmConnectionSnapshot.bandwidth,
+          periodStart: item.periodStart,
+          periodEnd: item.periodEnd,
+          commercials: {
+            mrc: item.commercials?.mrc || 0,
+            ratePerMb: overrides.ratePerMb ?? item.commercials?.ratePerMb ?? item.rate,
+            otc: item.commercials?.otc || 0,
+            advance: item.commercials?.advance || 0
+          },
+          history: item.history || [],
+          ips: item.ips || {},
+          technicalDetails: item.technicalDetails || {},
+          acceptanceDate: item.originalConnection?.acceptanceDate ?? null,
+          status: item.originalConnection.status ?? item.status,
+          providerCost: item.originalConnection.providerCost || {},
+          terminationDetails: item.terminationDetails || null
+        }
+      });
 
     const manualItems = formData.items.filter(
       item => item.isSelected && (item.sourceType === "MANUAL_SERVICE" || item.sourceType === "OTC")
@@ -175,6 +187,11 @@ export default function InvoiceCreate() {
           );
           return {
             ...backendItem,
+            invoiceOverrides: existing?.invoiceOverrides ?? {
+              bandwidth: backendItem.crmConnectionSnapshot?.bandwidth,
+              ratePerMb: backendItem.rate,
+              description: backendItem.description
+            },
             periodStart: backendItem.periodStart
               ? new Date(backendItem.periodStart).toISOString().split("T")[0]
               : "",
@@ -269,8 +286,8 @@ export default function InvoiceCreate() {
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => navigate("/customers")} className="px-6 py-2.5 rounded-full font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm">Cancel</button>
-            <button type="button" onClick={handlePreview} disabled={isPreviewing} className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 hover:bg-orange-100 transition-colors text-sm flex items-center gap-2">
-              <Calculator size={16} /> {isPreviewing ? 'Calculating...' : 'Preview Engine'}
+            <button type="button" onClick={handlePreview} disabled={isPreviewing || editMode} className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 hover:bg-orange-100 transition-colors text-sm flex items-center gap-2">
+              <Calculator size={16} /> {isPreviewing ? 'Calculating...' : editMode ? 'Finish Editing' : 'Preview Engine'}
             </button>
             <button type="submit" disabled={isSaving || isSubmitting || !watch("financials") || watch("previewExpired")} className="px-6 py-2.5 rounded-full font-medium text-white bg-[#09090B] hover:bg-gray-800 disabled:opacity-50 transition-colors text-sm shadow-md">
               {isSaving || isSubmitting ? 'Saving...' : 'Save Draft'}
@@ -373,7 +390,7 @@ export default function InvoiceCreate() {
           </div>
 
           {/* Section 4: Items Table */}
-          <ServiceItemsTable />
+          <ServiceItemsTable editMode={editMode} setEditMode={setEditMode} />
 
           {/* Section 5: Bottom Right Authoritative Financial Summary */}
           <div className="flex justify-end">
