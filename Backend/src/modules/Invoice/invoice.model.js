@@ -35,6 +35,56 @@ const invoiceItemSchema = new mongoose.Schema({
       }
     }
   },
+  invoiceOverrides: {
+    bandwidth: { type: String, default: null },
+    ratePerMb: { type: Number, default: null },
+    description: { type: String, default: null }
+  },
+  billingOptions: {
+    connection: { type: Boolean, default: true },
+    ip: { type: Boolean, default: true },
+    shifting: { type: Boolean, default: true }
+  },
+  commercials: {
+    mrc: { type: Number, default: 0 },
+    ratePerMb: { type: Number, default: 0 },
+    otc: { type: Number, default: 0 },
+    advance: { type: Number, default: 0 }
+  },
+  ips: {
+    count: { type: Number, default: 0 },
+    cost: { type: Number, default: 0 }
+  },
+  providerCost: {
+    mrc: { type: Number, default: 0 },
+    ratePerMb: { type: Number, default: 0 },
+    updatedAt: { type: Date, default: null }
+  },
+  technicalDetails: {
+    aEnd: {
+      btsId: String,
+      address: String,
+      latitude: String,
+      longitude: String
+    },
+    bEnd: {
+      btsId: String,
+      address: String,
+      latitude: String,
+      longitude: String
+    }
+  },
+  history: [{
+    type: mongoose.Schema.Types.Mixed
+  }],
+  terminationDetails: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  connectionStatus: {
+    type: String,
+    default: null
+  },
   description: {
     type: String,
     required: true

@@ -9,6 +9,7 @@ import { generateBillingFingerprint } from '../../utils/billingFingerprint.js';
 import { buildInvoiceItems } from './invoiceBillingEngine.js';
 import CompanyProfile from '../CompanyProfile/companyProfile.model.js';
 import { buildInvoiceHTML } from "../../utils/invoicePdfTemplate.js";
+import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections } from "../../services/crm.service.js";
 
 export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
@@ -58,7 +59,7 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
         dueDate: formatDate(dueDate),
         billingCycleStart: formatDate(billingCycleStart),
         billingCycleEnd: formatDate(billingCycleEnd),
-        billingMode: "POSTPAID",
+        billingMode: "PREPAID",
         discount: 0,
         applyIgst: true
       }
@@ -75,7 +76,8 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
 export const previewInvoice = catchAsync(async (req, res, next) => {
   const {
     customerId, connections = [], manualItems = [],
-    billingCycleStart, billingCycleEnd, billingMode = "POSTPAID", selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
+    billingCycleStart, billingCycleEnd, billingMode = "PREPAID",
+    selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
   } = req.body;
 
   const hasConnections = Array.isArray(connections) && connections.length > 0;
@@ -111,28 +113,27 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
     return next(new AppError("Billing cycle cannot span multiple months in this version.", 400));
   }
 
-  const engineItems = buildInvoiceItems({
-    connections,
-    manualItems,
-    billingCycleStart: start,
-    billingCycleEnd: end,
-    billingMode
-  });
+  let items;
+  let financials;
 
-  if (engineItems.length === 0) {
-    return next(new AppError("No billable items found for the selected connections and cycle.", 400));
+  try {
+    ({ items, financials } = buildInvoiceDocument({
+      connections, manualItems,
+      billingCycleStart: start, billingCycleEnd: end, billingMode,
+      customerState, companyState, discount,
+    }));
+  } catch (err) {
+    return next(new AppError(err.message, 400));
   }
-
-  const { verifiedItems, financials } = validateAndRecalculateInvoice(engineItems, customerState, companyState, discount);
 
   res.status(200).json({
     status: "success",
     data: {
       previewGeneratedAt: new Date(),
       previewVersion: 1,
-      items: verifiedItems,
+      items,
       financials,
-      hasManualItems: verifiedItems.some(i => i.sourceType === "MANUAL_SERVICE")
+      hasManualItems: items.some(i => i.sourceType === "MANUAL_SERVICE")
     }
   });
 
@@ -149,7 +150,7 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
 export const createDraftInvoice = catchAsync(async (req, res, next) => {
   const {
     customer, selectedGstProfile, selectedCompanyProfile, items, billingCycleStart, billingCycleEnd,
-    invoiceDate, dueDate, discount = 0, billingMode = "POSTPAID"
+    invoiceDate, dueDate, discount = 0, billingMode = "PREPAID"
   } = req.body;
 
   if (!customer || !selectedGstProfile || !selectedCompanyProfile) {
@@ -234,18 +235,26 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
  */
 export const updateDraftInvoice = catchAsync(async (req, res, next) => {
 
-  const { version, invoiceDate, dueDate, items, applyIgst, discount = 0 } = req.body;
+  const {
+    version, invoiceDate, dueDate,
+    connections = [], manualItems = [],
+    billingCycleStart, billingCycleEnd, billingMode = "PREPAID",
+    selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
+  } = req.body;
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return next(new AppError("Invoice must contain at least one item.", 400));
-  }
   if (version === undefined || version === null) {
     return next(new AppError("Invoice version is required.", 400));
   }
 
-  const existingInvoice = await Invoice.findById(req.params.id)
-    .select("status");
+  const hasConnections = Array.isArray(connections) && connections.length > 0;
+  const hasManualItems = Array.isArray(manualItems) && manualItems.length > 0;
+  if (!hasConnections && !hasManualItems) {
+    return next(
+      new AppError("Select at least one connection or add a manual item.", 400)
+    );
+  }
 
+  const existingInvoice = await Invoice.findById(req.params.id).select("status");
   if (!existingInvoice) {
     return next(new AppError("Invoice not found.", 404));
   }
@@ -254,10 +263,24 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
       new AppError("Only draft invoices can be edited.", 400));
   }
 
-  const { verifiedItems, financials } = validateAndRecalculateInvoice(items, applyIgst, discount);
+  const customerState = selectedCustomerBillingProfile.address.state;
+  const companyState = selectedCompanyProfile.address.state;
+
+  let items;
+  let financials;
+
+  try {
+    ({ items, financials } = buildInvoiceDocument({
+      connections, manualItems,
+      billingCycleStart: new Date(billingCycleStart), billingCycleEnd: new Date(billingCycleEnd), billingMode,
+      customerState, companyState, discount,
+    }));
+  } catch (err) {
+    return next(new AppError(err.message, 400));
+  }
 
   const updatePayload = {
-    items: verifiedItems,
+    items,
     financials,
     "audit.lastEditedAt": new Date(),
     "audit.lastEditedBy": req.user._id
@@ -484,7 +507,7 @@ export const downloadInvoicePdf = catchAsync(async (req, res) => {
     `,
     margin: {
       top: '24px',
-      bottom: '40px', 
+      bottom: '40px',
       left: '24px',
       right: '24px'
     }
