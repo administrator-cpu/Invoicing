@@ -134,8 +134,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
   for (let i = 0; i < rateSegments.length; i++) {
     const segment = rateSegments[i];
     const nextSegment = rateSegments[i + 1];
-    const ipMonthlyCharge = Number(connection.ips?.count || 0) * Number(connection.ips?.cost || 0);
-    const internetMrc = round2(Math.max(0, segment.mrc - ipMonthlyCharge));
+    const internetMrc = segment.mrc;
 
     let segmentEnd = nextSegment
       ? new Date(nextSegment.effectiveDate.getTime() - MS_PER_DAY)
@@ -242,12 +241,6 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
 
   let totalIpCount = Number(connection.ips?.count || 0);
   const ratePerIp = Number(connection.ips?.cost || 0);
-
-  console.log({
-    opportunity: connection.opportunityId,
-    cycleStart,
-    cycleEnd
-  });
 
   if (totalIpCount <= 0 || ratePerIp <= 0) return [];
   const daysInMonth = getDaysInMonth(cycleStart);
