@@ -68,6 +68,36 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
 
 });
 
+export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
+  const invoice = await Invoice.findById(req.params.id);
+  if (!invoice) {
+    return next(new AppError("Invoice not found.", 404));
+  }
+
+  const customerId = invoice.customerSnapshot.crmCustomerId;
+  const [customer, connections, companyProfiles] = await Promise.all([
+    getCrmCustomerDetails(customerId),
+    getCrmCustomerConnections(customerId),
+    CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean()
+  ]);
+
+  const invoiceConnections = (connections.connections || []).map(connection => ({
+    ...connection,
+    selected: connection.isBillable,
+    editable: true
+  }));
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      invoice,
+      customer,
+      connections: invoiceConnections,
+      companyProfiles
+    }
+  });
+});
+
 /**
  * @desc -  engine generates suggested items, nothing saved to DB
  * @route - POST /api/invoices/preview
@@ -460,7 +490,7 @@ export const getInvoices = catchAsync(async (req, res, next) => {
 
 /**
  * @desc - Get a single invoice with all details
- * @route - GET /apiinvoices/:id
+ * @route - GET /api/invoices/:id
  */
 export const getInvoiceById = catchAsync(async (req, res, next) => {
   const invoice = await Invoice.findById(req.params.id);

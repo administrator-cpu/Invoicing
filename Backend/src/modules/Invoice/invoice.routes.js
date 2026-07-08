@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   previewInvoice, createDraftInvoice,
-  finalizeInvoice, getInvoices, getInvoiceById, getInvoiceWorkspace,
+  finalizeInvoice, getInvoices, getInvoiceById, getInvoiceWorkspace, getInvoiceEditWorkspace,
   updateDraftInvoice, cancelInvoice, downloadInvoicePdf,
   recordPayment, generateAdjustmentInvoice, updatePaymentStatus
 } from './invoice.controller.js';
@@ -20,6 +20,7 @@ router.use(restrictTo('Admin'));
 
 // --- READ ROUTES ---
 router.get("/workspace/:customerId", getInvoiceWorkspace);
+router.get("/:id/edit-workspace", getInvoiceEditWorkspace);
 router.get('/', getInvoices);
 router.get('/:id', getInvoiceById);
 router.get('/:id/pdf', downloadInvoicePdf);

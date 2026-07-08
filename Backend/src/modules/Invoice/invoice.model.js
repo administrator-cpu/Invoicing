@@ -38,7 +38,11 @@ const invoiceItemSchema = new mongoose.Schema({
   invoiceOverrides: {
     bandwidth: { type: String, default: null },
     ratePerMb: { type: Number, default: null },
-    description: { type: String, default: null }
+    ipCost: { type: Number, default: null },
+    ipCount: { type: Number, default: null },
+    description: { type: String, default: null },
+    periodStart: { type: Date, default: null },
+    periodEnd: { type: Date, default: null },
   },
   billingOptions: {
     connection: { type: Boolean, default: true },
@@ -55,25 +59,25 @@ const invoiceItemSchema = new mongoose.Schema({
     count: { type: Number, default: 0 },
     cost: { type: Number, default: 0 }
   },
-  providerCost: {
-    mrc: { type: Number, default: 0 },
-    ratePerMb: { type: Number, default: 0 },
-    updatedAt: { type: Date, default: null }
-  },
-  technicalDetails: {
-    aEnd: {
-      btsId: String,
-      address: String,
-      latitude: String,
-      longitude: String
-    },
-    bEnd: {
-      btsId: String,
-      address: String,
-      latitude: String,
-      longitude: String
-    }
-  },
+  // providerCost: {
+  //   mrc: { type: Number, default: 0 },
+  //   ratePerMb: { type: Number, default: 0 },
+  //   updatedAt: { type: Date, default: null }
+  // },
+  // technicalDetails: {
+  //   aEnd: {
+  //     btsId: String,
+  //     address: String,
+  //     latitude: String,
+  //     longitude: String
+  //   },
+  //   bEnd: {
+  //     btsId: String,
+  //     address: String,
+  //     latitude: String,
+  //     longitude: String
+  //   }
+  // },
   history: [{
     type: mongoose.Schema.Types.Mixed
   }],
@@ -147,11 +151,30 @@ const invoiceItemSchema = new mongoose.Schema({
         "RATE_REVISION",
         "SHIFTING",
         "IP_ADDITION",
-        "MANUAL"
+        "MANUAL",
+        "MANUAL_PRORATA"
       ]
     },
     daysCharged: {
       type: Number
+    },
+    daysInMonth: {
+      type: Number
+    },
+    monthlyMrc: {
+      type: Number
+    },
+    monthlyRatePerMb: {
+      type: Number
+    },
+    originalCalculationType: {
+      type: String
+    },
+    originalPeriodStart: {
+      type: Date
+    },
+    originalPeriodEnd: {
+      type: Date
     }
   },
   statusSnapshot: {

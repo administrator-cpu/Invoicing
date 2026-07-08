@@ -4,6 +4,40 @@ import AppError from "../../utils/AppError.js";
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+function getBillingCommercialSnapshot(connection) {
+  const history = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (
+    connection.status === "ACTIVE" ||
+    connection.status === "NOTICE PERIOD"
+  ) {
+    return {
+      bandwidth: connection.bandwidth,
+      commercials: connection.commercials,
+    };
+  }
+
+  let lastActivated = null;
+
+  for (const entry of history) {
+    if (entry.action === "ACTIVATED") {
+      lastActivated = entry;
+    }
+  }
+
+  if (!lastActivated) {
+    return {
+      bandwidth: connection.bandwidth,
+      commercials: connection.commercials,
+    };
+  }
+
+  return {
+    bandwidth: lastActivated.bandwidth,
+    commercials: lastActivated.commercials,
+  };
+}
+
 export const buildInvoiceItems = ({
   connections,
   manualItems = [],
@@ -25,6 +59,12 @@ export const buildInvoiceItems = ({
   if (hasConnections) {
     for (const conn of connections) {
       const options = conn.billingOptions || {};
+      const billingSnapshot = getBillingCommercialSnapshot(conn);
+      const normalizedConnection = {
+        ...conn,
+        bandwidth: billingSnapshot.bandwidth,
+        commercials: billingSnapshot.commercials,
+      };
       if (options.connection === false && options.ip === false && options.shifting === false) {
         throw new AppError(`At least one billing component must be selected for ${conn.opportunityId}.`, 400);
       }
@@ -34,20 +74,20 @@ export const buildInvoiceItems = ({
 
       if (conn.billingOptions?.connection !== false) {
         const connectionItems = buildConnectionSegments(
-          conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
+          normalizedConnection, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
         );
         allItems.push(...connectionItems);
       }
 
       if (conn.billingOptions?.ip !== false) {
         const ipItems = buildIpLines(
-          conn, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
+          normalizedConnection, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
         );
         allItems.push(...ipItems);
       }
 
       if (conn.billingOptions?.shifting !== false) {
-        const shiftItems = buildShiftingMarkers(conn, cycleStart, cycleEnd);
+        const shiftItems = buildShiftingMarkers(normalizedConnection, cycleStart, cycleEnd);
         allItems.push(...shiftItems);
       }
     }
@@ -91,18 +131,26 @@ export const buildInvoiceItems = ({
  * @desc - Connection segment builder
  */
 function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) {
-  const SEGMENT_ACTIONS = ["ACTIVATED", "UPGRADE", "DOWNGRADE", "RATE_REVISION"];
+  const SEGMENT_ACTIONS = ["ACTIVATED"];
 
   const sortedHistory = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const terminationEntry = sortedHistory.find(h => h.action === "TERMINATED");
   const terminationDate = terminationEntry ? new Date(terminationEntry.date) : null;
+  const noticeTerminationDate = connection.status === "Notice Period" && connection.terminationDetails?.finalDate
+    ? new Date(connection.terminationDetails.finalDate)
+    : null;
 
   if (terminationDate && terminationDate < cycleStart) return [];
 
   const overrides = connection.invoiceOverrides || {};
   const rateSegments = [];
+  const isPendingCommercial = connection.status === "APPROVED" || connection.status === "GENERATION";
+
   for (const entry of sortedHistory) {
+    if (isPendingCommercial && (entry.action === "UPGRADE" || entry.action === "DOWNGRADE" || entry.action === "RATE_REVISION")) {
+      break;
+    }
     if (!SEGMENT_ACTIONS.includes(entry.action)) continue;
 
     const bandwidth = overrides.bandwidth ?? entry.bandwidth ?? "";
@@ -142,6 +190,9 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
 
     if (terminationDate && terminationDate < segmentEnd) {
       segmentEnd = terminationDate;
+    }
+    if (noticeTerminationDate && noticeTerminationDate < segmentEnd) {
+      segmentEnd = noticeTerminationDate;
     }
 
     const overlap = getOverlap(segment.effectiveDate, segmentEnd, cycleStart, cycleEnd);
@@ -239,8 +290,9 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
 function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
   const sortedHistory = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  let totalIpCount = Number(connection.ips?.count || 0);
-  const ratePerIp = Number(connection.ips?.cost || 0);
+  const overrides = connection.invoiceOverrides || {};
+  let totalIpCount = Number(overrides.ipCount ?? connection.ips?.count ?? 0);
+  const ratePerIp = Number(overrides.ipCost ?? connection.ips?.cost ?? 0);
 
   if (totalIpCount <= 0 || ratePerIp <= 0) return [];
   const daysInMonth = getDaysInMonth(cycleStart);
@@ -265,7 +317,7 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
       ipCount: connection.ips.count,
       ipCost: connection.ips.cost
     },
-    description: `IP charges — ${connection.opportunityId}`,
+    description: overrides.description && overrides.description !== connection.opportunityId ? overrides.description : `IP Charges - ${connection.opportunityId}`,
     sacCode: "998422",
     qty: totalIpCount,
     rate: ratePerIp,

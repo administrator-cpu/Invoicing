@@ -92,9 +92,11 @@ export default function InvoiceCreate() {
               historyEventType: null
             },
             invoiceOverrides: {
-              bandwidth: conn.bandwidth,
-              ratePerMb: conn.commercials?.ratePerMb || 0,
-              description: conn.opportunityId || "",
+              bandwidth: null,
+              ratePerMb: null,
+              ipCount: null,
+              ipCost: null,
+              description: null,
               periodStart: defaults.billingCycleStart,
               periodEnd: defaults.billingCycleEnd
             },
@@ -123,9 +125,21 @@ export default function InvoiceCreate() {
     const selectedCustomerBillingProfile = workspaceData.customer.billingProfile.find(p => p._id === formData.selectedGstProfileId);
     const selectedCompanyProfile = workspaceData.companyProfiles.find(p => p._id === formData.selectedCompanyProfileId);
 
+    const ipItems = formData.items.filter(item => item.isSelected && item.sourceType === "IP_ADDRESS");
+
     const connections = formData.items.filter(item => item.isSelected && item.sourceType === "CONNECTION")
       .map(item => {
-        const overrides = item.invoiceOverrides || {};
+        const ipItem = ipItems.find(ip =>
+          ip.crmConnectionSnapshot?.connectionId === item.crmConnectionSnapshot?.connectionId
+        );
+        const overrides = {
+          ...(item.invoiceOverrides || {}),
+          bandwidth: item.invoiceOverrides?.bandwidth,
+          ratePerMb: item.invoiceOverrides?.ratePerMb,
+          description: ipItem?.description ?? item.description,
+          ipCount: ipItem?.qty ?? item.ips?.count ?? 0,
+          ipCost: ipItem?.rate ?? item.ips?.cost ?? 0
+        };
         return {
           invoiceOverrides: overrides,
           billingOptions: item.billingOptions,
@@ -187,10 +201,14 @@ export default function InvoiceCreate() {
           );
           return {
             ...backendItem,
-            invoiceOverrides: existing?.invoiceOverrides ?? {
-              bandwidth: backendItem.crmConnectionSnapshot?.bandwidth,
-              ratePerMb: backendItem.rate,
-              description: backendItem.description
+            invoiceOverrides: {
+              bandwidth: existing?.invoiceOverrides?.bandwidth ?? backendItem.crmConnectionSnapshot?.bandwidth,
+              ratePerMb: existing?.invoiceOverrides?.ratePerMb ?? backendItem.rate,
+              ipCount: existing?.invoiceOverrides?.ipCount ?? backendItem.crmConnectionSnapshot?.ipCount,
+              ipCost: existing?.invoiceOverrides?.ipCost ?? backendItem.crmConnectionSnapshot?.ipCost,
+              description: existing?.invoiceOverrides?.description ?? backendItem.description,
+              periodStart: existing?.invoiceOverrides?.periodStart ?? backendItem.periodStart,
+              periodEnd: existing?.invoiceOverrides?.periodEnd ?? backendItem.periodEnd,
             },
             periodStart: backendItem.periodStart
               ? new Date(backendItem.periodStart).toISOString().split("T")[0]
