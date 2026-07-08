@@ -56,7 +56,7 @@ export default function InvoiceCreate() {
   useEffect(() => {
     if (workspaceData) {
       const { defaults, connections, customer, companyProfiles } = workspaceData;
-
+      console.log(connections[0]);
       reset({
         ...defaults,
         invoiceDate: firstDayOfMonth,
@@ -92,11 +92,11 @@ export default function InvoiceCreate() {
               historyEventType: null
             },
             invoiceOverrides: {
-              bandwidth: null,
-              ratePerMb: null,
-              ipCount: null,
-              ipCost: null,
-              description: null,
+              bandwidth: conn.bandwidth ?? "",
+              ratePerMb: conn.commercials?.ratePerMb ?? 0,
+              ipCount: conn.ips?.count ?? 0,
+              ipCost: conn.ips?.cost ?? 0,
+              description: conn.opportunityId ?? "",
               periodStart: defaults.billingCycleStart,
               periodEnd: defaults.billingCycleEnd
             },
