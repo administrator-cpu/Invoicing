@@ -196,7 +196,7 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
                           />
                         ) : (
                           <span className="text-sm font-bold text-gray-900 block truncate">
-                            {item.invoiceOverrides?.bandwidth || "N/A"}
+                            {item.invoiceOverrides?.bandwidth ?? item.crmConnectionSnapshot?.bandwidth ?? "-"}
                           </span>
                         )
                       ) : sourceType === "OTC" ? (
@@ -270,9 +270,16 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
                         )
                       ) : (
                         <input
-                          disabled={!editMode}
-                          type="number" step="0.01"
-                          {...register(`items.${index}.rate`, { valueAsNumber: true, onChange: invalidatePreview })}
+                          disabled={!editMode} type="number" step="0.01"
+                          min={sourceType === "MANUAL_SERVICE" ? undefined : 0}
+                          {...register(`items.${index}.rate`, {
+                            valueAsNumber: true,
+                            validate: value => {
+                              if (sourceType === "MANUAL_SERVICE") return true;
+                              return value >= 0 || "Negative values are only allowed for Manual Service";
+                            },
+                            onChange: invalidatePreview
+                          })}
                           className="w-full max-w-[100px] ml-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:font-semibold disabled:text-gray-700"
                         />
                       )}

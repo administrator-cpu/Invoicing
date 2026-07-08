@@ -104,9 +104,21 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
       }
     }
     const qty = Number(item.qty || 1);
+    if (sourceType === "MANUAL_SERVICE" && qty <= 0) {
+      throw new AppError(
+        `Manual Service quantity must be greater than zero at row ${index + 1}`,
+        400
+      );
+    }
 
-    if ((!Number.isFinite(displayRate) || displayRate < 0)) {
+    if (!Number.isFinite(displayRate)) {
       throw new AppError(`Invalid rate at row ${index + 1}`, 400);
+    }
+    if (sourceType !== "MANUAL_SERVICE" && displayRate < 0) {
+      throw new AppError(
+        `Negative rate is only allowed for Manual Service at row ${index + 1}`,
+        400
+      );
     }
     if (!Number.isFinite(qty) || qty <= 0) {
       throw new AppError(`Invalid quantity at row ${index + 1}`, 400);

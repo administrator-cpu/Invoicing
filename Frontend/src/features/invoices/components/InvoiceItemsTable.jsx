@@ -92,9 +92,9 @@ export default function InvoiceItemsTable({ invoice }) {
                     <span className="block font-medium">{billingCycle.end}</span>
                   </td>
                   <td className="py-4 px-1 align-top text-center text-gray-700 font-mono text-xs">
-                    {item.sourceType === "IP_ADDRESS"
-                      ? (item.qty ?? "-")
-                      : (item.crmConnectionSnapshot?.bandwidth || "-")}
+                    {item.sourceType === "CONNECTION"
+                      ? (item.crmConnectionSnapshot?.bandwidth ?? "-")
+                      : (item.qty ?? "-")}
                   </td>
                   <td className="py-4 px-2 align-top text-gray-500 text-xs whitespace-pre-wrap break-words">
                     {
