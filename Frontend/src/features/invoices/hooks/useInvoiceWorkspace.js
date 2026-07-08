@@ -6,10 +6,21 @@ export const useInvoiceWorkspace = (customerId) => {
     queryKey: ['workspace', customerId],
     queryFn: async () => {
       const response = await apiClient.get(`/invoices/workspace/${customerId}`);
-      return response.data?.data || response.data;
+      return response.data;
     },
     enabled: !!customerId,
     staleTime: 0,
     cacheTime: 0,
+  });
+};
+
+export const useInvoiceEditWorkspace = (invoiceId) => {
+  return useQuery({
+    queryKey: ["invoices", "edit-workspace", invoiceId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/invoices/${invoiceId}/edit-workspace`);
+      return response.data;
+    },
+    enabled: !!invoiceId,
   });
 };

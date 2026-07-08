@@ -252,9 +252,22 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
                           </span>
                         )
                       ) : sourceType === "IP_ADDRESS" ? (
-                        <span className="block text-sm font-semibold text-gray-700">
-                          ₹{Number(item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
+                        editMode ? (
+                          <input
+                            type="number" step="0.01"
+                            {...register(`items.${index}.rate`, {
+                              valueAsNumber: true,
+                              onChange: invalidatePreview
+                            })}
+                            className="w-full max-w-[100px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
+                          />
+                        ) : (
+                          <span className="block text-sm font-semibold text-gray-700">
+                            ₹{Number(item.rate || 0).toLocaleString("en-IN", {
+                              minimumFractionDigits: 2
+                            })}
+                          </span>
+                        )
                       ) : (
                         <input
                           disabled={!editMode}

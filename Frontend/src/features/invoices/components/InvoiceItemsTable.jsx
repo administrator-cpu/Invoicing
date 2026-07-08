@@ -55,7 +55,7 @@ export default function InvoiceItemsTable({ invoice }) {
               <th className="py-3 px-2 w-[18%] font-semibold tracking-wide leading-tight text-center">Service<br />Description</th>
               <th className="py-3 px-1 w-[6%] font-semibold tracking-wide text-center">SAC</th>
               <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Period</th>
-              <th className="py-3 px-1 w-[8%] font-semibold tracking-wide text-center">BW</th>
+              <th className="py-3 px-1 w-[8%] font-semibold tracking-wide text-center">BW/<br />Qty</th>
               <th className="py-3 px-2 w-[20%] font-semibold tracking-wide leading-tight text-center">Installation<br />Address</th>
               <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-center">Charge</th>
 
@@ -92,7 +92,9 @@ export default function InvoiceItemsTable({ invoice }) {
                     <span className="block font-medium">{billingCycle.end}</span>
                   </td>
                   <td className="py-4 px-1 align-top text-center text-gray-700 font-mono text-xs">
-                    {item.crmConnectionSnapshot?.bandwidth || "-"}
+                    {item.sourceType === "IP_ADDRESS"
+                      ? (item.qty ?? "-")
+                      : (item.crmConnectionSnapshot?.bandwidth || "-")}
                   </td>
                   <td className="py-4 px-2 align-top text-gray-500 text-xs whitespace-pre-wrap break-words">
                     {

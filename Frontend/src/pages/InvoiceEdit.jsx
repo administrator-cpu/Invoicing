@@ -1,19 +1,21 @@
 import React, { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { ArrowLeft, Building2, MapPin, Calculator } from 'lucide-react';
-
-import { useInvoiceDetails, usePreviewInvoice, useUpdateInvoice } from '../features/invoices/hooks/useInvoices';
+import { useInvoiceEditWorkspace } from '../features/invoices/hooks/useInvoiceWorkspace';
+import { usePreviewInvoice, useUpdateInvoice } from '../features/invoices/hooks/useInvoices';
 import { ServiceItemsTable } from '../features/invoices/components/ServiceItemsTable';
 
 const formatINR = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
+const formatInputDate = (value) => {
+  if (!value) return "";
+  return new Date(value).toISOString().split("T")[0];
+};
 
 export default function InvoiceEdit() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const customerId = location.state?.customerId;
-
-  const { data: workspaceData, isLoading, isError } = useInvoiceDetails(customerId);
+  const { id } = useParams();
+  const { data: workspaceData, isLoading, isError, } = useInvoiceEditWorkspace(id);
   const { mutate: saveDraft, isLoading: isSaving } = useUpdateInvoice();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [editMode, setEditMode] = React.useState(false);
@@ -53,8 +55,7 @@ export default function InvoiceEdit() {
 
   useEffect(() => {
     if (!workspaceData) return;
-    const invoice = workspaceData;
-    const { defaults, connections, customer, companyProfiles } = workspaceData;
+    const { invoice, customer, connections, companyProfiles } = workspaceData;
 
     reset({
       invoiceDate: formatInputDate(invoice.dates.invoiceDate),
@@ -63,7 +64,9 @@ export default function InvoiceEdit() {
       billingCycleEnd: formatInputDate(invoice.dates.billingCycleEnd),
       billingMode: invoice.billingConfiguration.billingMode,
       selectedCompanyProfileId: invoice.companySnapshot.profileId,
-      selectedGstProfileId: invoice.customerSnapshot.billingProfile?._id || "",
+      selectedGstProfileId: customer.billingProfile.find(
+        p => p.gstNumber === invoice.customerSnapshot.billingProfile.gstNumber
+      )?._id || "",
       discount: invoice.financials.discount,
       financials: invoice.financials,
       previewVersion: invoice.__v,
@@ -106,9 +109,9 @@ export default function InvoiceEdit() {
           history: item.history || [],
           ips: item.ips || {},
           technicalDetails: item.technicalDetails || {},
-          acceptanceDate: item.originalConnection?.acceptanceDate ?? null,
-          status: item.originalConnection.status ?? item.status,
-          providerCost: item.originalConnection.providerCost || {},
+          acceptanceDate: item.crmConnectionSnapshot?.acceptanceDate ?? null,
+          status: item.connectionStatus ?? null,
+          providerCost: item.providerCost ?? {},
           terminationDetails: item.terminationDetails || null
         }
       });
@@ -139,11 +142,8 @@ export default function InvoiceEdit() {
       onSuccess: (data) => {
         const currentItems = getValues("items");
         const mergedItems = data.items.map((backendItem) => {
-          const existing = currentItems.find(
-            i =>
-              i.crmConnectionSnapshot?.connectionId ===
-              backendItem.crmConnectionSnapshot?.connectionId &&
-              i.sourceType === backendItem.sourceType
+          const existing = currentItems.find(i =>
+            i.crmHistoryRefId === backendItem.crmHistoryRefId && i.sourceType === backendItem.sourceType
           );
           return {
             ...backendItem,
@@ -185,37 +185,35 @@ export default function InvoiceEdit() {
   const onSubmitDraft = (formData) => {
     if (submitLock.current || isSaving) return;
     submitLock.current = true;
+    if (formData.previewExpired) {
+      return;
+    }
     setIsSubmitting(true);
     const selectedGstProfile = workspaceData.customer.billingProfile.find(p => p._id === formData.selectedGstProfileId);
     const selectedCompanyProfile = workspaceData.companyProfiles.find(p => p._id === formData.selectedCompanyProfileId);
 
-    const finalItems = formData.items
-      .filter(item => item.isSelected)
-      .map(({ isSelected, status, ...strictItemSchema }) => strictItemSchema);
+    const finalItems = formData.items.filter(item => item.isSelected).map(({ isSelected, status, ...strictItemSchema }) => strictItemSchema);
+
+    const payload = {
+      version: formData.previewVersion,
+      invoiceDate: formData.invoiceDate,
+      dueDate: formData.dueDate,
+      items: finalItems,
+      discount: formData.discount,
+      applyIgst: selectedGstProfile.address.state !== selectedCompanyProfile.address.state,
+    };
 
     saveDraft(
-      {
-        customer: workspaceData.customer,
-        selectedGstProfile,
-        selectedCompanyProfile,
-        items: finalItems,
-        invoiceDate: formData.invoiceDate,
-        dueDate: formData.dueDate,
-        billingCycleStart: formData.billingCycleStart,
-        billingCycleEnd: formData.billingCycleEnd,
-        billingMode: formData.billingMode,
-        discount: formData.discount,
-      },
+      { id, payload },
       {
         onSettled: () => {
           submitLock.current = false;
           setIsSubmitting(false);
-        }
+        },
       }
     );
   };
 
-  if (!customerId) return <div className="p-8 text-center text-gray-500">No Customer Selected.</div>;
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading Workspace...</div>;
   if (isError) return <div className="p-8 text-center text-red-500">Failed to load workspace.</div>;
 
