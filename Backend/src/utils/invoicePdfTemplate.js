@@ -464,7 +464,7 @@ function buildItems(invoice, isInterstate) {
           ${billingCycle}
         </td>
         <td style="${tdBase} ${tdDivideX}">
-          ${item.sourceType === "IP_ADDRESS" ? (item.qty ?? "-") : (item.crmConnectionSnapshot?.bandwidth || "-")}
+          ${item.sourceType === "CONNECTION" ? (item.crmConnectionSnapshot?.bandwidth ?? "-") : (item.qty ?? "-")}
         </td>
         <td style="${tdBase} padding: 16px 6px; line-height: 1.4; ${tdDivideX}">
           <div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; word-break: normal; white-space: normal;">
