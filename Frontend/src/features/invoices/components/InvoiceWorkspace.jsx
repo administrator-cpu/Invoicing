@@ -7,7 +7,6 @@ import { ServiceItemsTable } from './ServiceItemsTable';
 const formatINR = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
 
 function buildInitialInvoiceItems(sourceItems, defaults) {
-  console.log(sourceItems);
   return sourceItems.map(conn => {
     if (conn.invoiceOverrides) {
       return {
@@ -39,8 +38,12 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
           periodStart: conn.invoiceOverrides?.periodStart ?? conn.periodStart ?? defaults.billingCycleStart,
           periodEnd: conn.invoiceOverrides?.periodEnd ?? conn.periodEnd ?? defaults.billingCycleEnd
         },
-        periodStart: conn.periodStart ?? defaults.billingCycleStart,
-        periodEnd: conn.periodEnd ?? defaults.billingCycleEnd
+        periodStart: conn.periodStart
+          ? new Date(conn.periodStart).toISOString().split("T")[0]
+          : defaults.billingCycleStart,
+        periodEnd: conn.periodEnd
+          ? new Date(conn.periodEnd).toISOString().split("T")[0]
+          : defaults.billingCycleEnd
       };
     }
 
@@ -161,7 +164,9 @@ function mergePreviewItems(currentItems, backendItems) {
 
   const mergedItems = backendItems.map((backendItem) => {
     const existing = currentItems.find(i => {
-      if (backendItem.sourceType === "MANUAL_SERVICE" || backendItem.sourceType === "OTC") {
+      if (backendItem.sourceType === "MANUAL_SERVICE" || backendItem.sourceType === "OTC" ||
+        (backendItem.sourceType === "IP_ADDRESS" && !backendItem.crmConnectionSnapshot?.connectionId)
+      ) {
         return (
           i.sourceType === backendItem.sourceType && i.description === backendItem.description &&
           i.periodStart === (backendItem.periodStart
@@ -213,12 +218,13 @@ function mergePreviewItems(currentItems, backendItems) {
 }
 
 export default function InvoiceWorkspace({
-  customer, companyProfiles, defaults, sourceItems,
+  invoiceId = null, customer, companyProfiles, defaults, sourceItems,
   onSubmit, isSaving, previewInvoice, isPreviewing, navigate
 }) {
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [editMode, setEditMode] = React.useState(false);
+  const [invoiceVersion, setInvoiceVersion] = React.useState(null);
   const submitLock = React.useRef(false);
 
   const today = new Date();
@@ -233,7 +239,7 @@ export default function InvoiceWorkspace({
       selectedCompanyProfileId: '',
       items: [],
       financials: null,
-      previewVersion: null,
+      // previewVersion: null,
       previewGeneratedAt: null,
       previewExpired: true,
       invoiceDate: firstDayOfMonth,
@@ -247,7 +253,6 @@ export default function InvoiceWorkspace({
   const { reset, watch, setValue, getValues, handleSubmit, register } = methods;
   const invalidatePreview = () => {
     setValue("financials", null);
-    setValue("previewVersion", null);
     setValue("previewGeneratedAt", null);
     setValue("previewExpired", true);
   };
@@ -257,14 +262,11 @@ export default function InvoiceWorkspace({
     if (customer) {
       reset({
         ...defaults,
-        invoiceDate: firstDayOfMonth,
-        dueDate: defaultDueDate,
-        billingMode: 'PREPAID',
-        selectedGstProfileId: customer.billingProfile?.[0]?._id || '',
-        selectedCompanyProfileId: companyProfiles?.[0]?._id || '',
-        financials: null,
+        selectedGstProfileId: customer.billingProfile?.[0]?._id || "",
+        selectedCompanyProfileId: companyProfiles?.[0]?._id || "",
         items: buildInitialInvoiceItems(sourceItems, defaults)
       });
+      setInvoiceVersion(defaults.previewVersion ?? null);
     }
   }, [
     customer, companyProfiles,
@@ -283,6 +285,7 @@ export default function InvoiceWorkspace({
     const manualItems = buildManualItemsPayload(formData);
 
     const previewPayload = {
+      version: invoiceVersion,
       connections,
       manualItems,
       billingCycleStart: formData.billingCycleStart,
@@ -291,6 +294,7 @@ export default function InvoiceWorkspace({
       discount: formData.discount,
       selectedCustomerBillingProfile,
       selectedCompanyProfile,
+      version: watch("previewVersion")
     };
 
     // 3. Send to API and replace table/summary with Canonical Backend Response
@@ -299,7 +303,9 @@ export default function InvoiceWorkspace({
         const mergedItems = mergePreviewItems(getValues("items"), data.items);
         setValue("items", mergedItems);
         setValue("financials", data.financials);
-        setValue("previewVersion", data.previewVersion);
+        if (data.previewVersion != null) {
+          setInvoiceVersion(data.previewVersion);
+        }
         setValue("previewGeneratedAt", data.previewGeneratedAt);
         setValue("previewExpired", false);
       }
@@ -313,14 +319,18 @@ export default function InvoiceWorkspace({
     const selectedGstProfile = customer.billingProfile?.find(p => p._id === formData.selectedGstProfileId);
     const selectedCompanyProfile = companyProfiles?.find(p => p._id === formData.selectedCompanyProfileId);
 
-    const finalItems = formData.items.filter(item => item.isSelected).map(({ isSelected, status, ...strictItemSchema }) => strictItemSchema);
+    const connections = buildConnectionsPayload(formData);
+    const manualItems = buildManualItemsPayload(formData);
 
     onSubmit(
       {
+        invoiceId,
+        version: invoiceVersion,
         customer,
-        selectedGstProfile,
+        selectedCustomerBillingProfile: selectedGstProfile,
         selectedCompanyProfile,
-        items: finalItems,
+        connections,
+        manualItems,
         invoiceDate: formData.invoiceDate,
         dueDate: formData.dueDate,
         billingCycleStart: formData.billingCycleStart,
@@ -365,7 +375,7 @@ export default function InvoiceWorkspace({
               <Calculator size={16} /> {isPreviewing ? 'Calculating...' : editMode ? 'Finish Editing' : 'Preview Engine'}
             </button>
             <button type="submit" disabled={isSaving || isSubmitting || !watch("financials") || watch("previewExpired")} className="px-6 py-2.5 rounded-full font-medium text-white bg-[#09090B] hover:bg-gray-800 disabled:opacity-50 transition-colors text-sm shadow-md">
-              {isSaving || isSubmitting ? 'Saving...' : 'Save Draft'}
+              {isSaving || isSubmitting ? 'Saving...' : invoiceId ? 'Update Draft' : 'Create Invoice'}
             </button>
           </div>
         </div>

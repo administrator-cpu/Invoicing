@@ -17,6 +17,7 @@ import InvoiceDetails from '@/pages/InvoiceDetails';
 import InvoiceEdit from '@/pages/InvoiceEdit';
 import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import DashboardLayout from '@/layouts/DashboardLayout';
+import InvoiceDeliverySettings from "@/pages/InvoiceDeliverySettings";
 
 function App() {
   const { setUser, clearAuth, isCheckingAuth, setCheckingAuth } = useAuthStore();
@@ -67,6 +68,7 @@ function App() {
             <Route path="/company-profiles" element={<CompanyProfiles />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/invoices" element={<Invoices />} />
+            <Route path="/invoices/customer-settings/:customerId" element={<InvoiceDeliverySettings />} />
             <Route path="/invoices/:id" element={<InvoiceDetails />} />
             <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
             <Route path="/invoices/create" element={<InvoiceCreate />} />

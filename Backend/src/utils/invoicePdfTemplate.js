@@ -110,10 +110,24 @@ export const buildInvoiceHTML = (invoice) => {
       @page :first {
         margin-bottom: 0; 
       }
+
+      .watermark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 120px;
+        font-weight: 900;
+        color: rgba(220, 38, 38, 0.10); /* Semi-transparent red */
+        z-index: 9999;
+        pointer-events: none;
+        white-space: nowrap;
+        letter-spacing: 0.1em;
+      }
     </style>
   </head>
   <body>
-
+    ${invoice.status === 'CANCELLED' ? '<div class="watermark">CANCELLED</div>' : ''}
     <div class="page-box first-page">
       ${buildHeader(invoice)}
       ${buildBilling(invoice)}
@@ -144,18 +158,29 @@ function buildHeader(invoice) {
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; width: 100%;">
 
       <!-- COLUMN 1: Logo -->
-      <div style="justify-self: start;">
-        <img src="${logo}" style="height: 82px; width: auto; object-fit: contain; display: block; transform: translateY(5px);" alt="Company Logo" />
+      <div style="justify-self: start; display: flex; align-items: center;">
+        <svg width="204" height="86" viewBox="0 0 204 86" xmlns="http://www.w3.org/2000/svg">
+          <image href="${logo}" x="2" y="5" width="200" height="77" preserveAspectRatio="xMinYMid meet" image-rendering="optimizeQuality" />
+        </svg>
       </div>
 
       <!-- COLUMN 2: Title -->
-      <div style="justify-self: center; text-align: center;">
-        <h1 style="font-size: 24px; font-weight: 900; letter-spacing: 0.025em; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
-          TAX INVOICE
-        </h1>
+      <div style="justify-self: center; text-align: center; display: flex; align-items: center; justify-content: center;">
+        <svg width="200" height="32" viewBox="0 0 200 32" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="taxGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#F58220" />
+              <stop offset="45%" stop-color="#E04924" />
+              <stop offset="100%" stop-color="#9A0D14" />
+            </linearGradient>
+          </defs>
+          <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-family="sans-serif" font-size="24px" font-weight="900" letter-spacing="0.025em" fill="url(#taxGradient)">
+            TAX INVOICE
+          </text>
+        </svg>
       </div>
 
-      <!-- COLUMN 3: Original Copy + Details (Slightly reduced sizes) -->
+      <!-- COLUMN 3: Original Copy + Details -->
       <div style="justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
         
         <p style="font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
@@ -471,17 +496,17 @@ function buildItems(invoice, isInterstate) {
             ${installationAddress}
           </div>
         </td>
-        <td style="${tdBase} ${tdDivideX}">
+        <td style="${tdBase} white-space: nowrap; ${tdDivideX}">
           ₹${money(taxableAmount)}
         </td>
         
         ${isInterstate
-        ? `<td style="${tdBase} ${tdDivideX}">₹${money(lineTax)}</td>`
-        : `<td style="${tdBase} ${tdDivideX}">₹${money(lineTax / 2)}</td>
-           <td style="${tdBase} ${tdDivideX}">₹${money(lineTax / 2)}</td>`
+        ? `<td style="${tdBase} white-space: nowrap; ${tdDivideX}">₹${money(lineTax)}</td>`
+        : `<td style="${tdBase} white-space: nowrap; ${tdDivideX}">₹${money(lineTax / 2)}</td>
+           <td style="${tdBase} white-space: nowrap; ${tdDivideX}">₹${money(lineTax / 2)}</td>`
       }
         
-        <td style="padding: 16px 4px; vertical-align: top; text-align: center; font-size: 11px; font-weight: 700; color: #ea580c;">
+        <td style="padding: 16px 4px; vertical-align: top; text-align: center; font-size: 11px; font-weight: 700; color: #ea580c; white-space: nowrap;">
           ₹${money(taxableAmount + lineTax)}
         </td>
       </tr>
@@ -492,14 +517,54 @@ function buildItems(invoice, isInterstate) {
   const headerStyle = "background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); color: white;";
   const thStyle = "background-color: transparent; padding: 12px 8px; font-weight: 600; letter-spacing: 0.025em; line-height: 1.25; text-align: center;";
 
+  const tableHeaderRows = isInterstate
+    ? `
+        <!-- IGST LAYOUT (8 Columns total) -> More width given to Description and Address -->
+        <tr>
+          <th style="width: 22%; ${thStyle} ${thDivideX}">Service<br/>Description</th>
+          <th style="width: 8%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">SAC</th>
+          <th style="width: 12%; ${thStyle} ${thDivideX}">Billing<br/>Period</th>
+          <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW/<br/>Qty</th>
+          <th style="width: 20%; ${thStyle} ${thDivideX}">Installation<br/>Address</th>
+          <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
+          <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">IGST</th>
+          <th style="width: 12%; ${thStyle} text-align: right;">Total</th>
+        </tr>
+      `
+    : `
+        <!-- CGST/SGST LAYOUT (9 Columns total) -> Original balanced widths -->
+        <tr>
+          <th style="width: 20%; ${thStyle} ${thDivideX}">Service<br/>Description</th>
+          <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">SAC</th>
+          <th style="width: 11%; ${thStyle} ${thDivideX}">Billing<br/>Period</th>
+          <th style="width: 5%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW/<br/>Qty</th>
+          <th style="width: 18%; ${thStyle} ${thDivideX}">Installation<br/>Address</th>
+          <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
+          <th style="width: 9%; ${thStyle} text-align: right; ${thDivideX}">CGST</th>
+          <th style="width: 9%; ${thStyle} text-align: right; ${thDivideX}">SGST</th>
+          <th style="width: 12%; ${thStyle} text-align: right;">Total</th>
+        </tr>
+      `;
+
   return `
     <div style="font-family: 'Inter', sans-serif;">
       
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e5e7eb; padding-bottom: 24px;">
         <div>
-          <h1 style="font-size: 30px; font-weight: bold; letter-spacing: -0.025em; margin: 0; background: linear-gradient(to right, #F58220 0%, #E04924 45%, #9A0D14 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
-            Summary of Items
-          </h1>
+          <div style="margin: 0; display: flex; align-items: center;">
+            <svg width="280" height="36" viewBox="0 0 280 36" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="summaryGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#F58220" />
+                  <stop offset="45%" stop-color="#E04924" />
+                  <stop offset="100%" stop-color="#9A0D14" />
+                </linearGradient>
+              </defs>
+              <text x="0" y="50%" dominant-baseline="central" text-anchor="start" font-family="sans-serif" font-size="30px" font-weight="bold" letter-spacing="-0.025em" fill="url(#summaryGradient)">
+                Summary of Items
+              </text>
+            </svg>
+          </div>
           <p style="color: #6b7280; margin-top: 8px; margin-bottom: 0; font-size: 12px;">
             Detailed breakdown of billed services
           </p>
@@ -516,22 +581,7 @@ function buildItems(invoice, isInterstate) {
         
         <table style="width: 100%; font-size: 14px; text-align: left; table-layout: fixed; border-collapse: collapse;">
           <thead style="${headerStyle}">
-            <tr>
-              <th style="width: 20%; ${thStyle} ${thDivideX}">Service<br/>Description</th>
-              <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">SAC</th>
-              <th style="width: 12%; ${thStyle} ${thDivideX}">Billing<br/>Period</th>
-              <th style="width: 6%; ${thStyle} padding-left: 4px; padding-right: 4px; ${thDivideX}">BW/<br/>Qty</th>
-              <th style="width: 20%; ${thStyle} ${thDivideX}">Installation<br/>Address</th>
-              <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">Charge</th>
-              
-              ${isInterstate
-      ? `<th style="width: 14%; ${thStyle} ${thDivideX}">IGST</th>`
-      : `<th style="width: 7%; ${thStyle} ${thDivideX}">CGST</th>
-                   <th style="width: 7%; ${thStyle} ${thDivideX}">SGST</th>`
-    }
-              
-              <th style="width: 12%; ${thStyle}">Total</th>
-            </tr>
+            ${tableHeaderRows}
           </thead>
           
           <tbody>
@@ -545,7 +595,6 @@ function buildItems(invoice, isInterstate) {
             Grand Total
           </div>
           
-          <!-- min-width ensures the number always has enough space to breathe, white-space ensures it never breaks -->
           <div style="font-weight: 900; font-size: 14px; color: #ea580c; white-space: nowrap; min-width: 120px; text-align: center;">
             ₹${money(invoice.financials?.grandTotal)}
           </div>

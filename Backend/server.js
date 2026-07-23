@@ -4,6 +4,7 @@ import app from './src/app.js';
 import { connectDB } from "./src/config/database.js";
 import logger from './src/utils/logger.js';
 import { initBrowser, closeBrowser } from "./src/services/pdfBrowser.js";
+import "./src/workers/emailWorker.js";
 
 const PORT = process.env.PORT || 4000;
 
