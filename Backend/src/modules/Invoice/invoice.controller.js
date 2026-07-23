@@ -654,19 +654,36 @@ export const getInvoiceById = catchAsync(async (req, res, next) => {
  * @route - GET /api/invoices/:id/pdf
  */
 export const downloadInvoicePdf = catchAsync(async (req, res) => {
-  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).lean();
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id));
 
   if (!invoice) {
     throw new AppError("Invoice not found", 404);
   }
-  if (!invoice.pdf?.relativePath || !(await pdfExists(invoice.pdf.relativePath))) {
-    throw new AppError("Official PDF has not been generated yet.", 404);
+  let pdfMetadata = invoice.pdf;
+
+  const pdfAvailable = pdfMetadata?.relativePath && await pdfExists(pdfMetadata.relativePath);
+  if (!pdfAvailable) {
+    logger.info("Regenerating missing official PDF", {
+      invoiceId: invoice._id,
+      invoiceNumber: invoice.invoiceNumber
+    });
+
+    const document = await generateInvoicePdf(invoice);
+    pdfMetadata = await saveInvoicePdf(invoice, document);
+    await Invoice.updateOne(
+      { _id: invoice._id },
+      {
+        $set: {
+          pdf: pdfMetadata
+        }
+      }
+    );
   }
 
   const document = {
-    buffer: await readInvoicePdf(invoice.pdf.relativePath),
+    buffer: await readInvoicePdf(pdfMetadata.relativePath),
     mimeType: "application/pdf",
-    fileName: invoice.pdf.fileName
+    fileName: pdfMetadata.fileName
   };
 
   res.setHeader(
