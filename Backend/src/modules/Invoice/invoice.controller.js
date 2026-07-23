@@ -8,9 +8,13 @@ import { generateNextInvoiceNumber, validateAndRecalculateInvoice } from './invo
 import { generateBillingFingerprint } from '../../utils/billingFingerprint.js';
 import { buildInvoiceItems } from './invoiceBillingEngine.js';
 import CompanyProfile from '../CompanyProfile/companyProfile.model.js';
-import { buildInvoiceHTML } from "../../utils/invoicePdfTemplate.js";
+import { saveInvoicePdf, readInvoicePdf, pdfExists } from '../../services/documentStorage.js';
+import { activeInvoiceFilter } from "../../utils/invoice.utils.js";
+import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections } from "../../services/crm.service.js";
+import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
+import logger from '../../utils/logger.js';
 
 export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
   const { customerId } = req.params;
@@ -69,10 +73,25 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
 });
 
 export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
-  const invoice = await Invoice.findById(req.params.id);
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id));
   if (!invoice) {
     return next(new AppError("Invoice not found.", 404));
   }
+
+  const invoiceItems = invoice.items || [];
+  const invoiceItemMap = new Map();
+  for (const item of invoiceItems) {
+    if (item.crmConnectionSnapshot?.connectionId && item.sourceType === "CONNECTION") {
+      invoiceItemMap.set(
+        item.crmConnectionSnapshot.connectionId.toString(), item
+      );
+    }
+  }
+
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
 
   const customerId = invoice.customerSnapshot.crmCustomerId;
   const [customer, connections, companyProfiles] = await Promise.all([
@@ -81,18 +100,80 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
     CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean()
   ]);
 
-  const invoiceConnections = (connections.connections || []).map(connection => ({
-    ...connection,
-    selected: connection.isBillable,
-    editable: true
-  }));
+  const mergedItems = (connections.connections || []).map(connection => {
+    const savedItem = invoiceItemMap.get(connection.crmConnectionId?.toString());
+    if (!savedItem) {
+      return {
+        ...connection,
+        selected: connection.isBillable,
+        editable: true
+      };
+    }
+
+    return {
+      ...connection,
+      ...savedItem.toObject(),
+      originalConnection: connection,
+      history: connection.history,
+      technicalDetails: connection.technicalDetails,
+      terminationDetails: connection.terminationDetails,
+      commercials: connection.commercials,
+      ips: connection.ips,
+      invoiceOverrides: {
+        bandwidth: savedItem.originalEngineValues?.bandwidth ?? connection.bandwidth,
+        ratePerMb: savedItem.originalEngineValues?.rate ?? connection.commercials?.ratePerMb,
+        ipCount: savedItem.originalEngineValues?.ipCount ?? connection.ips?.count,
+        ipCost: savedItem.originalEngineValues?.ipCost ?? connection.ips?.cost,
+        description: savedItem.originalEngineValues?.description ?? savedItem.description,
+        periodStart: formatDate(savedItem.periodStart),
+        periodEnd: formatDate(savedItem.periodEnd)
+      },
+      selected: true,
+      editable: true
+    };
+  });
+
+  const manualItems = invoiceItems
+    .filter(item => item.sourceType === "MANUAL_SERVICE" || item.sourceType === "OTC" ||
+      (item.sourceType === "IP_ADDRESS" && !item.crmConnectionSnapshot?.connectionId)
+    )
+    .map(item => ({
+      ...item.toObject(),
+      selected: true,
+      editable: true
+    }));
+
+  const ipItems = invoiceItems
+    .filter(item => item.sourceType === "IP_ADDRESS" && item.crmConnectionSnapshot?.connectionId)
+    .map(item => ({
+      ...item.toObject(),
+      selected: true,
+      editable: true
+    }));
+
+  mergedItems.push(...ipItems);
+  mergedItems.push(...manualItems);
+
+  const defaults = {
+    invoiceDate: formatDate(invoice.dates.invoiceDate),
+    dueDate: formatDate(invoice.dates.dueDate),
+    billingCycleStart: formatDate(invoice.dates.billingCycleStart),
+    billingCycleEnd: formatDate(invoice.dates.billingCycleEnd),
+    billingMode: invoice.billingConfiguration.billingMode,
+    discount: invoice.financials.discount,
+    financials: invoice.financials,
+    previewVersion: invoice.__v,
+    previewGeneratedAt: invoice.audit?.lastEditedAt ?? invoice.createdAt,
+    previewExpired: false
+  };
 
   res.status(200).json({
     status: "success",
     data: {
       invoice,
       customer,
-      connections: invoiceConnections,
+      defaults,
+      connections: mergedItems,
       companyProfiles
     }
   });
@@ -105,7 +186,7 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
  */
 export const previewInvoice = catchAsync(async (req, res, next) => {
   const {
-    customerId, connections = [], manualItems = [],
+    version, customerId, connections = [], manualItems = [],
     billingCycleStart, billingCycleEnd, billingMode = "PREPAID",
     selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
   } = req.body;
@@ -160,7 +241,7 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
     status: "success",
     data: {
       previewGeneratedAt: new Date(),
-      previewVersion: 1,
+      previewVersion: version,
       items,
       financials,
       hasManualItems: items.some(i => i.sourceType === "MANUAL_SERVICE")
@@ -179,21 +260,28 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
  */
 export const createDraftInvoice = catchAsync(async (req, res, next) => {
   const {
-    customer, selectedGstProfile, selectedCompanyProfile, items, billingCycleStart, billingCycleEnd,
-    invoiceDate, dueDate, discount = 0, billingMode = "PREPAID"
+    customer, selectedCustomerBillingProfile, selectedCompanyProfile,
+    connections = [], manualItems = [],
+    billingCycleStart, billingCycleEnd, invoiceDate, dueDate,
+    discount = 0, billingMode = "PREPAID"
   } = req.body;
 
-  if (!customer || !selectedGstProfile || !selectedCompanyProfile) {
+  if (!customer || !selectedCustomerBillingProfile || !selectedCompanyProfile) {
     return next(new AppError("Missing customer or company profile data.", 400));
   }
   if (!billingCycleStart || !billingCycleEnd) {
-    return next(new AppError("billingCycleStart and billingCycleEnd are required.", 400));
+    return next(new AppError("BillingCycleStart and BillingCycleEnd are required.", 400));
   }
 
-  const customerState = selectedGstProfile.address.state;
+  const customerState = selectedCustomerBillingProfile.address.state;
   const companyState = selectedCompanyProfile.address.state;
 
-  const { verifiedItems, financials } = validateAndRecalculateInvoice(items, customerState, companyState, discount);
+  const { items: verifiedItems, financials } =
+    buildInvoiceDocument({
+      connections, manualItems,
+      billingCycleStart: new Date(billingCycleStart), billingCycleEnd: new Date(billingCycleEnd), billingMode,
+      customerState, companyState, discount
+    });
 
   const billingFingerprint = generateBillingFingerprint({
     customerId: customer._id || customer.id,
@@ -232,9 +320,9 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
         name: customer.name,
         email: customer.email,
         billingProfile: {
-          label: selectedGstProfile.label,
-          gstNumber: selectedGstProfile.gstNumber,
-          address: selectedGstProfile.address
+          label: selectedCustomerBillingProfile.label,
+          gstNumber: selectedCustomerBillingProfile.gstNumber,
+          address: selectedCustomerBillingProfile.address
         }
       },
       items: verifiedItems,
@@ -284,7 +372,7 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
     );
   }
 
-  const existingInvoice = await Invoice.findById(req.params.id).select("status");
+  const existingInvoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status");
   if (!existingInvoice) {
     return next(new AppError("Invoice not found.", 404));
   }
@@ -356,30 +444,72 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
 });
 
 /**
+ * @desc - Delete an existing DRAFT invoice.
+ * @route - wait
+ */
+export const deleteDraftInvoice = catchAsync(async (req, res, next) => {
+
+  const invoice = await Invoice.findById(req.params.id);
+  if (!invoice) {
+    return next(new AppError("Invoice not found.", 404));
+  }
+  if (invoice.status !== "DRAFT") {
+    return next(new AppError("Only draft invoices can be deleted.", 400));
+  }
+  if (invoice.isDeleted) {
+    return next(new AppError("This invoice has already been deleted.", 400));
+  }
+
+  await Invoice.findByIdAndUpdate(
+    req.params.id,
+    {
+      $set: {
+        isDeleted: true,
+        "audit.deletedAt": new Date(),
+        "audit.deletedBy": req.user._id
+      }
+    }
+  )
+
+  res.status(200).json({
+    status: "success",
+    message: "Draft invoice deleted successfully."
+  });
+});
+
+/**
  * @desc - Cancels a DRAFT invoice so it can no longer be edited or finalized.
  * @route - PATCH /api/invoices/:id/cancel
  */
 export const cancelInvoice = catchAsync(async (req, res, next) => {
 
-  const invoice = await Invoice.findById(req.params.id).select("status audit");
+  const { cancelReason = null, cancelRemarks = null } = req.body;
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status audit");
   if (!invoice) return next(new AppError('Invoice not found', 404));
 
-  if (invoice.status !== 'DRAFT') {
-    return next(new AppError(`Only DRAFT invoices can be cancelled directly. ` + `For FINALIZED invoices, use the Credit Note flow. Current status: ${invoice.status}`, 400));
+  if (invoice.status !== 'FINALIZED') {
+    return next(new AppError(`Only FINALIZED invoices can be cancelled. Invoices with payments must be adjusted through a Credit Note. Current status: ${invoice.status}`, 400));
   }
 
   invoice.status = 'CANCELLED';
+  if (!cancelReason?.trim()) {
+    return next(
+      new AppError("Cancellation reason is required.", 400)
+    );
+  }
   invoice.audit = {
     ...invoice.audit,
     cancelledAt: new Date(),
-    cancelledBy: req.user._id
+    cancelledBy: req.user._id,
+    cancelReason,
+    cancelRemarks
   };
 
   await invoice.save();
 
   res.status(200).json({
     status: 'success',
-    message: 'Draft Invoice has been successfully cancelled.',
+    message: 'Invoice has been successfully cancelled.',
     data: {
       invoice
     }
@@ -396,7 +526,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
   let finalizedInvoice;
   try {
     session.startTransaction();
-    const draftInvoice = await Invoice.findById(req.params.id).select("status dates audit").session(session);
+    const draftInvoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status dates audit").session(session);
 
     if (!draftInvoice) {
       throw new AppError("Invoice not found", 404);
@@ -435,7 +565,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
       throw new AppError("Invoice was already finalized by another user.", 409);
     }
     await session.commitTransaction();
-    finalizedInvoice = await Invoice.findById(req.params.id).lean();
+    finalizedInvoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).lean();
   }
   catch (err) {
     await session.abortTransaction();
@@ -443,6 +573,21 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
   }
   finally {
     await session.endSession();
+  }
+
+  try {
+    const document = await generateInvoicePdf(finalizedInvoice);
+    const metadata = await saveInvoicePdf(finalizedInvoice, document);
+    await Invoice.updateOne(
+      { _id: finalizedInvoice._id },
+      { $set: { pdf: metadata } }
+    );
+  } catch (err) {
+    logger.error("Failed to generate official invoice PDF", {
+      invoiceId: finalizedInvoice._id,
+      invoiceNumber: finalizedInvoice.invoiceNumber,
+      error: err.message,
+    });
   }
 
   res.status(200).json({
@@ -461,7 +606,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
  * @route - GET /api/v1/invoices
  */
 export const getInvoices = catchAsync(async (req, res, next) => {
-  const filter = {};
+  const filter = activeInvoiceFilter();
   if (req.query.status) filter.status = req.query.status;
   if (req.query.customerId) filter["customerSnapshot.crmCustomerId"] = req.query.customerId;
 
@@ -493,7 +638,9 @@ export const getInvoices = catchAsync(async (req, res, next) => {
  * @route - GET /api/invoices/:id
  */
 export const getInvoiceById = catchAsync(async (req, res, next) => {
-  const invoice = await Invoice.findById(req.params.id);
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id))
+    .populate("audit.cancelledBy", "name email")
+    .populate("audit.finalizedBy", "name");;
   if (!invoice) return next(new AppError('No invoice found with that ID', 404));
 
   res.status(200).json({
@@ -507,52 +654,66 @@ export const getInvoiceById = catchAsync(async (req, res, next) => {
  * @route - GET /api/invoices/:id/pdf
  */
 export const downloadInvoicePdf = catchAsync(async (req, res) => {
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).lean();
+
+  if (!invoice) {
+    throw new AppError("Invoice not found", 404);
+  }
+  if (!invoice.pdf?.relativePath || !(await pdfExists(invoice.pdf.relativePath))) {
+    throw new AppError("Official PDF has not been generated yet.", 404);
+  }
+
+  const document = {
+    buffer: await readInvoicePdf(invoice.pdf.relativePath),
+    mimeType: "application/pdf",
+    fileName: invoice.pdf.fileName
+  };
+
+  res.setHeader(
+    "Content-Type",
+    document.mimeType
+  );
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="${document.fileName}"`
+  );
+
+  res.send(document.buffer);
+});
+
+/**
+ * @desc - Preview invoice as PDF
+ * @route - GET /api/invoices/:id/preview
+*/
+export const previewInvoicePdf = catchAsync(async (req, res) => {
   const invoice = await Invoice.findById(req.params.id).lean();
 
   if (!invoice) {
     throw new AppError("Invoice not found", 404);
   }
 
-  const html = buildInvoiceHTML(invoice);
-  const browser = await getBrowser();
+  const document = await generateInvoicePdf(invoice);
 
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  await page.setContent(html, {
-    waitUntil: "domcontentloaded"
-  });
-
-  await page.emulateMedia({ media: "print" });
-
-  const pdf = await page.pdf({
-    format: "A4",
-    printBackground: true,
-    displayHeaderFooter: true,
-    headerTemplate: '<span></span>',
-    footerTemplate: `
-      <div style="width: 100%; text-align: center; font-size: 10px; color: #6b7280; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0;">
-        Generated by FAB Five Network Billing System
-      </div>
-    `,
-    margin: {
-      top: '24px',
-      bottom: '40px',
-      left: '24px',
-      right: '24px'
-    }
-  });
-
-  await page.close();
-  await context.close();
-
-  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Type",
+    document.mimeType
+  );
   res.setHeader(
     "Content-Disposition",
-    `inline; filename="${invoice.invoiceNumber || "Invoice"}.pdf"`
+    `inline; filename="${document.fileName}"`
   );
 
-  res.send(pdf);
+  res.send(document.buffer);
+});
+
+export const sendInvoiceMail = catchAsync(async (req, res, next) => {
+  const job = await enqueueInvoiceEmail(req.params.id);
+
+  res.status(202).json({
+    success: true,
+    message: "Invoice queued for email delivery.",
+    jobId: job.id
+  });
 });
 
 /**

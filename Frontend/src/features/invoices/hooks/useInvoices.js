@@ -66,6 +66,9 @@ export const useInvoiceDetails = (id) => {
       const response = await apiClient.get(`/invoices/${id}`);
       return response.data.invoice;
     },
+    refetchInterval: (query) => {
+      return query.state.data?.email?.status === "PROCESSING" ? 2000 : false;
+    },
     enabled: !!id,
   });
 };
@@ -89,16 +92,66 @@ export const useFinalizeInvoice = () => {
 export const useCancelInvoice = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id) => {
-      return await apiClient.patch(`/invoices/${id}/cancel`);
+    mutationFn: async ({ id, payload }) => {
+      return await apiClient.patch(`/invoices/${id}/cancel`, payload);
     },
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices', 'details', id] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"], });
+      queryClient.invalidateQueries({ queryKey: ["invoices", "details", variables.id], });
+      toast.success("Invoice cancelled successfully.");
     },
     onError: (error) => {
       toast.error(error.message || "Something Went Wrong!");
     },
+  });
+};
+
+export const useDeleteInvoice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      return await apiClient.delete(`/invoices/${id}`);
+    },
+
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"], });
+      queryClient.invalidateQueries({ queryKey: ["invoices", "details", id], });
+      toast.success("Draft invoice deleted successfully.");
+    },
+
+    onError: (error) => {
+      toast.error(error.message || "Something Went Wrong!");
+    },
+  });
+};
+
+export const useSendInvoiceEmail = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      return await apiClient.post(`/invoices/${id}/send`);
+    },
+
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"], });
+      queryClient.invalidateQueries({ queryKey: ["invoices", "details", id], });
+      toast.success("Invoice queued for email delivery.");
+    },
+
+    onError: (error) => {
+      toast.error(error.message || "Failed to queued invoice for email delivery.");
+    },
+  });
+};
+
+export const useInvoiceEmailHistory = (invoiceId, enabled = true) => {
+  return useQuery({
+    queryKey: ["invoice-email-history", invoiceId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/emails/invoice/${invoiceId}/history`);
+      return response.data;
+    },
+    enabled: enabled && !!invoiceId,
   });
 };
 
@@ -107,13 +160,18 @@ export const useUpdateInvoice = () => {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: async ({ id, payload }) => {
-      return await apiClient.put(`/invoices/${id}`, payload);
+    mutationFn: async (payload) => {
+      console.log("Mutation Payload:", payload);
+      return await apiClient.put(`/invoices/${payload.invoiceId}`, payload);
     },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices', 'details', id] });
-      navigate(`/invoices/${id}`);
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['invoices']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['invoices', 'details', variables.invoiceId]
+      });
+      navigate(`/invoices/${variables.invoiceId}`);
     },
     onError: (error) => {
       toast.error(error.message || "Something Went Wrong!");

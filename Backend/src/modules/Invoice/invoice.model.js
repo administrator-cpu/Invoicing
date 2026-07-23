@@ -220,6 +220,11 @@ const InvoiceSchema = new mongoose.Schema({
     ref: "Invoice",
     default: null
   },
+  referenceInvoiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Invoice",
+    default: null
+  },
 
   status: {
     type: String,
@@ -297,27 +302,104 @@ const InvoiceSchema = new mongoose.Schema({
     recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
   }],
 
+  deliveryStatus: {
+    type: String,
+    enum: ["NOT_SENT", "PARTIALLY_SENT", "SENT"],
+    default: "NOT_SENT"
+  },
+
+  deliveryHistory: [{
+    email: String,
+    label: String,
+    type: {
+      type: String,
+      enum: ["TO", "CC", "BCC"]
+    },
+    sentAt: Date,
+    sentBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    status: {
+      type: String,
+      default: "SENT"
+    }
+  }],
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true
   },
+
+  pdf: {
+    generatedAt: Date,
+    fileName: String,
+    relativePath: String,
+    size: Number,
+    version: {
+      type: Number,
+      default: 1,
+    },
+    checksum: String
+  },
+
+  email: {
+    status: {
+      type: String,
+      enum: [
+        "NOT_SENT",
+        "PROCESSING",
+        "SENT",
+        "FAILED"
+      ],
+      default: "NOT_SENT",
+      index: true,
+    },
+    lastSentAt: Date,
+    lastEmailLogId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "EmailLog"
+    },
+  },
+
   audit: {
     finalizedAt: Date,
     finalizedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
     },
+
     lastEditedAt: Date,
     lastEditedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
     },
+
     cancelledAt: Date,
     cancelledBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
+    },
+    cancelReason: {
+      type: String,
+      default: null
+    },
+    cancelRemarks: {
+      type: String,
+      default: null
+    },
+
+    deletedAt: Date,
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
     }
+  },
+
+  isDeleted: {
+    type: Boolean,
+    default: false
   },
 }, {
   timestamps: true

@@ -2,13 +2,19 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ToWords } from "to-words";
 import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, X, AlertTriangle } from 'lucide-react';
+import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
+import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
+import CancelInvoiceModal from "@/features/invoices/components/CancelInvoiceModal";
 import InvoiceBillingInfo from "@/features/invoices/components/InvoiceBillingInfo";
 import InvoicePaymentDetails from "@/features/invoices/components/InvoicePaymentDetails";
 import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSection";
 import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
-import { useInvoiceDetails, useFinalizeInvoice, useCancelInvoice } from '@/features/invoices/hooks/useInvoices';
+import {
+  useInvoiceDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
+  useSendInvoiceEmail, useInvoiceEmailHistory
+} from '@/features/invoices/hooks/useInvoices';
 
 const toWords = new ToWords({
   localeCode: "en-IN",
@@ -19,18 +25,23 @@ const InvoiceDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
+  const { data: emailHistory, isLoading: emailHistoryLoading } = useInvoiceEmailHistory(id, emailHistoryOpen)
+
   const { data: invoice, isLoading, isError } = useInvoiceDetails(id);
   const { mutate: finalizeInvoice, isPending: isFinalizing } = useFinalizeInvoice();
   const { mutate: cancelInvoice, isPending: isCancelling } = useCancelInvoice();
+  const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice();
+  const { mutate: sendInvoiceEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
-    title: '',
-    message: '',
+    title: '', message: '',
     type: 'primary',
     confirmText: '',
     onConfirm: () => { }
   });
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -59,14 +70,22 @@ const InvoiceDetails = () => {
     });
   };
 
-  const openCancelModal = () => {
+  const openCancelModal = () => { setCancelModalOpen(true); };
+
+  const openDeleteModal = () => {
     setModalConfig({
       isOpen: true,
-      title: 'Cancel Draft Invoice',
-      message: 'Are you completely sure you want to drop and cancel this draft? It will be removed from the operational workflows.',
-      type: 'danger',
-      confirmText: 'Drop Draft',
-      onConfirm: () => cancelInvoice(id)
+      title: "Delete Draft Invoice",
+      message:
+        "This draft invoice will be deleted from the operational workflow. It can no longer be edited or finalized.",
+      type: "danger",
+      confirmText: "Delete Draft",
+      onConfirm: () =>
+        deleteInvoice(id, {
+          onSuccess: () => {
+            navigate("/invoices");
+          },
+        }),
     });
   };
 
@@ -102,11 +121,11 @@ const InvoiceDetails = () => {
           {isDraft && (
             <>
               <button
-                onClick={openCancelModal}
-                disabled={isCancelling || isFinalizing}
+                onClick={openDeleteModal}
+                disabled={isDeleting || isFinalizing}
                 className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                <Ban className="w-4 h-4 mr-2" /> Cancel Draft
+                <Ban className="w-4 h-4 mr-2" /> Delete Draft
               </button>
 
               <button
@@ -128,23 +147,144 @@ const InvoiceDetails = () => {
           )}
 
           {!isDraft && (
-            <button
-              onClick={() => window.open(`${import.meta.env.VITE_API_BASE_URL}/invoices/${id}/pdf`, "_blank")}
-              className="flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
-            >
-              <Printer className="w-4 h-4 mr-2" /> Download Invoice
-            </button>
+            <>
+              {invoice.status === "FINALIZED" && (
+                <button
+                  onClick={openCancelModal} disabled={isCancelling}
+                  className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  Cancel Invoice
+                </button>
+              )}
+
+              <button
+                onClick={() =>
+                  window.open(
+                    `${import.meta.env.VITE_API_BASE_URL}/invoices/${id}/pdf`,
+                    "_blank"
+                  )
+                }
+                className="flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Download Invoice
+              </button>
+              <button
+                onClick={() => {
+                  setModalConfig({
+                    isOpen: true,
+                    title: "Send Invoice",
+                    message: "The finalized invoice will be queued for email delivery to all configured recipients.",
+                    type: "primary",
+                    confirmText: "Send Invoice",
+                    onConfirm: () => sendInvoiceEmail(id),
+                  });
+                }}
+                disabled={isSendingEmail || invoice.email?.status === "PROCESSING"}
+                className="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {
+                  invoice.email?.status === "PROCESSING"
+                    ? "Sending..."
+                    : "Send Invoice"
+                }
+              </button>
+            </>
           )}
         </div>
       </div>
 
+      <InvoiceEmailCard
+        invoice={invoice}
+        onViewHistory={() => {
+          setEmailHistoryOpen(true);
+        }}
+      />
+
+      <EmailHistoryModal
+        isOpen={emailHistoryOpen}
+        onClose={() => setEmailHistoryOpen(false)}
+        history={emailHistory}
+        isLoading={emailHistoryLoading}
+      />
+
+      {invoice.status === "CANCELLED" && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+              {/* Expanding/blinking ring effect */}
+              <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-25"></div>
+              <Ban className="relative z-10 w-6 h-6 text-red-600" />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-red-700">
+                Cancelled Invoice
+              </h2>
+
+              <p className="mt-1 text-sm text-red-600">
+                This invoice has been cancelled and is no longer valid for payment.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 mt-6">
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Cancellation Reason
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">
+                    {invoice.audit?.cancelReason || "Not Provided"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Cancelled On
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">
+                    {formatDate(invoice.audit?.cancelledAt)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Cancelled By
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">
+                    {invoice.audit?.cancelledBy?.name || "Unknown"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Remarks
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-800 whitespace-pre-wrap">
+                    {invoice.audit?.cancelRemarks || "No Remarks"}
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="relative bg-white dark:bg-slate-950 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
 
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04]">
-          <h1 className="text-[180px] font-black tracking-widest">
-            FAB5
-          </h1>
-        </div>
+        {invoice.status === "CANCELLED" && (
+          <div
+            className="absolute inset-0 pointer-events-none z-0 rounded-xl"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-family='system-ui, sans-serif' font-size='140' font-weight='900' fill='%23ef4444' opacity='0.10' transform='rotate(-45, 500, 500)' letter-spacing='0.1em'%3ECANCELLED%3C/text%3E%3C/svg%3E")`,
+              backgroundRepeat: 'repeat-y',
+              backgroundPosition: 'center top',
+              backgroundSize: '100% 100vh'
+            }}
+          />
+        )}
 
         {/* Document Frame Header Banner */}
         <InvoiceHeader invoice={invoice} />
@@ -177,6 +317,18 @@ const InvoiceDetails = () => {
         confirmText={modalConfig.confirmText}
         onConfirm={modalConfig.onConfirm}
         onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      <CancelInvoiceModal
+        isOpen={cancelModalOpen}
+        isLoading={isCancelling}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={(payload) => {
+          cancelInvoice(
+            { id, payload, },
+            { onSuccess: () => { setCancelModalOpen(false); }, }
+          );
+        }}
       />
     </div >
   );

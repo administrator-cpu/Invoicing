@@ -16,13 +16,6 @@ const getStatusBadge = (status) => {
   return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
 };
 
-// const getBillingBadge = (status) => {
-//   const s = status?.toUpperCase() || '';
-//   if (s === 'BILLABLE') return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20';
-//   if (s === 'DISCONNECT_PENDING') return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20';
-//   return 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
-// };
-
 const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -77,15 +70,33 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
             <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center">
               <Zap className="w-4 h-4 mr-2 text-amber-500" /> Service Topology
             </h4>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate('/invoices/create', { state: { customerId: customer._id } });
-              }}
-              className="flex items-center px-3 py-1.5 bg-primary hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
-            >
-              <FileText className="w-3.5 h-3.5 mr-1.5" /> Initialize Invoice
-            </button>
+            <div className="flex items-center gap-2">
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/invoices/customer-settings/${customer._id}`);
+                }}
+                className="flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                <Mail className="w-3.5 h-3.5 mr-1.5" />
+                Invoice Recipients
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/invoices/create', {
+                    state: { customerId: customer._id }
+                  });
+                }}
+                className="flex items-center px-3 py-1.5 bg-primary hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                Initialize Invoice
+              </button>
+
+            </div>
           </div>
 
           {connections.length > 0 ? (

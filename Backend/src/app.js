@@ -16,6 +16,8 @@ import crmRouter from './modules/crmProxy/crmRoutes.js';
 import invoiceRouter from './modules/Invoice/invoice.routes.js';
 import companyProfileRouter from './modules/CompanyProfile/companyProfile.routes.js';
 import dashboardRouter from './modules/Dashboard/dashboard.routes.js';
+import customerSettingsRouter from './modules/Invoice/invoiceCustomerSettings.routes.js';
+import emailLogRouter from './modules/Email/emailLog.routes.js';
 
 const app = express();
 
@@ -96,6 +98,8 @@ app.use('/api/crm', crmRouter);
 app.use('/api/invoices', invoiceRouter);
 app.use('/api/company-profiles', companyProfileRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/invoice-customer-settings', customerSettingsRouter);
+app.use('/api/emails', emailLogRouter);
 
 app.all(/.*/, (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
