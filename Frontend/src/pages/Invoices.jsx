@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FileText, Eye, ChevronLeft, ChevronRight, Plus, ShieldAlert } from 'lucide-react';
+import { toast } from "sonner";
+import apiClient from '@/config/axios';
+import { FileText, Eye, ChevronLeft, ChevronRight, Plus, ShieldAlert, Download } from 'lucide-react';
 import { useInvoices } from '@/features/invoices/hooks/useInvoices';
 
 const STATUS_TABS = [
@@ -18,6 +20,18 @@ const Invoices = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchDate, setSearchDate] = useState('');
   const [searchMonth, setSearchMonth] = useState('');
+  const [showGSTModal, setShowGSTModal] = useState(false);
+
+  const current = new Date();
+  const [gstMonth, setGstMonth] = useState(searchMonth
+    ? Number(searchMonth.split("-")[1])
+    : current.getMonth() + 1
+  );
+
+  const [gstYear, setGstYear] = useState(searchMonth
+    ? Number(searchMonth.split("-")[0])
+    : current.getFullYear()
+  );
 
   const { data, isLoading, isError } = useInvoices({
     status: currentStatus,
@@ -56,22 +70,64 @@ const Invoices = () => {
     }
   };
 
+  const downloadGSTReport = async () => {
+    try {
+      const response = await apiClient.get("/invoices/reports/gst", {
+        params: {
+          month: gstMonth,
+          year: gstYear
+        },
+        responseType: "blob"
+      });
+      const url = window.URL.createObjectURL(response);
+      const link = document.createElement("a")
+      link.href = url;
+      link.download = `GST_Report_${gstYear}_${String(gstMonth).padStart(2, "0")}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setShowGSTModal(false);
+    } catch (error) {
+      console.log(error);
+      toast.error(error.message);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-10">
       {/* Upper Headline Control Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Billing Ledger</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review legal billing histories, draft statuses, and revenue targets.</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Billing Ledger
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Review legal billing histories, draft statuses, and revenue targets.
+          </p>
         </div>
-        <button
-          onClick={() => navigate('/customers')}
-          className="flex items-center px-4 py-2 bg-primary hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Invoice
-        </button>
+
+        {/* Wrap the buttons in a flex row to group them together on the right */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => navigate('/customers')}
+            className="flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-primary hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Invoice
+          </button>
+
+          <button
+            onClick={() => setShowGSTModal(true)}
+            className="flex items-center justify-center w-full sm:w-auto px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            GST Report
+          </button>
+        </div>
       </div>
+
 
       {/* Semantic Pipeline Filtering Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-6 overflow-x-auto whitespace-nowrap scrollbar-none">
@@ -356,6 +412,66 @@ const Invoices = () => {
           </div>
         )}
       </div>
+
+      {showGSTModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+          <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-md p-6 shadow-xl">
+            <h2 className="text-lg font-bold mb-5">
+              Download GST Report
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1">
+                  Month
+                </label>
+                <select
+                  value={gstMonth}
+                  onChange={(e) => setGstMonth(Number(e.target.value))}
+                  className="w-full border rounded-lg px-3 py-2 dark:bg-slate-800"
+                >
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <option key={i + 1} value={i + 1}>
+                      {new Date(0, i).toLocaleString("default", {
+                        month: "long"
+                      })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">
+                  Year
+                </label>
+                <input
+                  type="number"
+                  value={gstYear}
+                  onChange={(e) => setGstYear(Number(e.target.value))}
+                  className="w-full border rounded-lg px-3 py-2 dark:bg-slate-800"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowGSTModal(false)}
+                className="px-4 py-2 rounded-lg border cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={downloadGSTReport}
+                className="px-4 py-2 rounded-lg bg-primary text-white cursor-pointer"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 };

@@ -135,6 +135,7 @@ export const useSendInvoiceEmail = () => {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"], });
       queryClient.invalidateQueries({ queryKey: ["invoices", "details", id], });
+      queryClient.invalidateQueries({ queryKey: ["invoice-email-history", id] });
       toast.success("Invoice queued for email delivery.");
     },
 
@@ -144,7 +145,7 @@ export const useSendInvoiceEmail = () => {
   });
 };
 
-export const useInvoiceEmailHistory = (invoiceId, enabled = true) => {
+export const useInvoiceEmailHistory = (invoiceId, enabled = true, invoiceStatus) => {
   return useQuery({
     queryKey: ["invoice-email-history", invoiceId],
     queryFn: async () => {
@@ -152,6 +153,36 @@ export const useInvoiceEmailHistory = (invoiceId, enabled = true) => {
       return response.data;
     },
     enabled: enabled && !!invoiceId,
+    refetchInterval: enabled && invoiceStatus === "PROCESSING" ? 2000 : false,
+  });
+};
+
+/* export const useCreateCreditNote = () => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: async ({ invoiceId, payload }) => {
+      return await apiClient.post(`/invoices/${invoiceId}/credit-note`, payload)
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices", "details", variables.invoiceId], });
+      toast.success(data.message);
+      navigate(`/credit-notes/${data.creditNote._id}/edit`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create credit note.");
+    },
+  });
+}; */
+
+export const useCreditNoteDetails = (id) => {
+  return useQuery({
+    queryKey: ["credit-note", id],
+    queryFn: async () => {
+      const res = await apiClient.get(`/credit-notes/${id}`);
+      return res.data.creditNote;
+    },
+    enabled: !!id,
   });
 };
 

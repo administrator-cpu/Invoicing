@@ -1,16 +1,16 @@
 import { Queue } from "bullmq";
 import redis from "../config/redis.js";
+import logger from "../utils/logger.js";
 
 const emailQueue = new Queue("emailQueue", {
   connection: redis,
 });
 
 export async function enqueueInvoiceEmail(invoiceId) {
-  return await emailQueue.add(
+  const job = await emailQueue.add(
     "sendInvoice",
     { invoiceId },
     {
-      jobId: `invoice-${invoiceId}`,
       attempts: 3,
       backoff: {
         type: "exponential",
@@ -20,6 +20,8 @@ export async function enqueueInvoiceEmail(invoiceId) {
       removeOnFail: 500,
     }
   );
+
+  return job;
 }
 
 export default emailQueue;

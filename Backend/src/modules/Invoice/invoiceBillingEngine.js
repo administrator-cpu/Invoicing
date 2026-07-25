@@ -3,6 +3,26 @@ import AppError from "../../utils/AppError.js";
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const BILLING_HISTORY_ACTIONS = [
+  "ACTIVATED",
+  "CANCELLED",
+  "UPGRADE",
+  "DOWNGRADE",
+  "RATE_REVISION",
+  "SHIFTING",
+  "IP_ADDITION",
+  "EDITED",
+  "DISCONNECT_INITIATED",
+  "EXTENDED",
+  "RETAINED",
+  "TERMINATED"
+];
+
+function extractStateFromAddress(address = "") {
+  if (!address) return "";
+  const lastPart = address.split(",").pop()?.trim() || "";
+  return lastPart.split("-")[0].trim();
+}
 
 function getBillingCommercialSnapshot(connection) {
   const history = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -38,6 +58,40 @@ function getBillingCommercialSnapshot(connection) {
   };
 }
 
+export function buildRecentActivity(history = [], cycleStart) {
+  if (!Array.isArray(history)) return [];
+
+  const mapActivity = h => ({
+    action: h.action,
+    date: h.date,
+    serviceType: h.serviceType,
+    bandwidth: h.bandwidth,
+    commercials: h.commercials,
+    ips: h.ips,
+    technicalDetails: h.technicalDetails
+  });
+
+  const previousMonthStart = new Date(cycleStart.getFullYear(), cycleStart.getMonth() - 1, 1);
+  const currentMonthEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, 0, 23, 59, 59);
+
+  const recentChanges = history
+    .filter(h =>
+      BILLING_HISTORY_ACTIONS.includes(h.action) &&
+      new Date(h.date) >= previousMonthStart &&
+      new Date(h.date) <= currentMonthEnd
+    ).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (recentChanges.length > 0) {
+    return recentChanges.map(mapActivity);
+  }
+
+  const latestActivation = [...history]
+    .filter(h => h.action === "ACTIVATED")
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+  return latestActivation ? [mapActivity(latestActivation)] : [];
+}
+
 export const buildInvoiceItems = ({
   connections,
   manualItems = [],
@@ -71,7 +125,7 @@ export const buildInvoiceItems = ({
 
       const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
       if (!wasEverActive) continue;
-
+      console.log(normalizedConnection.technicalDetails);
       if (conn.billingOptions?.connection !== false) {
         const connectionItems = buildConnectionSegments(
           normalizedConnection, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
@@ -105,7 +159,7 @@ export const buildInvoiceItems = ({
 
     return {
       ...item,
-      sourceType: "MANUAL_SERVICE",
+      sourceType: item.sourceType || "MANUAL_SERVICE",
       qty: Number(item.qty),
       rate: Number(item.rate),
       periodStart: new Date(item.periodStart),
@@ -241,10 +295,15 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
           bEnd: {
             btsId: connection.technicalDetails?.bEnd?.btsId || "",
             address: connection.technicalDetails?.bEnd?.address || "",
+            state: extractStateFromAddress(connection.technicalDetails?.bEnd?.address),
             latitude: connection.technicalDetails?.bEnd?.latitude || "",
             longitude: connection.technicalDetails?.bEnd?.longitude || ""
           }
         },
+        recentActivity: buildRecentActivity(
+          connection.history,
+          cycleStart
+        ),
         circuitId: connection.fabCircuitId,
         serviceType: segment.serviceType,
         bandwidth: segment.bandwidth,

@@ -18,6 +18,7 @@ import companyProfileRouter from './modules/CompanyProfile/companyProfile.routes
 import dashboardRouter from './modules/Dashboard/dashboard.routes.js';
 import customerSettingsRouter from './modules/Invoice/invoiceCustomerSettings.routes.js';
 import emailLogRouter from './modules/Email/emailLog.routes.js';
+import creditNoteRouter from './modules/CreditNote/creditNote.routes.js';
 
 const app = express();
 
@@ -100,6 +101,7 @@ app.use('/api/company-profiles', companyProfileRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/invoice-customer-settings', customerSettingsRouter);
 app.use('/api/emails', emailLogRouter);
+app.use("/api/v1/credit-notes", creditNoteRouter);
 
 app.all(/.*/, (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

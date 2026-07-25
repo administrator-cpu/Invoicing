@@ -8,7 +8,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
  * @desc Invoice number — format: DL/YY-YY/MM/001
  * @important Uses atomic MongoDB $inc — safe under concurrent finalization
  */
-export const generateNextInvoiceNumber = async (invoiceDate = new Date(), session = null, invoiceType = "BASE") => {
+export const generateNextDocumentNumber = async (invoiceDate = new Date(), session = null, invoiceType = "BASE") => {
   const date = new Date(invoiceDate);
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -82,6 +82,8 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
   }
 
   let calculatedSubTotal = 0;
+  let recurringCharges = 0;
+  let oneTimeCharges = 0;
   const verifiedItems = [];
 
   incomingItems.forEach((item, index) => {
@@ -177,6 +179,11 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     }
 
     calculatedSubTotal += expectedAmount;
+    if (sourceType === "OTC") {
+      oneTimeCharges += expectedAmount;
+    } else {
+      recurringCharges += expectedAmount;
+    }
 
     const originalEngineValues = item.originalEngineValues || (item.crmConnectionSnapshot
       ? {
@@ -253,6 +260,8 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
   return {
     verifiedItems,
     financials: {
+      recurringCharges: round2(recurringCharges),
+      oneTimeCharges: round2(oneTimeCharges),
       subTotal: finalSubTotal,
       discount: finalDiscount,
       taxes,

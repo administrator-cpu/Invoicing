@@ -31,7 +31,9 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
           bandwidth: conn.bandwidth ?? null,
           ratePerMb: conn.commercials?.ratePerMb ?? 0,
           mrc: conn.commercials?.mrc ?? 0,
-          historyEventType: null
+          historyEventType: null,
+          technicalDetails: conn.technicalDetails ?? {},
+          recentActivity: conn.recentActivity ?? []
         },
         invoiceOverrides: {
           ...conn.invoiceOverrides,
@@ -68,7 +70,9 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
         bandwidth: conn.bandwidth || null,
         ratePerMb: conn.commercials?.ratePerMb || 0,
         mrc: conn.commercials?.mrc || 0,
-        historyEventType: null
+        historyEventType: null,
+        technicalDetails: conn.technicalDetails || {},
+        recentActivity: conn.recentActivity || []
       },
       invoiceOverrides: {
         bandwidth: conn.bandwidth ?? "",
@@ -219,7 +223,7 @@ function mergePreviewItems(currentItems, backendItems) {
 
 export default function InvoiceWorkspace({
   invoiceId = null, customer, companyProfiles, defaults, sourceItems,
-  onSubmit, isSaving, previewInvoice, isPreviewing, navigate
+  onSubmit, isSaving, previewInvoice, isPreviewing, navigate, mode = "invoice"
 }) {
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -367,7 +371,11 @@ export default function InvoiceWorkspace({
             <button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-bold text-gray-900">Billing Workspace</h1>
+            <h1 className="text-xl font-bold text-gray-900">
+              {mode === "credit-note"
+                ? "Credit Note Workspace"
+                : "Billing Workspace"}
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => navigate("/customers")} className="px-6 py-2.5 rounded-full font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm">Cancel</button>
@@ -375,7 +383,14 @@ export default function InvoiceWorkspace({
               <Calculator size={16} /> {isPreviewing ? 'Calculating...' : editMode ? 'Finish Editing' : 'Preview Engine'}
             </button>
             <button type="submit" disabled={isSaving || isSubmitting || !watch("financials") || watch("previewExpired")} className="px-6 py-2.5 rounded-full font-medium text-white bg-[#09090B] hover:bg-gray-800 disabled:opacity-50 transition-colors text-sm shadow-md">
-              {isSaving || isSubmitting ? 'Saving...' : invoiceId ? 'Update Draft' : 'Create Invoice'}
+              {isSaving || isSubmitting
+                ? "Saving..."
+                : mode === "credit-note"
+                  ? "Save Draft"
+                  : invoiceId
+                    ? "Update Draft"
+                    : "Create Invoice"
+              }
             </button>
           </div>
         </div>
@@ -475,7 +490,7 @@ export default function InvoiceWorkspace({
           </div>
 
           {/* Section 4: Items Table */}
-          <ServiceItemsTable editMode={editMode} setEditMode={setEditMode} />
+          <ServiceItemsTable mode={mode} editMode={editMode} setEditMode={setEditMode} />
 
           {/* Section 5: Bottom Right Authoritative Financial Summary */}
           <div className="flex justify-end">

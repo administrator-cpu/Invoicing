@@ -4,23 +4,27 @@ import Invoice from './invoice.model.js';
 import catchAsync from '../../utils/catchAsync.js';
 import AppError from '../../utils/AppError.js';
 import { getBrowser } from '../../services/pdfBrowser.js';
-import { generateNextInvoiceNumber, validateAndRecalculateInvoice } from './invoice.helpers.js';
+import { generateNextDocumentNumber, validateAndRecalculateInvoice } from './invoice.helpers.js';
 import { generateBillingFingerprint } from '../../utils/billingFingerprint.js';
-import { buildInvoiceItems } from './invoiceBillingEngine.js';
+import { buildInvoiceItems, buildRecentActivity } from './invoiceBillingEngine.js';
 import CompanyProfile from '../CompanyProfile/companyProfile.model.js';
 import { saveInvoicePdf, readInvoicePdf, pdfExists } from '../../services/documentStorage.js';
 import { activeInvoiceFilter } from "../../utils/invoice.utils.js";
 import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
+import { generateGSTReport } from '../../services/invoiceExcelTemplate.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections } from "../../services/crm.service.js";
 import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
 import logger from '../../utils/logger.js';
 
+/**
+ * @desc Workspaces For Create and Edit Inoice and Credit Note Invoice
+ */
 export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
   const { customerId } = req.params;
   const now = new Date();
-  const invoiceDate = new Date(now);
-  const dueDate = new Date(now);
+  const invoiceDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const dueDate = new Date(invoiceDate);
   dueDate.setDate(dueDate.getDate() + 5);
   const billingCycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const billingCycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -38,8 +42,26 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     return next(new AppError("Customer not found.", 404));
   }
 
+  const extractState = (address = "") => {
+    if (!address) return "-";
+    const parts = address.split(",");
+    if (parts.length < 2) return "-";
+    return parts[parts.length - 1].split("-")[0].trim();
+  };
+
   const invoiceConnections = (Array.isArray(connections?.connections) ? connections.connections : []).map(connection => ({
     ...connection,
+    technicalDetails: {
+      ...connection.technicalDetails,
+      bEnd: {
+        ...connection.technicalDetails?.bEnd,
+        state: extractState(connection.technicalDetails?.bEnd?.address)
+      }
+    },
+    recentActivity: buildRecentActivity(
+      connection.history || [],
+      billingCycleStart
+    ),
     selected: connection.isBillable,
     editable: true
   }));
@@ -174,6 +196,66 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
       customer,
       defaults,
       connections: mergedItems,
+      companyProfiles
+    }
+  });
+});
+
+export const getCreditNoteWorkspace = catchAsync(async (req, res, next) => {
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id));
+  if (!invoice) {
+    return next(new AppError("Invoice not found.", 404));
+  }
+
+  const formatDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  const customerId = invoice.customerSnapshot.crmCustomerId;
+  const [customer, companyProfiles] = await Promise.all([
+    getCrmCustomerDetails(customerId),
+    CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean()
+  ]);
+
+  const items = invoice.items.map(item => ({
+    ...item.toObject(),
+    selected: true,
+    editable: true,
+    periodStart: formatDate(item.periodStart),
+    periodEnd: formatDate(item.periodEnd),
+    invoiceOverrides: {
+      bandwidth: item.originalEngineValues?.bandwidth ?? item.crmConnectionSnapshot?.bandwidth,
+      ratePerMb: item.originalEngineValues?.rate ?? item.rate,
+      ipCount: item.originalEngineValues?.ipCount ?? item.crmConnectionSnapshot?.ipCount,
+      ipCost: item.originalEngineValues?.ipCost ?? item.crmConnectionSnapshot?.ipCost,
+      description: item.originalEngineValues?.description ?? item.description,
+      periodStart: formatDate(item.periodStart),
+      periodEnd: formatDate(item.periodEnd)
+    }
+  }));
+
+  const defaults = {
+    invoiceDate: formatDate(invoice.dates.invoiceDate),
+    dueDate: formatDate(invoice.dates.dueDate),
+    billingCycleStart: formatDate(invoice.dates.billingCycleStart),
+    billingCycleEnd: formatDate(invoice.dates.billingCycleEnd),
+    billingMode: invoice.billingConfiguration.billingMode,
+    discount: invoice.financials.discount,
+    financials: null,
+    previewVersion: null,
+    previewGeneratedAt: null,
+    previewExpired: true
+  };
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      invoice,
+      customer,
+      defaults,
+      connections: items,
       companyProfiles
     }
   });
@@ -535,7 +617,7 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
       throw new AppError(`Only DRAFT invoices can be finalized. Current status: ${draftInvoice.status}`, 400);
     }
 
-    const invoiceNumber = await generateNextInvoiceNumber(draftInvoice.dates.invoiceDate, session);
+    const invoiceNumber = await generateNextDocumentNumber(draftInvoice.dates.invoiceDate, session);
     const exists = await Invoice.exists({ invoiceNumber }).session(session);
     if (exists) {
       throw new AppError(
@@ -699,6 +781,53 @@ export const downloadInvoicePdf = catchAsync(async (req, res) => {
 });
 
 /**
+ * @desc - Download GST Report
+ * @route - GET /api/invoices/reports/gst
+ */
+export const downloadGSTReport = catchAsync(async (req, res) => {
+  const { month, year } = req.query;
+  if (!month || !year) {
+    throw new AppError("Month and year are required.", 400);
+  }
+
+  const startDate = new Date(Number(year), Number(month) - 1, 1);
+  const endDate = new Date(Number(year), Number(month), 1);
+
+  const invoices = await Invoice.find({
+    status: {
+      $in: ["FINALIZED", "PAID", "PARTIAL", "OVERDUE"]
+    },
+    isDeleted: { $ne: true },
+    "dates.invoiceDate": {
+      $gte: startDate,
+      $lt: endDate
+    }
+  }).lean();
+
+  if (invoices.length === 0) {
+    throw new AppError("No invoices were found for the selected month.", 404);
+  }
+
+  const workbook = await generateGSTReport({ invoices, month, year });
+
+  const fileName = `GST_Report_${year}_${String(month).padStart(2, "0")}.xlsx`;
+
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${fileName}"`
+  );
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
+
+  await workbook.xlsx.write(res);
+
+  res.end();
+});
+
+/**
  * @desc - Preview invoice as PDF
  * @route - GET /api/invoices/:id/preview
 */
@@ -730,6 +859,92 @@ export const sendInvoiceMail = catchAsync(async (req, res, next) => {
     success: true,
     message: "Invoice queued for email delivery.",
     jobId: job.id
+  });
+});
+
+/**
+ * @desc - Create a credit note for an invoice
+ * @route - POST /invoices/:id/credit-note
+ */
+export const createCreditNote = catchAsync(async (req, res, next) => {
+  const { id: invoiceId } = req.params;
+  const { reason, remarks, adjustmentType, effectiveDate } = req.body;
+
+  const baseInvoice = await Invoice.findById(invoiceId);
+  if (!baseInvoice) {
+    return next(new AppError("Invoice not found.", 404));
+  }
+  if (baseInvoice.invoiceType !== "BASE") {
+    return next(
+      new AppError("Credit notes can only be created for base invoices.", 400)
+    );
+  }
+
+  if (!["FINALIZED", "PARTIAL", "PAID", "OVERDUE"].includes(baseInvoice.status)) {
+    return next(
+      new AppError(
+        "Credit notes can only be created for finalized invoices.",
+        400
+      )
+    );
+  }
+
+  const draftCreditNote = await Invoice.create({
+    invoiceType: "CREDIT_NOTE",
+    status: "DRAFT",
+    referenceInvoiceId: baseInvoice._id,
+    dates: {
+      invoiceDate: new Date(),
+      dueDate: new Date(),
+      billingCycleStart: baseInvoice.dates.billingCycleStart,
+      billingCycleEnd: baseInvoice.dates.billingCycleEnd,
+    },
+    companySnapshot: baseInvoice.companySnapshot.toObject(),
+    customerSnapshot: baseInvoice.customerSnapshot.toObject(),
+    items: baseInvoice.items.map(item => item.toObject()),
+    financials: baseInvoice.financials.toObject(),
+    billingConfiguration: baseInvoice.billingConfiguration.toObject(),
+    billingRunId: baseInvoice.billingRunId,
+    createdBy: req.user._id,
+    creditNote: {
+      reason,
+      remarks,
+      adjustmentType,
+      effectiveDate,
+    },
+  });
+
+  res.status(201).json({
+    status: "success",
+    message: "Credit note draft created successfully.",
+    creditNote: draftCreditNote,
+  });
+});
+
+/**
+ * @desc - Get details of a credit note
+ * @route - GET /invoices/credit-notes/:id
+ */
+export const getCreditNoteDetails = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const creditNote = await Invoice.findOne({
+    _id: id,
+    invoiceType: "CREDIT_NOTE",
+    isDeleted: false,
+  }).populate("createdBy", "name email")
+    .populate("audit.finalizedBy", "name email")
+    .populate("audit.lastEditedBy", "name email")
+    .populate("audit.cancelledBy", "name email")
+    .populate("referenceInvoiceId", "invoiceNumber status dates financials customerSnapshot.name customerSnapshot.crmCustomerId");
+
+  if (!creditNote) {
+    return next(new AppError("Credit note not found.", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    creditNote,
   });
 });
 
@@ -816,6 +1031,7 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
 });
 
 /**
+ * @deprecated - Use Adjustments(like credit note and debit note) instead
  * @desc - Generate a manual Adjustment Invoice for Upgrades/Downgrades/Rate Revisions
  * @route - POST /api/v1/invoices/:id/adjust
  */
@@ -910,7 +1126,7 @@ export const generateAdjustmentInvoice = catchAsync(async (req, res, next) => {
   let adjustmentInvoice;
   try {
     session.startTransaction();
-    const invoiceNumber = await generateNextInvoiceNumber(new Date(), session, "ADJUSTMENT");
+    const invoiceNumber = await generateNextDocumentNumber(new Date(), session, "ADJUSTMENT");
 
     adjustmentSnapshot.invoiceNumber = invoiceNumber;
     adjustmentInvoice = await Invoice.create(

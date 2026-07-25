@@ -24,3 +24,14 @@ export const useInvoiceEditWorkspace = (invoiceId) => {
     enabled: !!invoiceId,
   });
 };
+
+export const useCreditNoteWorkspace = (invoiceId) => {
+  return useQuery({
+    queryKey: ["credit-notes", "workspace", invoiceId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/invoices/${invoiceId}/credit-note-workspace`);
+      return response.data;
+    },
+    enabled: !!invoiceId,
+  });
+};

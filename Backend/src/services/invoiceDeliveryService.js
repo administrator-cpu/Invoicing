@@ -6,22 +6,40 @@ import { activeInvoiceFilter } from "../utils/invoice.utils.js";
 import { buildInvoiceEmail } from "./invoiceEmailTemplate.js";
 
 function buildInvoiceAttachment(invoice, pdfBuffer) {
+  const firstWord = invoice.customerSnapshot.name ?.trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, "") || "Customer";
   return [
     {
-      filename: invoice.pdf.fileName || `${invoice.invoiceNumber}.pdf`,
+      filename: `${invoice.invoiceNumber}_${firstWord}.pdf`,
       content: pdfBuffer,
       contentType: "application/pdf",
-    }
+    },
   ];
 }
 
 function buildRecipients(recipients) {
   return {
-    to: recipients.filter(r => r.type === "TO").map(r => r.email),
-    cc: recipients.filter(r => r.type === "CC").map(r => r.email),
-    bcc: recipients.filter(r => r.type === "BCC").map(r => r.email),
-  }
-};
+    to: recipients
+      .filter(r => r.type === "TO")
+      .map(r => ({
+        email: r.email,
+        label: r.label,
+      })),
+
+    cc: recipients
+      .filter(r => r.type === "CC")
+      .map(r => ({
+        email: r.email,
+        label: r.label,
+      })),
+
+    bcc: recipients
+      .filter(r => r.type === "BCC")
+      .map(r => ({
+        email: r.email,
+        label: r.label,
+      })),
+  };
+}
 
 export async function prepareInvoiceDelivery(invoiceId) {
   const invoice = await Invoice.findOne(activeInvoiceFilter(invoiceId)).lean();
@@ -51,14 +69,13 @@ export async function prepareInvoiceDelivery(invoiceId) {
 
   return {
     invoiceId: invoice._id,
-    tenantId: invoice.tenantId,
     invoice,
     email: {
-      to,
-      cc,
-      bcc,
+      to: to.map(r => r.email),
+      cc: cc.map(r => r.email),
+      bcc: bcc.map(r => r.email),
       metadata: {
-        recipients: invoiceCustomerSettings.recipients,
+        recipients: { to, cc, bcc },
         customerId: invoice.customerSnapshot.crmCustomerId,
         invoiceNumber: invoice.invoiceNumber
       },
