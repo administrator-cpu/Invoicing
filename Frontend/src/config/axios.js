@@ -19,24 +19,35 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    
+  (response) => response.data,
+
+  async (error) => {
+
     if (error.response && error.response.status === 401) {
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
       }
     }
 
-    const customError = {
-      message: error.response?.data?.message || 'An unexpected error occurred',
+    let message = "An unexpected error occurred";
+
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const json = JSON.parse(text);
+        message = json.message || message;
+      } catch {
+        // ignore parse failure
+      }
+    } else {
+      message = error.response?.data?.message || message;
+    }
+
+    return Promise.reject({
+      message,
       status: error.response?.status,
       originalError: error,
-    };
-
-    return Promise.reject(customError);
+    });
   }
 );
 

@@ -18,6 +18,10 @@ const InvoiceItemsSection = ({ invoice }) => {
     return `${formatDate(start)}  to  ${formatDate(end)}`;
   };
 
+  const isCreditNote = invoice.invoiceType === "CREDIT_NOTE";
+  const title = isCreditNote ? "Credit Note Details" : "Summary of Items";
+  const subtitle = isCreditNote ? "Detailed breakdown of credited services" : "Detailed breakdown of billed services";
+
   return (
     <div className="printing-sheet page-break bg-white p-10">
 
@@ -25,10 +29,10 @@ const InvoiceItemsSection = ({ invoice }) => {
       <div className="flex justify-between items-start border-b pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-[#F58220] via-[#E04924] via-45% to-[#9A0D14] bg-clip-text text-transparent">
-            Summary of Items
+            {title}
           </h1>
           <p className="text-gray-500 mt-2">
-            Detailed breakdown of billed services
+            {subtitle}
           </p>
         </div>
 
@@ -120,7 +124,7 @@ const InvoiceItemsSection = ({ invoice }) => {
           </div>
         </div>
       </div> */}
-      
+
     </div>
   );
 

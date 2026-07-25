@@ -43,6 +43,46 @@ function validatePayload(payload) {
   }
 }
 
+const buildHtmlTemplate = (htmlContent) => {
+  const currentYear = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+
+    <div style="width: 100%; box-sizing: border-box; font-family: system-ui, Arial, sans-serif; font-size: 14px; padding: 24px; background-color: #ffffff; color: #333;">
+
+      <div style="line-height: 1.6;">
+        ${htmlContent}
+      </div>
+
+      <div style=" margin-top: 32px; padding-top: 16px; border-top: 1px solid #eaeaea; text-align: center;">
+        <a href="https://fab5network.com" target="_blank" style="text-decoration: none; outline: none;">
+          <img src="https://res.cloudinary.com/drrour6hl/image/upload/v1774876669/crm/fab5-logo.webp"
+            alt="FAB5 Network Private Limited"
+            height="80"
+            style="height: 80px; display: block; margin: 0 auto;"
+          />
+        </a>
+        <p style="margin: 8px 0 4px; font-size: 12px; color: #999;">
+          © ${currentYear} Fab Five Network Private Limited. All rights reserved.
+        </p>
+        <p style="margin: 0; font-size: 12px; color: #999;">
+          <a href="https://fab5network.com" style="color: #999; text-decoration: none;">
+            https://fab5network.com
+          </a>
+        </p>
+      </div>
+
+    </div>
+
+  </body>
+</html>`;
+};
+
 export async function sendEmail(payload) {
   validatePayload(payload);
 
@@ -50,10 +90,12 @@ export async function sendEmail(payload) {
   const cc = normalizeEmails(payload.cc);
   const bcc = normalizeEmails(payload.bcc);
 
+  const html = buildHtmlTemplate(payload.html);
+
   const resendPayload = {
     to,
     subject: payload.subject,
-    html: payload.html,
+    html,
     text: htmlToText(payload.html),
     fromName: COMPANY_NAME,
   };

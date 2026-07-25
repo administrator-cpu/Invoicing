@@ -15,36 +15,28 @@ const worker = new Worker(
         let emailLog;
         let payload;
         try {
-          logger.info("1. Email job started");
+          logger.info("Email job started");
           payload = await prepareInvoiceDelivery(job.data.invoiceId);
-          logger.info("2. Delivery prepared");
           emailLog = await EmailLog.create({
-            tenantId: payload.invoice.tenantId,
             documentType: "INVOICE",
             documentId: payload.invoice._id,
             jobId: job.id,
-            recipients: {
-              to: payload.email.to,
-              cc: payload.email.cc,
-              bcc: payload.email.bcc,
-            },
+            recipients: payload.email.metadata.recipients,
             subject: payload.email.subject,
           });
-          logger.info("3. Email log created");
           await Invoice.updateOne(
             { _id: payload.invoice._id },
             {
               $set: { "email.status": "PROCESSING" },
             }
           );
-          logger.info("4. invoice updated to PROCESSING");  
-          logger.info("5. calling sendEmail");
+
           const result = await sendEmail(payload.email);
-          logger.info("6. sendEmail returned");
           await emailLog.updateOne({
             status: "SENT",
             providerMessageId: result.id,
             sentAt: new Date(),
+            attempts: job.attemptsMade + 1,
           });
           await Invoice.updateOne(
             { _id: payload.invoice._id },
@@ -62,7 +54,7 @@ const worker = new Worker(
             await emailLog.updateOne({
               status: "FAILED",
               error: error.message,
-              attempts: job.attemptsMade,
+              attempts: job.attemptsMade + 1,
             });
             await Invoice.updateOne(
               { _id: payload.invoice._id },
@@ -87,6 +79,14 @@ const worker = new Worker(
   }
 );
 
+worker.on("ready", () => {
+  logger.info("Email worker ready");
+});
+
+worker.on("closing", () => {
+  logger.warn("Email worker closing");
+});
+
 worker.on("completed", (job) => {
   logger.info("Email job completed", {
     jobId: job.id,
@@ -98,7 +98,8 @@ worker.on("failed", (job, err) => {
   logger.error("Email job failed", {
     jobId: job.id,
     invoiceId: job.data.invoiceId,
-    error: err.message
+    error: err.message,
+    stack: err.stack
   });
 })
 

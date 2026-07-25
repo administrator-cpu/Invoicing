@@ -41,9 +41,27 @@ const formatBillingCycle = (start, end) => {
 
 export default function InvoiceItemsTable({ invoice }) {
 
-  const taxes = invoice.financials?.taxes;
-  // const isInterstate = taxes?.isInterstate;
   const isInterstate = invoice.financials?.taxes?.isInterstate;
+  const isCreditNote = invoice.invoiceType === "CREDIT_NOTE";
+  const chargeLabel = isCreditNote ? "Credit Amount" : "Charge";
+  const totalLabel = isCreditNote ? "Total Credit" : "Grand Total";
+  const totalColumnLabel = isCreditNote ? "Credit Total" : "Total";
+
+  if (!invoice.items?.length) {
+    return (
+      <div className="mt-10 rounded-xl border border-dashed border-orange-300 p-12 text-center">
+        <p className="text-lg font-semibold text-slate-700">
+          No items available.
+        </p>
+
+        <p className="text-sm text-slate-500 mt-2">
+          {isCreditNote
+            ? "No items have been credited."
+            : "No invoice items were found."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-10 bg-white border border-orange-200 shadow-sm rounded-xl overflow-hidden">
@@ -57,7 +75,7 @@ export default function InvoiceItemsTable({ invoice }) {
               <th className="py-3 px-2 w-[9%] font-semibold tracking-wide leading-tight text-center">Billing<br />Period</th>
               <th className="py-3 px-1 w-[8%] font-semibold tracking-wide text-center">BW/<br />Qty</th>
               <th className="py-3 px-2 w-[20%] font-semibold tracking-wide leading-tight text-center">Installation<br />Address</th>
-              <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-center">Charge</th>
+              <th className="py-3 px-2 w-[11%] font-semibold tracking-wide text-center">{chargeLabel}</th>
 
               {isInterstate ? (
                 <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-center">IGST</th>
@@ -68,20 +86,28 @@ export default function InvoiceItemsTable({ invoice }) {
                 </>
               )}
 
-              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-center">Total</th>
+              <th className="py-3 px-2 w-[14%] font-semibold tracking-wide text-center">{totalColumnLabel}</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-orange-100">
             {invoice.items?.map((item) => {
-              const taxableAmount = Number(item.mrc ?? item.amount ?? 0);
+              const amount = Math.abs(item.mrc ?? item.amount ?? 0);
+              const taxableAmount = Number(amount);
               const lineTax = taxableAmount * 0.18;
               const billingCycle = formatBillingCycle(item.periodStart, item.periodEnd);
 
               return (
                 <tr key={item._id} className="hover:bg-orange-50/50 transition-colors divide-x divide-orange-100">
                   <td className="py-4 px-2 align-top text-gray-900 font-medium break-words">
-                    {item.description}
+                    <div className="space-y-1">
+                      <p>{item.description}</p>
+                      {isCreditNote && item.creditReason && (
+                        <p className="text-xs text-orange-600 italic">
+                          {item.creditReason}
+                        </p>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-1 align-top text-center font-mono text-gray-500 text-[11px]">
                     {item.sacCode || "-"}
@@ -105,7 +131,7 @@ export default function InvoiceItemsTable({ invoice }) {
                     }
                   </td>
                   <td className="py-4 px-2 align-top text-right text-gray-900 font-medium">
-                    {formatMoney(item.mrc ?? item.amount)}
+                    {formatMoney(amount)}
                   </td>
 
                   {isInterstate ? (
@@ -134,10 +160,10 @@ export default function InvoiceItemsTable({ invoice }) {
           <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200">
             <tr className="divide-x divide-orange-200">
               <td colSpan={isInterstate ? 7 : 8} className="py-4 px-4 text-right font-bold text-gray-800 uppercase tracking-wider text-xs">
-                Grand Total
+                {totalLabel}
               </td>
               <td className="py-4 px-2 text-right font-black text-lg text-[#ea580c]">
-                {formatMoney(invoice.financials?.grandTotal)}
+                {formatMoney(Math.abs(invoice.financials?.grandTotal))}
               </td>
             </tr>
           </tfoot>

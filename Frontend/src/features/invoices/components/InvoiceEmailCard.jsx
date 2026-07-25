@@ -27,60 +27,68 @@ const STATUS_CONFIG = {
 };
 
 const InvoiceEmailCard = ({ invoice, onViewHistory }) => {
-
   const status = invoice.email?.status || "NOT_SENT";
   const config = STATUS_CONFIG[status];
   const Icon = config.icon;
 
   return (
-    <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+    <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
 
-      <div className="flex items-center justify-between">
+      {/* Main Card Content */}
+      <div className="p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
 
-        <div>
-          <h3 className="text-lg font-semibold">
-            Invoice Email
-          </h3>
+          {/* Header Info */}
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 leading-none">
+              Invoice Email
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Delivery information
+            </p>
+          </div>
 
-          <p className="text-sm text-slate-500">
-            Delivery information
-          </p>
+          {/* Status Badge */}
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium tracking-wide ${config.badge}`}>
+            <Icon className="w-3.5 h-3.5 shrink-0" />
+            {config.label}
+          </span>
         </div>
 
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${config.badge}`}>
-          <Icon className="inline w-4 h-4 mr-1" />
-          {config.label}
-        </span>
-      </div>
-
-      <div className="mt-5 space-y-2">
-        <div>
-          <span className="text-slate-500">
+        {/* Last Sent Details */}
+        <div className="mt-6">
+          <span className="block text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
             Last Sent
           </span>
-
-          <p>
-            {
-              invoice.email?.lastSentAt
-                ? new Date(invoice.email.lastSentAt).toLocaleString()
-                : "Never"
-            }
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+            {invoice.email?.lastSentAt
+              ? new Date(invoice.email.lastSentAt).toLocaleString()
+              : "Never"}
           </p>
         </div>
       </div>
 
-      <div className="mt-5">
+      {/* Footer Action Area */}
+      <div className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 px-5 py-3 sm:px-6">
         <button
           onClick={onViewHistory}
-          className="text-primary hover:underline text-sm font-medium"
+          className="group inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-sm"
         >
           View Email History
+          <svg
+            className="w-4 h-4 ml-1 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
 
     </div>
   );
-
 };
 
 export default InvoiceEmailCard;

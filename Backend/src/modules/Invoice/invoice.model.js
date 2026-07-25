@@ -192,7 +192,7 @@ const InvoiceSchema = new mongoose.Schema({
   },
   invoiceType: {
     type: String,
-    enum: ["BASE", "ADJUSTMENT", "CREDIT_NOTE", "DEBIT_NOTE"],
+    enum: ["BASE", "CREDIT_NOTE", "DEBIT_NOTE"],
     default: "BASE"
   },
   billingRunId: {
@@ -224,6 +224,40 @@ const InvoiceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Invoice",
     default: null
+  },
+
+  creditNotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Invoice",
+  }],
+
+  creditNote: {
+    reason: {
+      type: String,
+      default: null,
+      trim: true
+    },
+
+    remarks: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
+    adjustmentType: {
+      type: String,
+      enum: [
+        "FULL_REVERSAL",
+        "PARTIAL",
+        "PRORATA",
+      ],
+      default: null,
+    },
+
+    effectiveDate: {
+      type: Date,
+      default: null,
+    },
   },
 
   status: {
@@ -269,6 +303,8 @@ const InvoiceSchema = new mongoose.Schema({
   items: [invoiceItemSchema],
 
   financials: {
+    recurringCharges: { type: Number, default: 0, set: roundToTwo },
+    oneTimeCharges: { type: Number, default: 0, set: roundToTwo },
     subTotal: { type: Number, required: true, default: 0, set: roundToTwo },
     discount: { type: Number, default: 0, set: roundToTwo },
 

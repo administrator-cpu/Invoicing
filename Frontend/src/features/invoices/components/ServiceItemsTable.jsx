@@ -11,7 +11,55 @@ const getStatusBadge = (status) => {
   return 'bg-gray-100 text-gray-500';
 };
 
-export const ServiceItemsTable = ({ editMode, setEditMode }) => {
+const ACTION_META = {
+  ACTIVATED: {
+    label: "Activated",
+    badge: "bg-green-100 text-green-700"
+  },
+  UPGRADE: {
+    label: "Upgrade",
+    badge: "bg-blue-100 text-blue-700"
+  },
+  DOWNGRADE: {
+    label: "Downgrade",
+    badge: "bg-orange-100 text-orange-700"
+  },
+  RATE_REVISION: {
+    label: "Rate Revision",
+    badge: "bg-purple-100 text-purple-700"
+  },
+  IP_ADDITION: {
+    label: "IP Addition",
+    badge: "bg-cyan-100 text-cyan-700"
+  },
+  SHIFTING: {
+    label: "Shifting",
+    badge: "bg-yellow-100 text-yellow-700"
+  },
+  EXTENDED: {
+    label: "Extended",
+    badge: "bg-indigo-100 text-indigo-700"
+  },
+  RETAINED: {
+    label: "Retained",
+    badge: "bg-emerald-100 text-emerald-700"
+  },
+  TERMINATED: {
+    label: "Terminated",
+    badge: "bg-red-100 text-red-700"
+  }
+};
+
+const formatActivityDate = (date) => {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+};
+
+export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) => {
   const { control, register, watch, setValue } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -71,11 +119,13 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
       <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
         <div>
           <h3 className="text-gray-900 font-bold text-lg">
-            Service Items
+            {mode === "credit-note" ? "Credit Note Items" : "Service Items"}
           </h3>
           {watch("previewExpired") && (
             <p className="text-xs text-[#EA580C] font-semibold mt-1 bg-orange-50 inline-block px-2 py-0.5 rounded">
-              Invoice changed. Click "Preview Engine" to recalculate billing.
+              {mode === "credit-note"
+                ? 'Credit note changed. Click "Preview Engine" to recalculate.'
+                : 'Invoice changed. Click "Preview Engine" to recalculate billing.'}
             </p>
           )}
         </div>
@@ -97,7 +147,7 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
               }`}
           >
             {editMode ? <Check size={16} /> : <Pencil size={16} />}
-            {editMode ? "Done Editing" : "Edit Line Items"}
+            {editMode ? "Done Editing" : mode === "credit-note" ? "Edit Credit Note" : "Edit Invoice"}
           </button>
         </div>
       </div>
@@ -107,16 +157,17 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
         <table className="w-full table-fixed border-collapse text-sm text-left whitespace-nowrap">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="w-[4%] px-4 py-3 text-center"></th>
-              <th className="w-[23%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
-              <th className="w-[10%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SAC Code</th>
-              <th className="w-[9%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Service Type</th>
-              <th className="w-[8%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">BW/Qty</th>
-              <th className="w-[8%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
-              <th className="w-[13%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Billing Period</th>
-              <th className="w-[10%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Rate</th>
-              <th className="w-[10%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
-              <th className="w-[5%] px-4 py-3 text-center"></th>
+              <th className="w-[3%] px-2 py-3 text-center"></th>
+              <th className="w-[25%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
+              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SAC Code</th>
+              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Service<br></br>Type</th>
+              <th className="w-[9%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">State</th>
+              <th className="w-[7%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">BW/Qty</th>
+              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
+              <th className="w-[12%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Billing Period</th>
+              <th className="w-[9%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Rate</th>
+              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
+              <th className="w-[3%] px-2 py-3 text-center"></th>
             </tr>
           </thead>
 
@@ -125,7 +176,8 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
               const item = watch(`items.${index}`);
               const isSelected = watch(`items.${index}.isSelected`);
               const sourceType = watch(`items.${index}.sourceType`);
-
+              const activities = item.crmConnectionSnapshot?.recentActivity ?? item.recentActivity ?? [];
+              console.log("ITEM", item);
               return (
                 <React.Fragment key={field.id}>
                   <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white' : 'bg-gray-50 opacity-40'}`}>
@@ -170,20 +222,30 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
                       <input
                         disabled={!editMode}
                         {...register(`items.${index}.sacCode`, { onChange: () => invalidatePreview() })}
-                        className="w-full min-w-[85px] mx-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-center font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
+                        className="block mx-auto w-full max-w-[100px] min-w-[85px] border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-left font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
                         placeholder="998422"
                       />
                     </td>
 
 
                     {/* SERVICE TYPE */}
-                    <td className="px-4 py-4 align-middle">
-                      <span className="text-sm font-semibold text-gray-600 truncate block">
+                    <td className="px-4 py-4 align-middle ">
+                      <span className="text-sm font-semibold text-gray-600 truncate block text-center ">
                         {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
                           sourceType === 'IP_ADDRESS' ? 'IP' :
                             sourceType === 'OTC' ? '-' : 'Manual'}
                       </span>
                     </td>
+
+                    {/* STATE */}
+                    <td
+                      title={item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address}
+                      className="px-2 py-4 align-middle text-center max-w-[150px] whitespace-normal break-words"
+                    >
+                      {item.crmConnectionSnapshot?.technicalDetails?.bEnd?.state || "N/A"}
+                    </td>
+
+
 
                     {/* BW / QTY */}
                     <td className="px-4 py-4 align-middle text-center">
@@ -213,7 +275,7 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
                     {/* STATUS */}
                     <td className="px-4 py-4 align-middle">
                       <div className="flex justify-center">
-                        <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${getStatusBadge(sourceType === 'CONNECTION' ? item.status : item.statusSnapshot)}`}>
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${getStatusBadge(sourceType === 'CONNECTION' ? item.status : item.statusSnapshot)}`}>
                           {sourceType === 'CONNECTION' ? item.status : item.statusSnapshot}
                         </span>
                       </div>
@@ -294,7 +356,7 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
 
                     {/* ACTIONS */}
                     <td className="px-2 py-4 align-middle text-center">
-                      {sourceType !== "CONNECTION" && (
+                      {(mode === "credit-note" || sourceType !== "CONNECTION") && (
                         <button
                           type="button"
                           onClick={() => {
@@ -312,27 +374,131 @@ export const ServiceItemsTable = ({ editMode, setEditMode }) => {
                   {/* EXPANDED BILLING COMPONENTS */}
                   {sourceType === "CONNECTION" && expandedRows[index] && (
                     <tr>
-                      <td colSpan={10} className="bg-orange-50/30 px-6 py-5 border-b border-orange-100/50">
-                        <div className="max-w-3xl">
-                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
-                            Billable Components Configuration
-                          </p>
-                          <div className="flex flex-wrap gap-8">
-                            {[
-                              { key: 'connection', label: 'Internet Charges' },
-                              { key: 'ip', label: 'Public IP Charges' },
-                              { key: 'shifting', label: 'Shifting Charges' }
-                            ].map((opt) => (
-                              <label key={opt.key} className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 hover:text-gray-900 cursor-pointer bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm transition-colors hover:border-[#EA580C]/30">
-                                <input
-                                  type="checkbox"
-                                  {...register(`items.${index}.billingOptions.${opt.key}`, { onChange: invalidatePreview })}
-                                  className="w-4 h-4 rounded border-gray-300 text-[#EA580C] focus:ring-[#EA580C]"
-                                />
-                                {opt.label}
-                              </label>
-                            ))}
+                      <td
+                        colSpan={11}
+                        className="bg-orange-50/30 px-6 py-5 border-b border-orange-100/50"
+                      >
+                        <div className="grid grid-cols-2 gap-10">
+
+                          {/* LEFT SIDE */}
+                          <div>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
+                              Billable Components
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                              {[
+                                { key: "connection", label: "Internet Charges" },
+                                { key: "ip", label: "Public IP Charges" },
+                                { key: "shifting", label: "Shifting Charges" }
+                              ].map((opt) => (
+                                <label
+                                  key={opt.key}
+                                  className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    {...register(
+                                      `items.${index}.billingOptions.${opt.key}`,
+                                      {
+                                        onChange: invalidatePreview
+                                      }
+                                    )}
+                                    className="w-4 h-4 rounded border-gray-300 text-[#EA580C]"
+                                  />
+                                  {opt.label}
+                                </label>
+                              ))}
+                            </div>
                           </div>
+
+                          {/* RIGHT SIDE */}
+                          <div>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
+                              Recent Activity
+                            </p>
+                            {console.log(
+                              "Recent Activity",
+                              item.crmConnectionSnapshot?.connectionId,
+                              item.crmConnectionSnapshot?.recentActivity
+                            )}
+                            {activities.length ? (
+                              <div className="space-y-3">
+                                {activities.map((activity, i) => {
+                                  const meta = ACTION_META[activity.action] || {
+                                    label: activity.action.replaceAll("_", " "),
+                                    badge: "bg-gray-100 text-gray-700"
+                                  };
+
+                                  return (
+                                    <div
+                                      key={i}
+                                      className="bg-white rounded-lg border border-gray-200 p-3"
+                                    >
+                                      <div className="flex items-center justify-between mb-2">
+
+                                        <span
+                                          className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${meta.badge}`}
+                                        >
+                                          {meta.label}
+                                        </span>
+
+                                        <span className="text-xs text-gray-500">
+                                          {formatActivityDate(activity.date)}
+                                        </span>
+
+                                      </div>
+
+                                      <div className="space-y-1 text-xs text-gray-600">
+
+                                        {activity.bandwidth && (
+                                          <div>
+                                            <span className="font-semibold">Bandwidth:</span>{" "}
+                                            {activity.bandwidth} Mbps
+                                          </div>
+                                        )}
+
+                                        {activity.serviceType && (
+                                          <div>
+                                            <span className="font-semibold">Service:</span>{" "}
+                                            {activity.serviceType}
+                                          </div>
+                                        )}
+
+                                        {activity.commercials?.ratePerMb > 0 && (
+                                          <div>
+                                            <span className="font-semibold">Rate:</span>{" "}
+                                            ₹{activity.commercials.ratePerMb}/Mbps
+                                          </div>
+                                        )}
+
+                                        {activity.commercials?.mrc > 0 && (
+                                          <div>
+                                            <span className="font-semibold">MRC:</span>{" "}
+                                            ₹{activity.commercials.mrc.toLocaleString("en-IN")}
+                                          </div>
+                                        )}
+
+                                        {activity.ips?.count > 0 && (
+                                          <div>
+                                            <span className="font-semibold">Public IPs:</span>{" "}
+                                            {activity.ips.count}
+                                          </div>
+                                        )}
+
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+                                No billing activity during the previous or current billing
+                                month.
+                              </div>
+                            )}
+                          </div>
+
                         </div>
                       </td>
                     </tr>

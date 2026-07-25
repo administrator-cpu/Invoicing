@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ToWords } from "to-words";
-import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, FilePlus2, X, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, X, AlertTriangle } from 'lucide-react';
 import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
+import ReferenceInvoiceCard from "@/features/invoices/components/ReferenceInvoiceCard";
 import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
-import CreateCreditNoteModal from "@/features/invoices/components/CreateCreditNoteModal";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
 import CancelInvoiceModal from "@/features/invoices/components/CancelInvoiceModal";
 import InvoiceBillingInfo from "@/features/invoices/components/InvoiceBillingInfo";
@@ -13,23 +13,23 @@ import InvoicePaymentDetails from "@/features/invoices/components/InvoicePayment
 import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSection";
 import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
 import {
-  useInvoiceDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
+  useCreditNoteDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
   useSendInvoiceEmail, useInvoiceEmailHistory
-} from '@/features/invoices/hooks/useInvoices';
+} from '@/features/invoices/components/hooks/useInvoices';
 
 const toWords = new ToWords({
   localeCode: "en-IN",
   converterOptions: { currency: true }
 });
 
-const InvoiceDetails = () => {
+const CreditNoteDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
 
-  const { data: invoice, isLoading, isError } = useInvoiceDetails(id);
-  const { data: emailHistory, isLoading: emailHistoryLoading, } = useInvoiceEmailHistory(id, emailHistoryOpen, invoice?.email?.status);
+  const { data: creditNote, isLoading, isError } = useCreditNoteDetails(id);
+  const { data: emailHistory, isLoading: emailHistoryLoading, } = useInvoiceEmailHistory(id, emailHistoryOpen, creditNote?.email?.status);
   const { mutate: finalizeInvoice, isPending: isFinalizing } = useFinalizeInvoice();
   const { mutate: cancelInvoice, isPending: isCancelling } = useCancelInvoice();
   const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice();
@@ -52,7 +52,7 @@ const InvoiceDetails = () => {
     );
   }
 
-  if (isError || !invoice) {
+  if (isError || !creditNote) {
     return (
       <div className="text-center py-12 text-red-500 font-medium">
         Failed to fetch target statement record details.
@@ -63,10 +63,10 @@ const InvoiceDetails = () => {
   const openFinalizeModal = () => {
     setModalConfig({
       isOpen: true,
-      title: 'Finalize & Lock Invoice',
+      title: 'Finalize & Lock Credit Note',
       message: 'Finalizing will assign a legal sequential invoice number and lock this document permanently. This action cannot be undone.',
       type: 'primary',
-      confirmText: 'Finalize Document',
+      confirmText: 'Issue Credit Note',
       onConfirm: () => finalizeInvoice(id)
     });
   };
@@ -76,15 +76,15 @@ const InvoiceDetails = () => {
   const openDeleteModal = () => {
     setModalConfig({
       isOpen: true,
-      title: "Delete Draft Invoice",
+      title: "Delete Draft Credit Note",
       message:
-        "This draft invoice will be deleted from the operational workflow. It can no longer be edited or finalized.",
+        "This draft credit note will be deleted from the operational workflow. It can no longer be edited or finalized.",
       type: "danger",
       confirmText: "Delete Draft",
       onConfirm: () =>
         deleteInvoice(id, {
           onSuccess: () => {
-            navigate("/invoices");
+            navigate("/credit-notes");
           },
         }),
     });
@@ -104,8 +104,7 @@ const InvoiceDetails = () => {
     return `${formatDate(start)} - ${formatDate(end)}`;
   };
 
-  const isDraft = invoice.status === 'DRAFT';
-  const canCreateCreditNote = invoice.invoiceType === "BASE" && ["FINALIZED", "PARTIAL", "PAID", "OVERDUE"].includes(invoice.status);
+  const isDraft = creditNote.status === 'DRAFT';
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -113,7 +112,7 @@ const InvoiceDetails = () => {
       {/* Action Controller Deck */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => navigate('/invoices')}
+          onClick={() => navigate('credit-notes')}
           className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4 mr-1" /> Back to Ledger
@@ -131,7 +130,7 @@ const InvoiceDetails = () => {
               </button>
 
               <button
-                onClick={() => navigate(`/invoices/${id}/edit`)}
+                onClick={() => navigate(`/credit-notes/${id}/edit`)}
                 disabled={isCancelling || isFinalizing}
                 className="flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
@@ -150,61 +149,51 @@ const InvoiceDetails = () => {
 
           {!isDraft && (
             <>
-              {invoice.status === "FINALIZED" && (
+              {creditNote.status === "FINALIZED" && (
                 <button
                   onClick={openCancelModal} disabled={isCancelling}
                   className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   <Ban className="w-4 h-4 mr-2" />
-                  Cancel Invoice
+                  Cancel Credit Note
                 </button>
               )}
-
-              {/* {canCreateCreditNote && (
-                <button
-                  onClick={() => navigate(`/invoices/${id}/create-credit-note`)}
-                  className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
-                >
-                  <FilePlus2 className="w-4 h-4 mr-2" />
-                  Create Credit Note
-                </button>
-              )} */}
 
               <button
                 onClick={() =>
                   window.open(
-                    `${import.meta.env.VITE_API_BASE_URL}/invoices/${id}/pdf`,
+                    `${import.meta.env.VITE_API_BASE_URL}/credit-notes/${id}/pdf`,
                     "_blank"
                   )
                 }
                 className="flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
               >
                 <Printer className="w-4 h-4 mr-2" />
-                Download Invoice
+                Download Credit Note
               </button>
               <button
                 onClick={() => {
                   setModalConfig({
                     isOpen: true,
-                    title: invoice.email.status === "SENT" ? "Resend Invoice" : "Send Invoice",
-                    message: invoice.email.status === "SENT"
-                      ? "The invoice has already been emailed. A new copy will be sent to all configured recipients."
-                      : "The finalized invoice will be queued for email delivery to all configured recipients.",
+                    title: creditNote.email.status === "SENT" ? "Resend Credit Note" : "Send Credit Note",
+                    message: creditNote.email.status === "SENT"
+                      ? "The credit note has already been emailed. A new copy will be sent to all configured recipients."
+                      : "The finalized credit note will be queued for email delivery to all configured recipients.",
                     type: "primary",
-                    confirmText: invoice.email.status === "SENT" ? "Send Again" : "Send Invoice",
+                    confirmText: creditNote.email.status === "SENT" ? "Send Again" : "Send Credit Note",
                     onConfirm: () => sendInvoiceEmail(id),
                   });
                 }}
-                disabled={isSendingEmail || invoice.email?.status === "PROCESSING"}
+                disabled={isSendingEmail || creditNote.email?.status === "PROCESSING"}
                 className="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 {
-                  invoice.email?.status === "PROCESSING"
+                  creditNote.email?.status === "PROCESSING"
                     ? "Sending..."
-                    : invoice.email.status === "SENT"
+                    : creditNote.email.status === "SENT"
                       ? "Send Again"
-                      : "Send Invoice"
+                      : "Send Credit Note"
                 }
               </button>
             </>
@@ -213,11 +202,13 @@ const InvoiceDetails = () => {
       </div>
 
       <InvoiceEmailCard
-        invoice={invoice}
+        invoice={creditNote}
         onViewHistory={() => {
           setEmailHistoryOpen(true);
         }}
       />
+
+      <ReferenceInvoiceCard invoice={creditNote} />
 
       <EmailHistoryModal
         isOpen={emailHistoryOpen}
@@ -226,7 +217,7 @@ const InvoiceDetails = () => {
         isLoading={emailHistoryLoading}
       />
 
-      {invoice.status === "CANCELLED" && (
+      {creditNote.status === "CANCELLED" && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
@@ -251,7 +242,7 @@ const InvoiceDetails = () => {
                     Cancellation Reason
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-800">
-                    {invoice.audit?.cancelReason || "Not Provided"}
+                    {creditNote.audit?.cancelReason || "Not Provided"}
                   </p>
                 </div>
 
@@ -260,7 +251,7 @@ const InvoiceDetails = () => {
                     Cancelled On
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-800">
-                    {formatDate(invoice.audit?.cancelledAt)}
+                    {formatDate(creditNote.audit?.cancelledAt)}
                   </p>
                 </div>
 
@@ -269,7 +260,7 @@ const InvoiceDetails = () => {
                     Cancelled By
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-800">
-                    {invoice.audit?.cancelledBy?.name || "Unknown"}
+                    {creditNote.audit?.cancelledBy?.name || "Unknown"}
                   </p>
                 </div>
 
@@ -278,7 +269,7 @@ const InvoiceDetails = () => {
                     Remarks
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-800 whitespace-pre-wrap">
-                    {invoice.audit?.cancelRemarks || "No Remarks"}
+                    {creditNote.audit?.cancelRemarks || "No Remarks"}
                   </p>
                 </div>
 
@@ -290,7 +281,7 @@ const InvoiceDetails = () => {
 
       <div className="relative bg-white dark:bg-slate-950 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
 
-        {invoice.status === "CANCELLED" && (
+        {creditNote.status === "CANCELLED" && (
           <div
             className="absolute inset-0 pointer-events-none z-0 rounded-xl"
             style={{
@@ -303,10 +294,10 @@ const InvoiceDetails = () => {
         )}
 
         {/* Document Frame Header Banner */}
-        <InvoiceHeader invoice={invoice} />
+        <InvoiceHeader invoice={creditNote} />
 
         {/* Snapshot Information */}
-        <InvoiceBillingInfo invoice={invoice} />
+        <InvoiceBillingInfo invoice={creditNote} />
 
         {/* Payment Options */}
         <InvoicePaymentDetails />
@@ -314,7 +305,7 @@ const InvoiceDetails = () => {
         <div className="page-break" />
 
         {/* Items Section */}
-        <InvoiceItemsSection invoice={invoice} />
+        <InvoiceItemsSection invoice={creditNote} />
 
         {/* Terms & Conditions */}
         <InvoiceTerms />
@@ -350,4 +341,4 @@ const InvoiceDetails = () => {
   );
 };
 
-export default InvoiceDetails;
+export default CreditNoteDetails;

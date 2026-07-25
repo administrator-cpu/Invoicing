@@ -9,6 +9,10 @@ const formatDate = (date) => {
 };
 
 export default function InvoiceHeader({ invoice }) {
+  const isCreditNote = invoice.invoiceType === "CREDIT_NOTE";
+  const documentTitle = isCreditNote ? "CREDIT NOTE" : "TAX INVOICE";
+  const documentNumberLabel = isCreditNote ? "Credit Note No." : "Invoice No.";
+  const documentDateLabel = isCreditNote ? "Credit Note Date" : "Invoice Date";
   return (
     <div className="border-b-2 border-orange-200 pb-5">
 
@@ -34,7 +38,7 @@ export default function InvoiceHeader({ invoice }) {
         {/* Center Title */}
         <div className="text-center">
           <h1 className="text-3xl font-black tracking-wide bg-linear-to-r from-[#F58220] via-[#E04924] via-45% to-[#9A0D14] bg-clip-text text-transparent">
-            TAX INVOICE
+            {documentTitle}
           </h1>
         </div>
 
@@ -43,14 +47,14 @@ export default function InvoiceHeader({ invoice }) {
           <div className="space-y-2 text-sm border border-orange-300 rounded-lg px-4 py-3 bg-orange-50/30 min-w-[240px]">
 
             <div className="flex justify-between gap-8">
-              <span className="font-semibold">Bill No.</span>
+              <span className="font-semibold">{documentNumberLabel}</span>
               <span className="font-mono">
                 {invoice.invoiceNumber || "Draft"}
               </span>
             </div>
 
             <div className="flex justify-between gap-8">
-              <span className="font-semibold">Bill Date</span>
+              <span className="font-semibold">{documentDateLabel}</span>
               <span>{formatDate(invoice.dates?.invoiceDate)}</span>
             </div>
 
