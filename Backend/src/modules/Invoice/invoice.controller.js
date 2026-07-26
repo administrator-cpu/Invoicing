@@ -42,6 +42,22 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     return next(new AppError("Customer not found.", 404));
   }
 
+  const normalizeState = (state = "") => state.trim().toUpperCase();
+
+  let defaultCompanyProfileId = companyProfiles?.[0]?._id || null;
+
+  const customerStates = new Set(
+    (customer.billingProfile || [])
+      .map(profile => normalizeState(profile.address?.state))
+      .filter(Boolean)
+  );
+
+  const matchedCompanyProfile = companyProfiles.find(profile => customerStates.has(normalizeState(profile.address?.state)));
+
+  if (matchedCompanyProfile) {
+    defaultCompanyProfileId = matchedCompanyProfile._id;
+  }
+
   const extractState = (address = "") => {
     if (!address) return "-";
     const parts = address.split(",");
@@ -87,7 +103,8 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
         billingCycleEnd: formatDate(billingCycleEnd),
         billingMode: "PREPAID",
         discount: 0,
-        applyIgst: true
+        applyIgst: true,
+        defaultCompanyProfileId
       }
     }
   });
@@ -692,6 +709,26 @@ export const getInvoices = catchAsync(async (req, res, next) => {
   if (req.query.status) filter.status = req.query.status;
   if (req.query.customerId) filter["customerSnapshot.crmCustomerId"] = req.query.customerId;
 
+  if (req.query.date) {
+    const start = new Date(req.query.date);
+    const end = new Date(req.query.date);
+    end.setHours(23, 59, 59, 999);
+    filter["dates.invoiceDate"] = {
+      $gte: start,
+      $lte: end
+    };
+  }
+
+  if (req.query.month) {
+    const [year, month] = req.query.month.split("-").map(Number);
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0, 23, 59, 59, 999);
+    filter["dates.invoiceDate"] = {
+      $gte: start,
+      $lte: end
+    };
+  }
+
   const page = parseInt(req.query.page, 10) || 1
   const limit = parseInt(req.query.limit, 10) || 10;
   const skip = (page - 1) * limit;
@@ -705,12 +742,57 @@ export const getInvoices = catchAsync(async (req, res, next) => {
     Invoice.countDocuments(filter)
   ]);
 
+  const [summary] = await Invoice.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        totalInvoiceValue: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "FINALIZED"] }, "$financials.grandTotal", 0]
+          }
+        },
+        totalReceived: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "FINALIZED"] }, "$financials.amountPaid", 0]
+          }
+        },
+        totalOutstanding: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "FINALIZED"] }, "$financials.balanceDue", 0]
+          }
+        },
+        finalized: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "FINALIZED"] }, 1, 0]
+          }
+        },
+        drafts: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "DRAFT"] }, 1, 0]
+          }
+        }
+      }
+    }
+  ]);
+
   res.status(200).json({
-    status: 'success',
+    status: "success",
     results: invoices.length,
     data: {
       invoices,
-      pagination: { total, page, pages: Math.ceil(total / limit) }
+      summary: summary || {
+        totalInvoiceValue: 0,
+        totalReceived: 0,
+        totalOutstanding: 0,
+        finalized: 0,
+        drafts: 0
+      },
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+      }
     }
   });
 });

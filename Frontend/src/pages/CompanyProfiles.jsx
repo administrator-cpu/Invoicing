@@ -81,7 +81,7 @@ const CompanyProfiles = () => {
   return (
     <div className="space-y-6">
       {/* Header Area */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col pt-6 sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Company Profiles</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your billing locations and GST numbers.</p>
