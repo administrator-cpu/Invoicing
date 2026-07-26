@@ -256,7 +256,7 @@ const DashboardLayout = () => {
         </header>
 
         {/* PAGE CONTENT */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto px-4 pb-4 md:px-8 md:pb-8 custom-scrollbar">
           <div className="max-w-[1600px] mx-auto h-full">
             <Outlet />
           </div>

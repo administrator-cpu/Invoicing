@@ -65,7 +65,7 @@ export default function InvoiceDeliverySettings() {
 
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center text-sm font-large text-slate-700 hover:text-slate-900 cursor-pointer"
+        className="flex items-center pt-8 text-sm font-large text-slate-700 hover:text-slate-900 cursor-pointer"
       >
         <ChevronLeft className="w-5 h-5 mr-1" />
         Back

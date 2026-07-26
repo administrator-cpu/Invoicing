@@ -1,51 +1,66 @@
 import React from 'react';
 import { Wallet, Calendar, FileEdit } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const formatINR = (amount) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
 export const DashboardHero = ({ data }) => {
   const { outstanding, monthBilling, drafts } = data;
+  const navigate = useNavigate();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-      {/* Outstanding Card - Accentuated */}
-      <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border-l-4 border-[#EA580C]">
-        <div className="flex justify-between items-start mb-4">
-          <div className="p-2 bg-orange-50 text-[#EA580C] rounded-xl">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+
+      <div
+        onClick={() => navigate("/invoices")}
+        className="cursor-pointer bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-[#EA580C]/40 dark:hover:border-[#EA580C]/40 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group"
+      >
+        <div className="flex justify-between items-start mb-6">
+          <div className="p-3 bg-orange-50 dark:bg-orange-500/10 text-[#EA580C] dark:text-orange-400 rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
             <Wallet size={24} />
           </div>
-          <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full font-medium">
+          <span className="bg-orange-50 dark:bg-orange-500/10 text-[#EA580C] dark:text-orange-400 border border-orange-100 dark:border-orange-500/20 text-[11px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider shadow-sm">
             {outstanding.count} Pending
           </span>
         </div>
-        <p className="text-gray-500 text-sm font-medium mb-1">Total Outstanding</p>
-        <p className="text-3xl font-bold text-gray-900">{formatINR(outstanding.amount)}</p>
+        <div>
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold mb-2">Total Outstanding</p>
+          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{formatINR(outstanding.amount)}</p>
+        </div>
       </div>
 
-      {/* Month Billing */}
-      <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-between items-start mb-4">
-          <div className="p-2 bg-gray-50 text-gray-600 rounded-xl">
+      <div
+        onClick={() => navigate("/invoices")}
+        className="cursor-pointer bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group"
+      >
+        <div className="flex justify-between items-start mb-6">
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
             <Calendar size={24} />
           </div>
-          <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full font-medium">
+          <span className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 text-[11px] px-3 py-1.5 rounded-full font-bold uppercase tracking-wider shadow-sm">
             {monthBilling.count} Invoices
           </span>
         </div>
-        <p className="text-gray-500 text-sm font-medium mb-1">Current Month Billing</p>
-        <p className="text-3xl font-bold text-gray-900">{formatINR(monthBilling.amount)}</p>
+        <div>
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold mb-2">Current Month Billing</p>
+          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{formatINR(monthBilling.amount)}</p>
+        </div>
       </div>
 
-      {/* Drafts */}
-      <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-between items-start mb-4">
-          <div className="p-2 bg-gray-50 text-gray-600 rounded-xl">
+      <div
+        onClick={() => navigate("/invoices")}
+        className="cursor-pointer bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between group"
+      >
+        <div className="flex justify-between items-start mb-6">
+          <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3">
             <FileEdit size={24} />
           </div>
         </div>
-        <p className="text-gray-500 text-sm font-medium mb-1">Draft Invoices</p>
-        <p className="text-3xl font-bold text-gray-900">{drafts.count}</p>
+        <div>
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold mb-2">Draft Invoices</p>
+          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{drafts.count}</p>
+        </div>
       </div>
     </div>
   );

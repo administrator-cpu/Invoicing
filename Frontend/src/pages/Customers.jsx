@@ -184,7 +184,7 @@ const Customers = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header & Search */}
       {/* Header, Sort & Search */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="sticky top-0 z-30 mt-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
 
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center">

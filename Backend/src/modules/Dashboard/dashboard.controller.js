@@ -11,8 +11,12 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     Invoice.aggregate([
       {
         $match: {
+          isDeleted: { $ne: true },
           status: {
             $in: ["FINALIZED", "PARTIAL", "OVERDUE"]
+          },
+          "financials.balanceDue": {
+            $gt: 0
           }
         }
       },
@@ -32,6 +36,10 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     Invoice.aggregate([
       {
         $match: {
+          isDeleted: { $ne: true },
+          status: {
+            $in: ["FINALIZED", "PARTIAL", "PAID", "OVERDUE"]
+          },
           "dates.invoiceDate": {
             $gte: monthStart,
             $lt: monthEnd
@@ -52,10 +60,16 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     ]),
 
     Invoice.countDocuments({
-      status: "DRAFT"
+      status: "DRAFT",
+      isDeleted: { $ne: true }
     }),
 
     Invoice.aggregate([
+      {
+        $match: {
+          isDeleted: false
+        }
+      },
       {
         $group: {
           _id: "$status",
@@ -66,7 +80,7 @@ export const getDashboard = catchAsync(async (req, res, next) => {
       }
     ]),
 
-    Invoice.find()
+    Invoice.find({ isDeleted: { $ne: true } })
       .sort({ createdAt: -1 })
       .limit(8)
       .select(
@@ -74,23 +88,41 @@ export const getDashboard = catchAsync(async (req, res, next) => {
       ),
 
     Invoice.find({
+      isDeleted: { $ne: true },
       status: {
-        $in: ["FINALIZED", "PARTIAL"]
+        $in: ["FINALIZED", "PARTIAL", "OVERDUE"]
+      },
+      "financials.balanceDue": {
+        $gt: 0
+      },
+      "dates.dueDate": {
+        $gte: new Date()
       }
     }).sort({
-      "dates.dueDate": 1
+      "dates.invoiceDate": -1
     }).limit(5).select("invoiceNumber customerSnapshot.name financials.balanceDue status dates.dueDate"),
 
     Invoice.aggregate([
       {
+        $match: {
+          isDeleted: { $ne: true },
+          status: {
+            $in: ["FINALIZED", "PARTIAL", "PAID", "OVERDUE"]
+          }
+        }
+      },
+      {
         $group: {
           _id: null,
+
           collected: {
             $sum: "$financials.amountPaid"
           },
+
           outstanding: {
             $sum: "$financials.balanceDue"
           },
+
           totalBilled: {
             $sum: "$financials.grandTotal"
           }
@@ -139,6 +171,13 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     ? Number(((payment.collected / payment.totalBilled) * 100).toFixed(2))
     : 0;
 
+  console.log({
+    statusSummary,
+    payment,
+    outstanding,
+    monthBilling
+  });
+
   res.status(200).json({
     status: "success",
     generatedAt: new Date(),
@@ -154,7 +193,9 @@ export const getDashboard = catchAsync(async (req, res, next) => {
         },
         drafts: {
           count: draftCount
-        }
+        },
+        finalized: statusSummary.finalized,
+        paid: statusSummary.paid
       },
       invoiceStatus: statusSummary,
       payments: {

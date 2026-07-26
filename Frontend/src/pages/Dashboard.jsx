@@ -32,21 +32,30 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto w-full px-8 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Operational Overview</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Operational Overview</h1>
         {response.generatedAt && (
-          <p className="text-xs text-gray-400 font-medium">
-            Last updated: {new Date(response.generatedAt).toLocaleTimeString()}
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Last updated{" "}
+            {new Date(response.generatedAt).toLocaleString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </p>
         )}
       </div>
 
-      <DashboardHero data={dashboardData.hero} />
-      <InvoiceStatusSummary data={dashboardData.invoiceStatus} />
-      <PaymentSummary data={dashboardData.payments} />
-      <DashboardTables
-        recentInvoices={dashboardData.recentInvoices}
-        upcomingDueInvoices={dashboardData.upcomingDueInvoices}
-      />
+      <div className="space-y-8">
+        <DashboardHero data={dashboardData.hero} />
+        <InvoiceStatusSummary data={dashboardData.invoiceStatus} />
+        <PaymentSummary data={dashboardData.payments} />
+        <DashboardTables
+          recentInvoices={dashboardData.recentInvoices}
+          upcomingDueInvoices={dashboardData.upcomingDueInvoices}
+        />
+      </div>
     </div>
   );
 }

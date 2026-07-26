@@ -48,6 +48,7 @@ const Invoices = () => {
   };
 
   const invoices = data?.invoices || [];
+  const summary = data?.summary || {};
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
   const handleStatusChange = (statusValue) => {
@@ -98,7 +99,7 @@ const Invoices = () => {
   return (
     <div className="space-y-6 pb-10">
       {/* Upper Headline Control Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between pt-6 items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Billing Ledger
@@ -149,67 +150,51 @@ const Invoices = () => {
       </div>
 
       {/* Accounts Receivable Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-          <p className="text-xs uppercase text-slate-500 font-semibold">
-            Total Invoice Value
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-5">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
+            Total Invoice Value <span className="text-slate-400 dark:text-slate-500 font-medium tracking-normal ml-1 capitalize">(Finalized)</span>
           </p>
-          <h2 className="text-2xl font-bold mt-2">
-            ₹{(
-              invoices.reduce(
-                (sum, inv) => sum + (inv.financials?.grandTotal || 0),
-                0
-              )
-            ).toLocaleString("en-IN")}
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-4 tracking-tight">
+            ₹{(summary.totalInvoiceValue ?? 0).toLocaleString("en-IN")}
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-          <p className="text-xs uppercase text-slate-500 font-semibold">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Total Received
           </p>
-          <h2 className="text-2xl font-bold text-green-600 mt-2">
-            ₹{(
-              invoices.reduce(
-                (sum, inv) => sum + (inv.financials?.amountPaid || 0),
-                0
-              )
-            ).toLocaleString("en-IN")}
+          <h2 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-4 tracking-tight">
+            ₹{(summary.totalReceived ?? 0).toLocaleString("en-IN")}
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-          <p className="text-xs uppercase text-slate-500 font-semibold">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-rose-300 dark:hover:border-rose-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Outstanding
           </p>
-          <h2 className="text-2xl font-bold text-red-600 mt-2">
-            ₹{(
-              invoices.reduce(
-                (sum, inv) => sum + (inv.financials?.balanceDue || 0),
-                0
-              )
-            ).toLocaleString("en-IN")}
+          <h2 className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-4 tracking-tight">
+            ₹{(summary.totalOutstanding ?? 0).toLocaleString("en-IN")}
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-          <p className="text-xs uppercase text-slate-500 font-semibold">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Finalized
           </p>
-          <h2 className="text-2xl font-bold mt-2">
-            {invoices.filter(i => i.status === "FINALIZED").length}
+          <h2 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-4 tracking-tight">
+            {summary.finalized ?? 0}
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
-          <p className="text-xs uppercase text-slate-500 font-semibold">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+          <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Drafts
           </p>
-          <h2 className="text-2xl font-bold text-amber-500 mt-2">
-            {invoices.filter(i => i.status === "DRAFT").length}
+          <h2 className="text-2xl font-black text-amber-500 dark:text-amber-400 mt-4 tracking-tight">
+            {summary.drafts ?? 0}
           </h2>
         </div>
-
       </div>
 
       {/* TEMPORAL SEARCH AND DATE FILTER TRAY BAR */}
