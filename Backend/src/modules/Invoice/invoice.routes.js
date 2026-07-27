@@ -11,11 +11,11 @@ import verifyInternalApiKey from '../../middlewares/internalApiKeyMiddleware.js'
 
 const router = express.Router();
 
-router.use(protect);
-
 /* Bahi-Khata Webhook */
 router.patch("/internal/:invoiceNo/payment-status", verifyInternalApiKey, updatePaymentStatus);
 /* Bahi-Khata Webhook End */
+
+router.use(protect);
 
 router.use(restrictTo('Admin'));
 

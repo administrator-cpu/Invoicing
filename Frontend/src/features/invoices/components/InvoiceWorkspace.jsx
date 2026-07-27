@@ -125,6 +125,7 @@ function buildConnectionsPayload(formData) {
         opportunityId: item.crmConnectionSnapshot.opportunityId,
         fabCircuitId: item.crmConnectionSnapshot.circuitId,
         serviceType: item.crmConnectionSnapshot.serviceType,
+        sacCode: item.sacCode,
         bandwidth: overrides.bandwidth ?? item.crmConnectionSnapshot.bandwidth,
         periodStart: item.periodStart,
         periodEnd: item.periodEnd,
@@ -155,6 +156,7 @@ function buildManualItemsPayload(formData) {
     .map(item => ({
       description: item.description,
       qty: item.qty,
+      sacCode: item.sacCode,
       rate: item.rate,
       periodStart: item.periodStart,
       periodEnd: item.periodEnd,
@@ -196,6 +198,7 @@ function mergePreviewItems(currentItems, backendItems) {
         periodStart: existing?.invoiceOverrides?.periodStart ?? backendItem.periodStart,
         periodEnd: existing?.invoiceOverrides?.periodEnd ?? backendItem.periodEnd,
       },
+      sacCode: existing?.sacCode ?? backendItem.sacCode,
       periodStart: backendItem.periodStart
         ? new Date(backendItem.periodStart).toISOString().split("T")[0]
         : "",

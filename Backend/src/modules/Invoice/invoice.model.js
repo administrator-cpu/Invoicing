@@ -262,8 +262,15 @@ const InvoiceSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ["DRAFT", "FINALIZED", "PARTIAL", "PAID", "OVERDUE", "CANCELLED"],
+    enum: ["DRAFT", "FINALIZED", "CANCELLED"],
     default: "DRAFT"
+  },
+
+  paymentStatus: {
+    type: String,
+    enum: ["UNPAID", "PARTIAL", "PAID"],
+    default: "UNPAID",
+    index: true
   },
 
   dates: {
@@ -332,10 +339,9 @@ const InvoiceSchema = new mongoose.Schema({
   paymentHistory: [{
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now },
-    paymentMode: { type: String, enum: ["BANK_TRANSFER", "UPI", "CASH", "CHEQUE", "OTHER"] },
     paymentStatusSnapshot: { type: String, enum: ["UNPAID", "PARTIAL", "PAID"], default: "UNPAID" },
-    transactionId: { type: String, trim: true },
-    recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+    ledgerEntryId: { type: String, index: true },
+    syncSource: { type: String, default: "BAHI_KHATA" }
   }],
 
   deliveryStatus: {
