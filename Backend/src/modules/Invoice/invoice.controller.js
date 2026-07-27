@@ -1087,7 +1087,7 @@ export const recordPayment = catchAsync(async (req, res, next) => {
  */
 export const updatePaymentStatus = catchAsync(async (req, res, next) => {
   const { invoiceNo } = req.params;
-  const { paymentStatus, balanceDue, amountPaid } = req.body;
+  const { paymentStatus, balanceDue, amountPaid, ledgerId } = req.body;
 
   const validStatuses = ["Paid", "Partially Paid", "Unpaid"];
   if (!validStatuses.includes(paymentStatus)) {
@@ -1098,10 +1098,36 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
   if (!invoice) {
     return next(new AppError("Invoice not found.", 404));
   }
+  if (invoice.status !== "FINALIZED") {
+    return next(
+      new AppError("Only finalized invoices can receive payment updates.", 400)
+    );
+  }
 
-  invoice.status = paymentStatus.toUpperCase().replace(" ", "_");
+  const statusMap = {
+    Paid: "PAID",
+    "Partially Paid": "PARTIAL",
+    Unpaid: "FINALIZED"
+  };
+
+  invoice.paymentStatus = statusMap[paymentStatus];
   invoice.financials.amountPaid = Number(amountPaid);
   invoice.financials.balanceDue = Number(balanceDue);
+
+  const total = invoice.financials.grandTotal;
+
+  if (Math.abs((Number(amountPaid) + Number(balanceDue)) - total) > 0.01) {
+    return next(
+      new AppError("Payment totals do not match invoice amount.", 400)
+    );
+  }
+
+  invoice.paymentHistory.push({
+    amount: amountPaid,
+    date: new Date(),
+    paymentStatusSnapshot: invoice.paymentStatus,
+    ledgerEntryId: ledgerId,
+  });
 
   await invoice.save();
 

@@ -61,7 +61,7 @@ const buildHtmlTemplate = (htmlContent) => {
 
       <div style=" margin-top: 32px; padding-top: 16px; border-top: 1px solid #eaeaea; text-align: center;">
         <a href="https://fab5network.com" target="_blank" style="text-decoration: none; outline: none;">
-          <img src="https://res.cloudinary.com/drrour6hl/image/upload/v1774876669/crm/fab5-logo.webp"
+          <img src="https://res.cloudinary.com/drrour6hl/image/upload/v1784807941/fab5_r0fhvg.svg"
             alt="FAB5 Network Private Limited"
             height="80"
             style="height: 80px; display: block; margin: 0 auto;"

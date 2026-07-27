@@ -314,7 +314,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         historyEventType: segment.action
       },
       description: overrides.description ?? buildDescription(segment, connection),
-      sacCode: "998422",
+      sacCode: connection.invoiceOverrides?.sacCode ?? connection.sacCode ?? "998422",
       qty: 1,
       mrc: internetMrc,
       rate: segment.ratePerMb,
@@ -377,7 +377,7 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
       ipCost: connection.ips.cost
     },
     description: overrides.description && overrides.description !== connection.opportunityId ? overrides.description : `IP Charges - ${connection.opportunityId}`,
-    sacCode: "998422",
+    sacCode: connection.invoiceOverrides?.sacCode ?? connection.sacCode ?? "998422",
     qty: totalIpCount,
     rate: ratePerIp,
     periodStart: cycleStart,
@@ -422,7 +422,7 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
         historyEventType: "SHIFTING"
       },
       description: `[MANUAL REQUIRED] Shifting charges — ${connection.opportunityId} (effective ${eventDate.toDateString()})`,
-      sacCode: "998422",
+      sacCode: connection.invoiceOverrides?.sacCode ?? connection.sacCode ?? "998422",
       qty: 1,
       rate: 0,
       periodStart: eventDate,
