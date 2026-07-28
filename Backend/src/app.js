@@ -57,7 +57,7 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in 15 minutes!',
   skip: (req) => {
-    return (req.path.startsWith("/api/invoices/internal/"));
+    return req.originalUrl.startsWith("/api/invoices/internal/");
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers

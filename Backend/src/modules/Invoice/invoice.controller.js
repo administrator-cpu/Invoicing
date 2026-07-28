@@ -1107,7 +1107,7 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
   const statusMap = {
     Paid: "PAID",
     "Partially Paid": "PARTIAL",
-    Unpaid: "FINALIZED"
+    Unpaid: "UNPAID"
   };
 
   invoice.paymentStatus = statusMap[paymentStatus];
@@ -1116,7 +1116,7 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
 
   const total = invoice.financials.grandTotal;
 
-  if (Math.abs((Number(amountPaid) + Number(balanceDue)) - total) > 0.01) {
+  if (Math.abs((Number(amountPaid) + Number(balanceDue)) - total) > 0.1) {
     return next(
       new AppError("Payment totals do not match invoice amount.", 400)
     );
