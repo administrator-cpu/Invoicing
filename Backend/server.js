@@ -4,6 +4,7 @@ import app from './src/app.js';
 import { connectDB } from "./src/config/database.js";
 import logger from './src/utils/logger.js';
 import { initBrowser, closeBrowser } from "./src/services/pdfBrowser.js";
+import { initializeCrons } from "./src/cron/index.js"
 import "./src/workers/emailWorker.js";
 
 const PORT = process.env.PORT || 4000;
@@ -12,6 +13,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await initBrowser();
+    await initializeCrons();
 
     const server = app.listen(PORT, () => {
       logger.info(`✅ Server Running on port ${PORT}`);

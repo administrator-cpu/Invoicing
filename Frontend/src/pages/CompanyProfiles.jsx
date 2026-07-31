@@ -79,7 +79,7 @@ const CompanyProfiles = () => {
   const isPending = isCreating || isUpdating;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 pb-4 md:px-8 md:pb-8 max-w-[1600px] mx-auto">
       {/* Header Area */}
       <div className="flex flex-col pt-6 sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

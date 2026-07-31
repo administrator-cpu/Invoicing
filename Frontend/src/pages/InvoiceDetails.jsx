@@ -108,7 +108,7 @@ const InvoiceDetails = () => {
   const canCreateCreditNote = invoice.invoiceType === "BASE" && ["FINALIZED", "PARTIAL", "PAID", "OVERDUE"].includes(invoice.status);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto w-full px-4 md:px-8 pb-10 md:pb-16">
 
       {/* Action Controller Deck */}
       <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">

@@ -97,7 +97,7 @@ const Invoices = () => {
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="max-w-[1600px] mx-auto px-4 md:px-8 space-y-6 pb-10">
       {/* Upper Headline Control Banner */}
       <div className="flex flex-col sm:flex-row justify-between pt-6 items-start sm:items-center gap-4">
         <div>

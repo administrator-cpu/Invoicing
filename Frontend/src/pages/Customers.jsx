@@ -181,7 +181,7 @@ const Customers = () => {
   const totalCustomersCount = data?.pages?.[0]?.pagination?.total || 0;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 pt-4 md:pt-8 pb-12">
       {/* Header & Search */}
       {/* Header, Sort & Search */}
       <div className="sticky top-0 z-30 mt-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">

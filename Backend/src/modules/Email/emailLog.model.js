@@ -4,7 +4,7 @@ const emailLogSchema = new mongoose.Schema(
   {
     documentType: {
       type: String,
-      enum: ["INVOICE"],
+      enum: ["INVOICE", "PAYMENT_REMINDER_1", "PAYMENT_REMINDER_2", "SERVICE_SUSPENSION_NOTICE"],
       required: true,
     },
 

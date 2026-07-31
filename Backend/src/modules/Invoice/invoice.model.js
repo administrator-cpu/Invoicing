@@ -368,6 +368,31 @@ const InvoiceSchema = new mongoose.Schema({
     }
   }],
 
+  reminders: {
+    first: {
+      sentAt: Date,
+      emailLogId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EmailLog"
+      }
+    },
+    second: {
+      sentAt: Date,
+      emailLogId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EmailLog"
+      }
+    },
+    suspension: {
+      sentAt: Date,
+      emailLogId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EmailLog"
+      }
+    },
+    lastReminderSentAt: Date
+  },
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
