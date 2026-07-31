@@ -29,13 +29,16 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
   const billingCycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const billingCycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const [customer, connections, companyProfiles] = await Promise.all([
+  const [customer, connections, companyProfiles, latestInvoice] = await Promise.all([
     getCrmCustomerDetails(customerId),
     getCrmCustomerConnections(customerId),
-    CompanyProfile.find({
-      isActive: true
-    }).sort({ createdAt: -1 }).lean()
-
+    CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean(),
+    Invoice.findOne({
+      "customerSnapshot.crmCustomerId": customerId,
+      invoiceType: "BASE",
+      status: { $in: ["FINALIZED", "PAID", "PARTIAL", "OVERDUE"] },
+      isDeleted: false
+    }).sort({ "dates.billingCycleStart": -1 }).lean()
   ]);
 
   if (!customer) {
@@ -65,22 +68,89 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     return parts[parts.length - 1].split("-")[0].trim();
   };
 
-  const invoiceConnections = (Array.isArray(connections?.connections) ? connections.connections : []).map(connection => ({
-    ...connection,
-    technicalDetails: {
-      ...connection.technicalDetails,
-      bEnd: {
-        ...connection.technicalDetails?.bEnd,
-        state: extractState(connection.technicalDetails?.bEnd?.address)
+  const invoiceItemMap = new Map();
+  const prevManualAndIpItems = [];
+
+  if (latestInvoice && latestInvoice.items) {
+    for (const item of latestInvoice.items) {
+      if (item.crmConnectionSnapshot?.connectionId && item.sourceType === "CONNECTION") {
+        invoiceItemMap.set(item.crmConnectionSnapshot.connectionId.toString(), item);
+      } else {
+        if (item.sourceType !== "OTC") {
+          prevManualAndIpItems.push(item);
+        }
       }
-    },
-    recentActivity: buildRecentActivity(
-      connection.history || [],
-      billingCycleStart
-    ),
-    selected: connection.isBillable,
+    }
+  }
+
+  const crmConnections = Array.isArray(connections?.connections) ? connections.connections : [];
+
+  const mergedConnections = crmConnections.map(connection => {
+    const bEndState = extractState(connection.technicalDetails?.bEnd?.address);
+    const techDetails = {
+      ...connection.technicalDetails,
+      bEnd: { ...connection.technicalDetails?.bEnd, state: bEndState }
+    };
+
+    const savedItem = invoiceItemMap.get(connection.crmConnectionId?.toString());
+
+    if (latestInvoice) {
+      if (savedItem) {
+        return {
+          ...connection,
+          ...savedItem,
+          history: connection.history,
+          commercials: connection.commercials,
+          ips: connection.ips,
+          acceptanceDate: connection.acceptanceDate,
+          originalConnection: connection,
+          technicalDetails: techDetails,
+          recentActivity: buildRecentActivity(connection.history || [], billingCycleStart),
+          invoiceOverrides: {
+            bandwidth: savedItem.originalEngineValues?.bandwidth ?? savedItem.crmConnectionSnapshot?.bandwidth ?? connection.bandwidth,
+            ratePerMb: savedItem.originalEngineValues?.rate ?? savedItem.rate ?? connection.commercials?.ratePerMb,
+            ipCount: savedItem.originalEngineValues?.ipCount ?? savedItem.crmConnectionSnapshot?.ipCount ?? connection.ips?.count,
+            ipCost: savedItem.originalEngineValues?.ipCost ?? savedItem.crmConnectionSnapshot?.ipCost ?? connection.ips?.cost,
+            description: savedItem.originalEngineValues?.description ?? savedItem.description,
+            periodStart: null,
+            periodEnd: null
+          },
+          periodStart: null,
+          periodEnd: null,
+          selected: true,
+          editable: true,
+          status: connection.status
+        };
+      } else {
+        return {
+          ...connection,
+          technicalDetails: techDetails,
+          recentActivity: buildRecentActivity(connection.history || [], billingCycleStart),
+          selected: false,
+          editable: true
+        };
+      }
+    } else {
+      return {
+        ...connection,
+        technicalDetails: techDetails,
+        recentActivity: buildRecentActivity(connection.history || [], billingCycleStart),
+        selected: connection.isBillable,
+        editable: true
+      };
+    }
+  });
+
+  const mappedManualItems = prevManualAndIpItems.map(item => ({
+    ...item,
+    invoiceOverrides: {},
+    periodStart: null,
+    periodEnd: null,
+    selected: true,
     editable: true
   }));
+
+  mergedConnections.push(...mappedManualItems);
 
   const formatDate = (date) => {
     const year = date.getFullYear();
@@ -94,21 +164,19 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     data: {
       customer,
       companyProfiles,
-      connections: invoiceConnections,
-
+      connections: mergedConnections,
       defaults: {
         invoiceDate: formatDate(invoiceDate),
         dueDate: formatDate(dueDate),
         billingCycleStart: formatDate(billingCycleStart),
         billingCycleEnd: formatDate(billingCycleEnd),
-        billingMode: "PREPAID",
-        discount: 0,
+        billingMode: latestInvoice?.billingConfiguration?.billingMode || "PREPAID",
+        discount: latestInvoice?.financials?.discount || 0,
         applyIgst: true,
-        defaultCompanyProfileId
+        defaultCompanyProfileId: latestInvoice?.companySnapshot?.profileId || defaultCompanyProfileId
       }
     }
   });
-
 });
 
 export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {

@@ -24,4 +24,23 @@ export async function enqueueInvoiceEmail(invoiceId) {
   return job;
 }
 
+export async function enqueuePaymentReminder(invoiceId, reminderNumber) {
+  return emailQueue.add(
+    "sendPaymentReminder",
+    {
+      invoiceId,
+      reminderNumber
+    },
+    {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 5000
+      },
+      removeOnComplete: 100,
+      removeOnFail: 500
+    }
+  );
+}
+
 export default emailQueue;

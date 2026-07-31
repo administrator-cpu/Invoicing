@@ -398,7 +398,7 @@ export default function InvoiceWorkspace({
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto w-full px-8 py-8 space-y-6">
+        <div className="max-w-[1600px] mx-auto w-full px-4 md:px-8 py-8 space-y-6">
 
           {/* Section 1: Customer Details */}
           <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">

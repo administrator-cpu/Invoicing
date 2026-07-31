@@ -7,7 +7,7 @@ function htmlToText(html) {
 
 const RESEND_SERVICE_URL = process.env.RESEND_SERVICE_URL;
 const RESEND_SERVICE_API_KEY = process.env.RESEND_SERVICE_API_KEY;
-const COMPANY_NAME = process.env.COMPANY_NAME || "FAB5 Network";
+const COMPANY_NAME = process.env.COMPANY_NAME || "Billing FAB5 Network";
 
 if (!RESEND_SERVICE_URL) {
   logger.warn("RESEND_SERVICE_URL is missing.");
