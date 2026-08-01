@@ -1,4 +1,4 @@
-import { Worker } from "bullmq";
+import { Worker, UnrecoverableError } from "bullmq";
 import redis from "../config/redis.js";
 import EmailLog from "../modules/Email/emailLog.model.js";
 import Invoice from "../modules/Invoice/invoice.model.js";
@@ -54,6 +54,9 @@ async function processEmailJob(job, options) {
       if (payload && updateInvoice.failed) {
         await updateInvoice.failed(payload.invoice._id, emailLog._id);
       }
+    }
+    if (error.statusCode === 404) {
+      throw new UnrecoverableError(error.message);
     }
     throw error;
   }

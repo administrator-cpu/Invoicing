@@ -22,4 +22,3 @@ export const getInvoiceHistory = catchAsync(async (req, res, next) => {
     }))
   });
 });
-

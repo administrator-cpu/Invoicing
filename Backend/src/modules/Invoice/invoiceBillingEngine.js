@@ -125,7 +125,6 @@ export const buildInvoiceItems = ({
 
       const wasEverActive = conn.history?.some(h => h.action === "ACTIVATED");
       if (!wasEverActive) continue;
-      console.log(normalizedConnection.technicalDetails);
       if (conn.billingOptions?.connection !== false) {
         const connectionItems = buildConnectionSegments(
           normalizedConnection, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
