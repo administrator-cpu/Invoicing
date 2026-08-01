@@ -131,16 +131,14 @@ export const useSendInvoiceEmail = () => {
     mutationFn: async (id) => {
       return await apiClient.post(`/invoices/${id}/send`);
     },
-
-    onSuccess: (_, id) => {
+    onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"], });
       queryClient.invalidateQueries({ queryKey: ["invoices", "details", id], });
       queryClient.invalidateQueries({ queryKey: ["invoice-email-history", id] });
-      toast.success("Invoice queued for email delivery.");
+      toast.success(data.message || "Invoice email sent successfully.");
     },
-
     onError: (error) => {
-      toast.error(error.message || "Failed to queued invoice for email delivery.");
+      toast.error(error.message || "Failed to send invoice email.");
     },
   });
 };

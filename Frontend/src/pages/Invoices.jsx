@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from "sonner";
 import apiClient from '@/config/axios';
 import { FileText, Eye, ChevronLeft, ChevronRight, Plus, ShieldAlert, Download } from 'lucide-react';
@@ -15,11 +15,12 @@ const STATUS_TABS = [
 const Invoices = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [currentStatus, setCurrentStatus] = useState(location.state?.status || 'ALL');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchDate, setSearchDate] = useState('');
-  const [searchMonth, setSearchMonth] = useState('');
+  const currentStatus = searchParams.get('status') || location.state?.status || 'ALL';
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const searchDate = searchParams.get('date') || '';
+  const searchMonth = searchParams.get('month') || '';
   const [showGSTModal, setShowGSTModal] = useState(false);
 
   const current = new Date();
@@ -41,10 +42,22 @@ const Invoices = () => {
     searchMonth
   });
 
+  const updateParams = (updates) => {
+    const newParams = new URLSearchParams(searchParams);
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== '' && value !== null && value !== undefined) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+
+    setSearchParams(newParams, { replace: true });
+  };
+
   const clearTemporalFilters = () => {
-    setSearchDate('');
-    setSearchMonth('');
-    setCurrentPage(1);
+    updateParams({ date: '', month: '', page: 1 });
   };
 
   const invoices = data?.invoices || [];
@@ -52,8 +65,7 @@ const Invoices = () => {
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
   const handleStatusChange = (statusValue) => {
-    setCurrentStatus(statusValue);
-    setCurrentPage(1);
+    updateParams({ status: statusValue, page: 1 });
   };
 
   const getStatusStyles = (status) => {
@@ -204,11 +216,7 @@ const Invoices = () => {
           <input
             type="date"
             value={searchDate}
-            onChange={(e) => {
-              setSearchDate(e.target.value);
-              setSearchMonth('');
-              setCurrentPage(1);
-            }}
+            onChange={(e) => updateParams({ date: e.target.value, month: '', page: 1 })}
             className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -218,11 +226,7 @@ const Invoices = () => {
           <input
             type="month"
             value={searchMonth}
-            onChange={(e) => {
-              setSearchMonth(e.target.value);
-              setSearchDate('');
-              setCurrentPage(1);
-            }}
+            onChange={(e) => updateParams({ month: e.target.value, date: '', page: 1 })}
             className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -378,14 +382,14 @@ const Invoices = () => {
                 </span>
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    onClick={() => updateParams({ page: Math.max(currentPage - 1, 1) })}
                     disabled={currentPage === 1}
                     className="p-1.5 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.pages))}
+                    onClick={() => updateParams({ page: Math.min(currentPage + 1, pagination.pages) })}
                     disabled={currentPage === pagination.pages}
                     className="p-1.5 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >

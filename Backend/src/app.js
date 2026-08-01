@@ -29,7 +29,7 @@ const allowedOrigins = [
   "http://localhost:3000",
 ].filter(Boolean)
 
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -58,13 +58,6 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again in 15 minutes!',
   skip: (req) => {
     return req.originalUrl.startsWith("/api/invoices/internal/");
-  },
-  keyGenerator: (req) => {
-    const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      return forwardedFor.split(',')[0].trim();
-    }
-    return req.ip;
   },
   standardHeaders: true,
   legacyHeaders: false,
