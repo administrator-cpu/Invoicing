@@ -29,7 +29,7 @@ const allowedOrigins = [
   "http://localhost:3000",
 ].filter(Boolean)
 
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -53,14 +53,21 @@ app.use(
 );
 
 const limiter = rateLimit({
-  max: 100, // Only 100 requests per IP
+  max: 1500,
   windowMs: 15 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in 15 minutes!',
   skip: (req) => {
     return req.originalUrl.startsWith("/api/invoices/internal/");
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      return forwardedFor.split(',')[0].trim();
+    }
+    return req.ip;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
   handler: (req, res, next, options) => {
     return next(new AppError(options.message, 429));
   }

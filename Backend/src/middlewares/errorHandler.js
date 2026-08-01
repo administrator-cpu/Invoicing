@@ -53,17 +53,13 @@ const globalErrorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  logger.error(`${err.status} - ${err.message}`, {
+  logger.error(err.message, {
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
-    params: req.params,
-    query: req.query,
     body: req.body,
     user: req.user?._id || null,
     statusCode: err.statusCode,
-    name: err.name,
-    code: err.code,
     stack: err.stack,
   });
 
