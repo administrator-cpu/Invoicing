@@ -115,7 +115,7 @@ const InvoiceDetails = () => {
       {/* Action Controller Deck */}
       <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => navigate('/invoices')}
+          onClick={() => navigate(-1)}
           className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4 mr-1" /> Back to Ledger
