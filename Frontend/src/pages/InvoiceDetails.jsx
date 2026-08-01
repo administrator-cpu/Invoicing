@@ -8,6 +8,7 @@ import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
 import CreateCreditNoteModal from "@/features/invoices/components/CreateCreditNoteModal";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
 import CancelInvoiceModal from "@/features/invoices/components/CancelInvoiceModal";
+import { SendInvoiceModal } from "@/features/invoices/components/SendInvoiceModal";
 import InvoiceBillingInfo from "@/features/invoices/components/InvoiceBillingInfo";
 import InvoicePaymentDetails from "@/features/invoices/components/InvoicePaymentDetails";
 import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSection";
@@ -43,6 +44,7 @@ const InvoiceDetails = () => {
     onConfirm: () => { }
   });
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -183,18 +185,7 @@ const InvoiceDetails = () => {
                 Download Invoice
               </button>
               <button
-                onClick={() => {
-                  setModalConfig({
-                    isOpen: true,
-                    title: invoice.email.status === "SENT" ? "Resend Invoice" : "Send Invoice",
-                    message: invoice.email.status === "SENT"
-                      ? "The invoice has already been emailed. A new copy will be sent to all configured recipients."
-                      : "The finalized invoice will be queued for email delivery to all configured recipients.",
-                    type: "primary",
-                    confirmText: invoice.email.status === "SENT" ? "Send Again" : "Send Invoice",
-                    onConfirm: () => sendInvoiceEmail(id),
-                  });
-                }}
+                onClick={() => setIsSendModalOpen(true)}
                 disabled={isSendingEmail || invoice.email?.status === "PROCESSING"}
                 className="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
               >
@@ -202,7 +193,7 @@ const InvoiceDetails = () => {
                 {
                   invoice.email?.status === "PROCESSING"
                     ? "Sending..."
-                    : invoice.email.status === "SENT"
+                    : invoice.email?.status === "SENT"
                       ? "Send Again"
                       : "Send Invoice"
                 }
@@ -345,6 +336,14 @@ const InvoiceDetails = () => {
             { onSuccess: () => { setCancelModalOpen(false); }, }
           );
         }}
+      />
+
+      <SendInvoiceModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        invoiceId={id}
+        customerId={invoice.customerSnapshot.crmCustomerId}
+        invoiceNumber={invoice.invoiceNumber}
       />
     </div >
   );

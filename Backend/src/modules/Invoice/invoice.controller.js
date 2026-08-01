@@ -1003,11 +1003,26 @@ export const previewInvoicePdf = catchAsync(async (req, res) => {
 });
 
 export const sendInvoiceMail = catchAsync(async (req, res, next) => {
+  const invoice = await Invoice.findById(req.params.id);
+  if (!invoice) {
+    return next(new AppError("Invoice not found", 404));
+  }
+  if (invoice.email?.status === "PROCESSING") {
+    return next(new AppError("This invoice is currently being processed by the email queue. Please wait a moment.", 400));
+  }
+
+  await Invoice.updateOne(
+    { _id: invoice._id },
+    { $set: { "email.status": "PROCESSING" } }
+  );
+
   const job = await enqueueInvoiceEmail(req.params.id);
 
   res.status(202).json({
     success: true,
-    message: "Invoice queued for email delivery.",
+    message: invoice.email?.status === "SENT"
+      ? "Invoice queued for resending."
+      : "Invoice queued for email delivery.",
     jobId: job.id
   });
 });

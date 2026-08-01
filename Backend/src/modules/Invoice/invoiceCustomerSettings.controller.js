@@ -2,7 +2,7 @@ import InvoiceCustomerSettings from "./invoiceCustomerSettings.model.js";
 import { getCrmCustomerDetails } from "../../services/crm.service.js";
 import catchAsync from "../../utils/catchAsync.js";
 import AppError from "../../utils/AppError.js";
-import {normalizeInvoiceRecipients} from "../../utils/normalizeInvoiceRecipients.js";
+import { normalizeInvoiceRecipients } from "../../utils/normalizeInvoiceRecipients.js";
 
 // export const normalizeInvoiceRecipients = (recipients = []) => {
 //   const TYPES = ["TO", "CC", "BCC"];
@@ -62,6 +62,20 @@ export const getInvoiceCustomerSettings = catchAsync(async (req, res, next) => {
         isDefault: true,
       });
     }
+    const ownerEmail = (process.env.OWNER_EMAIL || "info@fab5network.com").toLowerCase();
+    const billingEmail = (process.env.BILLING_EMAIL || "billing@fab5network.com").toLowerCase();
+
+    recipients.push({
+      label: "Info",
+      email: ownerEmail,
+      type: "BCC",
+      isDefault: true,
+    });
+    recipients.push({
+      label: "Billing",
+      email: billingEmail,
+      type: "BCC",
+    });
 
     const uniqueRecipients = [];
     for (const recipient of recipients) {
@@ -153,4 +167,49 @@ export const updateInvoiceCustomerSettings = catchAsync(async (req, res, next) =
     },
   });
 
+});
+
+/**
+ * @desc - One-time migration to add default BCC emails to all existing customer settings
+ * @route - POST /api/invoice-customer-settings/migrate-bcc (Temporary)
+ */
+export const migrateBccRecipientsToAllCustomers = catchAsync(async (req, res, next) => {
+  const ownerEmail = (process.env.OWNER_EMAIL || "info@fab5network.com").toLowerCase();
+  const billingEmail = (process.env.BILLING_EMAIL || "billing@fab5network.com").toLowerCase();
+
+  const infoResult = await InvoiceCustomerSettings.updateMany(
+    { "recipients.email": { $ne: ownerEmail } },
+    {
+      $push: {
+        recipients: {
+          label: "Info",
+          email: ownerEmail,
+          type: "BCC",
+        },
+      },
+    }
+  );
+
+  const billingResult = await InvoiceCustomerSettings.updateMany(
+    { "recipients.email": { $ne: billingEmail } },
+    {
+      $push: {
+        recipients: {
+          label: "Billing",
+          email: billingEmail,
+          type: "BCC",
+          isDefault: true,
+        },
+      },
+    }
+  );
+
+  res.status(200).json({
+    status: "success",
+    message: "Migration completed successfully.",
+    stats: {
+      infoEmailsAdded: infoResult.modifiedCount,
+      billingEmailsAdded: billingResult.modifiedCount,
+    },
+  });
 });
