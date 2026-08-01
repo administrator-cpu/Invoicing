@@ -145,7 +145,7 @@ const worker = new Worker(
     }
   },
   {
-    connection: redis,
+    connection: redis.duplicate(),
     concurrency: 5,
   }
 );
