@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { chromium } from 'playwright';
 import Invoice from './invoice.model.js';
+import EmailLog from '../Email/emailLog.model.js';
 import catchAsync from '../../utils/catchAsync.js';
 import AppError from '../../utils/AppError.js';
 import { getBrowser } from '../../services/pdfBrowser.js';
@@ -14,6 +15,8 @@ import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { generateGSTReport } from '../../services/invoiceExcelTemplate.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections } from "../../services/crm.service.js";
+import { sendEmail } from '../../services/emailService.js';
+import { prepareInvoiceDelivery } from '../../services/invoiceDeliveryService.js';
 import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
 import logger from '../../utils/logger.js';
 
@@ -1003,28 +1006,86 @@ export const previewInvoicePdf = catchAsync(async (req, res) => {
 });
 
 export const sendInvoiceMail = catchAsync(async (req, res, next) => {
-  const invoice = await Invoice.findById(req.params.id);
+  const invoiceId = req.params.id;
+  const invoice = await Invoice.findById(invoiceId);
+
   if (!invoice) {
     return next(new AppError("Invoice not found", 404));
   }
+
+  // 1. Prevent double-clicks
   if (invoice.email?.status === "PROCESSING") {
-    return next(new AppError("This invoice is currently being processed by the email queue. Please wait a moment.", 400));
+    return next(new AppError("This invoice is currently sending. Please wait a moment.", 400));
   }
 
+  // 2. Lock the UI immediately
   await Invoice.updateOne(
-    { _id: invoice._id },
+    { _id: invoiceId },
     { $set: { "email.status": "PROCESSING" } }
   );
 
-  const job = await enqueueInvoiceEmail(req.params.id);
+  let emailLog;
+  let payload;
 
-  res.status(202).json({
-    success: true,
-    message: invoice.email?.status === "SENT"
-      ? "Invoice queued for resending."
-      : "Invoice queued for email delivery.",
-    jobId: job.id
-  });
+  try {
+    payload = await prepareInvoiceDelivery(invoiceId);
+
+    emailLog = await EmailLog.create({
+      documentType: "INVOICE",
+      documentId: invoiceId,
+      emailType: "INVOICE",
+      recipients: payload.email.metadata.recipients,
+      subject: payload.email.subject,
+      status: "PROCESSING"
+    });
+
+    const result = await sendEmail(payload.email);
+
+    await emailLog.updateOne({
+      status: "SENT",
+      providerMessageId: result.id,
+      sentAt: new Date(),
+      attempts: 1,
+    });
+
+    await Invoice.updateOne(
+      { _id: invoiceId },
+      {
+        $set: {
+          "email.status": "SENT",
+          "email.lastSentAt": new Date(),
+          "email.lastEmailLogId": emailLog._id,
+        }
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Invoice email sent successfully.",
+      providerId: result.id
+    });
+
+  } catch (error) {
+    if (emailLog) {
+      await emailLog.updateOne({
+        status: "FAILED",
+        error: error.message,
+        attempts: 1,
+      });
+    }
+
+    await Invoice.updateOne(
+      { _id: invoiceId },
+      {
+        $set: {
+          "email.status": "FAILED",
+          "email.lastEmailLogId": emailLog ? emailLog._id : null,
+        }
+      }
+    );
+
+    return next(new AppError(`Failed to send email: ${error.message}`, 500));
+  }
 });
 
 /**

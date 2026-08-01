@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Search, User, Mail, Wifi, ChevronDown, ChevronUp, Zap, FileText, AlertCircle, ListFilter } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchCustomers, useCustomerDetails } from '@/features/crm/hooks/useCrm';
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
@@ -149,9 +149,22 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
 };
 
 const Customers = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get('search') || '';
+  const sortOrder = searchParams.get('sort') || 'recent';
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [sortOrder, setSortOrder] = useState('recent');
+
+  const setSearchTerm = (val) => setSearchParams(prev => {
+    if (val) prev.set('search', val);
+    else prev.delete('search');
+    return prev;
+  }, { replace: true });
+
+  const setSortOrder = (val) => setSearchParams(prev => {
+    if (val) prev.set('sort', val);
+    else prev.delete('sort');
+    return prev;
+  }, { replace: true });
 
   const {
     data,

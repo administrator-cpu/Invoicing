@@ -12,7 +12,7 @@ export const SendInvoiceModal = ({ isOpen, onClose, invoiceId, customerId, invoi
     enabled: isOpen && !!customerId,
   });
 
-  const { mutate: sendInvoice, isLoading: isSending } = useSendInvoiceEmail();
+  const { mutate: sendInvoice, isPending: isSending } = useSendInvoiceEmail();
 
   if (!isOpen) return null;
 
