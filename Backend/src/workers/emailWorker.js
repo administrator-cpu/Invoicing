@@ -50,10 +50,9 @@ async function processEmailJob(job, options) {
         error: error.message,
         attempts: job.attemptsMade + 1,
       });
-
-      if (payload && updateInvoice.failed) {
-        await updateInvoice.failed(payload.invoice._id, emailLog._id);
-      }
+    }
+    if (updateInvoice.failed) {
+      await updateInvoice.failed(job.data.invoiceId, emailLog?._id || null);
     }
     if (error.statusCode === 404) {
       throw new UnrecoverableError(error.message);
