@@ -3,7 +3,7 @@ import redis from "../config/redis.js";
 import logger from "../utils/logger.js";
 
 const emailQueue = new Queue("emailQueue", {
-  connection: redis,
+  connection: redis.duplicate(),
 });
 
 export async function enqueueInvoiceEmail(invoiceId) {

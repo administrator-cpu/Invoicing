@@ -165,8 +165,9 @@ export async function sendEmail(payload) {
         to,
       }
     );
-
     throw error;
+  } finally {
+    clearTimeout(timeout);
   }
 
 }
