@@ -7,6 +7,7 @@ import {
 import useAuthStore from '@/store/useAuthStore';
 import useThemeStore from '@/store/useThemeStore';
 import { logoutApi } from '@/features/auth/api/authApi';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 const DashboardLayout = () => {
   const location = useLocation();
@@ -122,8 +123,8 @@ const DashboardLayout = () => {
                 to={item.path}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`relative flex items-center px-3 py-2.5 rounded-xl font-medium transition-all group ${isActive
-                    ? 'bg-orange-50 dark:bg-orange-500/10 text-[#EA580C] dark:text-orange-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-orange-50 dark:bg-orange-500/10 text-[#EA580C] dark:text-orange-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
                   }`}
               >
                 {/* Active Indicator Line */}
@@ -211,14 +212,7 @@ const DashboardLayout = () => {
 
           {/* Center: Search Bar (Desktop only) */}
           <div className="hidden lg:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#EA580C] transition-colors" />
-              <input
-                type="text"
-                placeholder="Search invoices, customers...(In development)"
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm rounded-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all dark:text-white placeholder:text-slate-400"
-              />
-            </div>
+            <GlobalSearch />
           </div>
 
           {/* Right Side: Actions */}
@@ -233,12 +227,6 @@ const DashboardLayout = () => {
             </div>
 
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1" />
-
-            {/* Notifications */}
-            <button className="relative p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-all duration-200">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white dark:border-slate-900" />
-            </button>
 
             {/* Theme Toggle */}
             <button

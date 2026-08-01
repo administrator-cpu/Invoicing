@@ -780,6 +780,13 @@ export const getInvoices = catchAsync(async (req, res, next) => {
   if (req.query.status) filter.status = req.query.status;
   if (req.query.customerId) filter["customerSnapshot.crmCustomerId"] = req.query.customerId;
 
+  if (req.query.search) {
+    filter.$or = [
+      { invoiceNumber: { $regex: req.query.search, $options: "i" } },
+      { "customerSnapshot.name": { $regex: req.query.search, $options: "i" } }
+    ];
+  }
+
   if (req.query.date) {
     const start = new Date(req.query.date);
     const end = new Date(req.query.date);
@@ -1008,17 +1015,13 @@ export const previewInvoicePdf = catchAsync(async (req, res) => {
 export const sendInvoiceMail = catchAsync(async (req, res, next) => {
   const invoiceId = req.params.id;
   const invoice = await Invoice.findById(invoiceId);
-
   if (!invoice) {
     return next(new AppError("Invoice not found", 404));
   }
-
-  // 1. Prevent double-clicks
   if (invoice.email?.status === "PROCESSING") {
     return next(new AppError("This invoice is currently sending. Please wait a moment.", 400));
   }
 
-  // 2. Lock the UI immediately
   await Invoice.updateOne(
     { _id: invoiceId },
     { $set: { "email.status": "PROCESSING" } }
