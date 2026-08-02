@@ -1,5 +1,7 @@
 import Invoice from "../Invoice/invoice.model.js";
 import catchAsync from "../../utils/catchAsync.js";
+import logger from "../../utils/logger.js";
+import { searchCrmCustomers, getCrmDashboardConnections } from "../../services/crm.service.js";
 
 export const getDashboard = catchAsync(async (req, res, next) => {
 
@@ -171,13 +173,6 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     ? Number(((payment.collected / payment.totalBilled) * 100).toFixed(2))
     : 0;
 
-  console.log({
-    statusSummary,
-    payment,
-    outstanding,
-    monthBilling
-  });
-
   res.status(200).json({
     status: "success",
     generatedAt: new Date(),
@@ -210,4 +205,90 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     }
   });
 
+});
+
+export const getPendingBillableCustomers = catchAsync(async (req, res, next) => {
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
+
+  const now = new Date();
+  const billingCycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const billingCycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const billedCustomerIds = await Invoice.distinct(
+    "customerSnapshot.crmCustomerId",
+    {
+      isDeleted: { $ne: true },
+      status: { $ne: "CANCELLED" },
+      "dates.billingCycleStart": {
+        $gte: billingCycleStart,
+        $lt: billingCycleEnd,
+      },
+    }
+  );
+
+  const billedCustomerSet = new Set(
+    billedCustomerIds.map(id => String(id))
+  );
+
+  const crmResponse = await searchCrmCustomers("", 1, 1000, "recent");
+
+  const allCustomers = crmResponse.customers || [];
+
+  const customersWithoutInvoice = allCustomers.filter(customer => {
+    const customerId = String(customer._id || customer.id);
+    return !billedCustomerSet.has(customerId);
+  });
+
+  const pendingCustomers = (
+    await Promise.all(
+      customersWithoutInvoice.map(async customer => {
+        const customerId = customer._id || customer.id;
+
+        try {
+          const connectionData = await getCrmDashboardConnections(customerId);
+
+          if (!connectionData?.count) {
+            return null;
+          }
+
+          return {
+            ...customer,
+            connectionCount: connectionData.count,
+          };
+        } catch (error) {
+          logger.error("Failed to fetch CRM connections", {
+            customerId,
+            customerName: customer.name,
+            status: error.response?.status,
+            response: error.response?.data,
+            message: error.message,
+          });
+
+          return null;
+        }
+      })
+    )
+  ).filter(Boolean);
+
+  const totalResults = pendingCustomers.length;
+  const totalPages = Math.ceil(totalResults / limit);
+
+  const paginatedCustomers = pendingCustomers.slice((page - 1) * limit, page * limit);
+
+  res.status(200).json({
+    status: "success",
+    source: "api",
+
+    pagination: {
+      page,
+      limit,
+      totalResults,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+
+    data: paginatedCustomers,
+  });
 });

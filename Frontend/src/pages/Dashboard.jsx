@@ -3,6 +3,7 @@ import { useDashboard } from '../features/dashboard/hooks/useDashboard';
 import { DashboardSkeleton, DashboardError } from '../features/dashboard/components/DashboardStates';
 import { DashboardHero } from '../features/dashboard/components/DashboardHero';
 import { InvoiceStatusSummary, PaymentSummary } from '../features/dashboard/components/DashboardSummaries';
+import { PendingCustomersWidget } from '../features/dashboard/components/PendingCustomersWidget';
 import { DashboardTables } from '../features/dashboard/components/DashboardTables';
 
 export default function Dashboard() {
@@ -50,6 +51,7 @@ export default function Dashboard() {
       <div className="space-y-8">
         <DashboardHero data={dashboardData.hero} />
         <InvoiceStatusSummary data={dashboardData.invoiceStatus} />
+        <PendingCustomersWidget />
         <PaymentSummary data={dashboardData.payments} />
         <DashboardTables
           recentInvoices={dashboardData.recentInvoices}
