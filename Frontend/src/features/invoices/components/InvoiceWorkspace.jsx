@@ -363,7 +363,7 @@ export default function InvoiceWorkspace({
     if (customer) {
       reset({
         ...defaults,
-        selectedGstProfileId: customer.billingProfile?.[0]?._id || "",
+        selectedGstProfileId: defaults.defaultCustomerBillingProfileId || customer.billingProfile?.[0]?._id || "",
         selectedCompanyProfileId: defaults.defaultCompanyProfileId ?? companyProfiles?.[0]?._id ?? "",
         items: buildInitialInvoiceItems(sourceItems, defaults)
       });

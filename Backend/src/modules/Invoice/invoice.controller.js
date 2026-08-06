@@ -51,14 +51,21 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
   const normalizeState = (state = "") => state.trim().toUpperCase();
 
   let defaultCompanyProfileId = companyProfiles?.[0]?._id || null;
+  let defaultCustomerBillingProfileId = customer.billingProfile?.[0]?._id || null;
 
-  const customerStates = new Set(
-    (customer.billingProfile || [])
-      .map(profile => normalizeState(profile.address?.state))
-      .filter(Boolean)
-  );
+  let matchedCompanyProfile = null;
 
-  const matchedCompanyProfile = companyProfiles.find(profile => customerStates.has(normalizeState(profile.address?.state)));
+  for (const customerProfile of customer.billingProfile || []) {
+    const customerState = normalizeState(customerProfile.address?.state);
+    const companyProfile = companyProfiles.find(profile => normalizeState(profile.address?.state) === customerState);
+
+    if (companyProfile) {
+      matchedCompanyProfile = companyProfile;
+      defaultCompanyProfileId = companyProfile._id;
+      defaultCustomerBillingProfileId = customerProfile._id;
+      break;
+    }
+  }
 
   if (matchedCompanyProfile) {
     defaultCompanyProfileId = matchedCompanyProfile._id;
@@ -176,7 +183,8 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
         billingMode: latestInvoice?.billingConfiguration?.billingMode || "PREPAID",
         discount: latestInvoice?.financials?.discount || 0,
         applyIgst: true,
-        defaultCompanyProfileId: latestInvoice?.companySnapshot?.profileId || defaultCompanyProfileId
+        defaultCustomerBillingProfileId,
+        defaultCompanyProfileId
       }
     }
   });
