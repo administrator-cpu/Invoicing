@@ -25,6 +25,7 @@ export const buildInvoiceDocument = ({
       billingCycleStart,
       billingCycleEnd,
       billingMode,
+      respectConnectionPeriod: true,
     });
 
   const engineItems = isMultiMonth ? mergeInvoiceItems(rawItems) : rawItems;

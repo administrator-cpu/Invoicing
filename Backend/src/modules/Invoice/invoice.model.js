@@ -135,6 +135,10 @@ const invoiceItemSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  clientRowId: {
+    type: String,
+    default: null,
+  },
   billingMeta: {
     billingMode: {
       type: String,

@@ -87,6 +87,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
 
   const addManualItem = (type, defaultDesc, rate) => {
     append({
+      clientRowId: crypto.randomUUID(),
       isSelected: true,
       billingOptions: {
         connection: true,
