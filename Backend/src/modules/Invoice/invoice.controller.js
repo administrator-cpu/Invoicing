@@ -390,8 +390,10 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
   if (end < start) {
     return next(new AppError("Invalid billing cycle. Billing cycle end cannot be before start", 400));
   }
-  if (start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear()) {
-    return next(new AppError("Billing cycle cannot span multiple months in this version.", 400));
+
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+  if (months > 12) {
+    return next(new AppError("Billing cycle cannot exceed 12 months.", 400));
   }
 
   let items;
@@ -441,6 +443,20 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
   }
   if (!billingCycleStart || !billingCycleEnd) {
     return next(new AppError("BillingCycleStart and BillingCycleEnd are required.", 400));
+  }
+
+  const start = new Date(billingCycleStart);
+  const end = new Date(billingCycleEnd);
+  if (Number.isNaN(start) || Number.isNaN(end)) {
+    return next(new AppError("Invalid billing cycle.", 400));
+  }
+  if (end < start) {
+    return next(new AppError("Billing cycle end cannot be before start.", 400));
+  }
+
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+  if (months > 12) {
+    return next(new AppError("Billing cycle cannot exceed 12 months.", 400));
   }
 
   const customerState = selectedCustomerBillingProfile.address.state;

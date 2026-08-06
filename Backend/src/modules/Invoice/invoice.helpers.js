@@ -128,6 +128,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
 
     const pStart = new Date(item.periodStart);
     const pEnd = new Date(item.periodEnd);
+    const monthlyBreakdown = item.billingMeta?.monthlyBreakdown ?? [];
 
     if (pEnd < pStart) {
       throw new AppError(`periodEnd cannot be before periodStart at row ${index + 1}`, 400);
@@ -135,47 +136,45 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     if (Number.isNaN(pStart.getTime()) || Number.isNaN(pEnd.getTime())) {
       throw new AppError(`Invalid periodStart or periodEnd at row ${index + 1}`, 400);
     }
-    if (pStart.getMonth() !== pEnd.getMonth() || pStart.getFullYear() !== pEnd.getFullYear()) {
-      throw new AppError(`Invoice row ${index + 1} cannot span multiple months.`, 400);
-    }
 
     const daysInMonth = new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0).getDate();
     const billedDays = Math.round((pEnd - pStart) / MS_PER_DAY) + 1;
 
     let expectedAmount;
 
-    switch (sourceType) {
-      case "CONNECTION":
-        expectedAmount =
-          billedDays >= daysInMonth
-            ? round2(monthlyMrc * qty)
-            : round2(((monthlyMrc * qty) / daysInMonth) * billedDays);
-        break;
+    if (monthlyBreakdown.length > 0) {
+      expectedAmount = round2(monthlyBreakdown.reduce((sum, month) => sum + Number(month.amount || 0), 0));
+      monthlyMrc = round2(monthlyBreakdown.reduce((sum, month) => sum + Number(month.monthlyMrc || 0), 0));
+    } else {
+      switch (sourceType) {
+        case "CONNECTION": expectedAmount = billedDays >= daysInMonth
+          ? round2(monthlyMrc * qty)
+          : round2(((monthlyMrc * qty) / daysInMonth) * billedDays);
+          break;
 
-      case "IP_ADDRESS": {
-        const monthlyIpCharge = Number(item.billingMeta?.monthlyMrc ?? (displayRate * qty));
+        case "IP_ADDRESS": {
+          const monthlyIpCharge = Number(item.billingMeta?.monthlyMrc ?? (displayRate * qty));
+          expectedAmount = billedDays >= daysInMonth
+            ? round2(monthlyIpCharge)
+            : round2((monthlyIpCharge / daysInMonth) * billedDays);
 
-        expectedAmount = billedDays >= daysInMonth
-          ? round2(monthlyIpCharge)
-          : round2((monthlyIpCharge / daysInMonth) * billedDays);
+          monthlyMrc = monthlyIpCharge;
+          break;
+        }
 
-        monthlyMrc = monthlyIpCharge;
-        break;
+        case "MANUAL_SERVICE":
+        case "OTC": {
+          const monthlyManualAmount = Number(item.billingMeta?.monthlyMrc ?? (displayRate * qty));
+          expectedAmount = billedDays >= daysInMonth
+            ? round2(monthlyManualAmount)
+            : round2((monthlyManualAmount / daysInMonth) * billedDays);
+
+          monthlyMrc = monthlyManualAmount;
+          break;
+        }
+
+        default: expectedAmount = round2(Number(item.amount || 0));
       }
-
-      case "MANUAL_SERVICE":
-      case "OTC":
-        const monthlyManualAmount = Number(item.billingMeta?.monthlyMrc ?? (displayRate * qty));
-
-        expectedAmount = billedDays >= daysInMonth
-          ? round2(monthlyManualAmount)
-          : round2((monthlyManualAmount / daysInMonth) * billedDays);
-
-        monthlyMrc = monthlyManualAmount;
-        break;
-
-      default:
-        expectedAmount = round2(Number(item.amount || 0));
     }
 
     calculatedSubTotal += expectedAmount;
@@ -222,6 +221,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
       amount: expectedAmount,
       billingMeta: {
         ...(item.billingMeta || {}),
+        monthlyBreakdown,
         monthlyMrc,
         daysCharged: billedDays,
         daysInMonth,

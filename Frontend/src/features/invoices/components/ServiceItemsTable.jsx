@@ -70,6 +70,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
   const billingCycleStart = watch('billingCycleStart');
   const billingCycleEnd = watch('billingCycleEnd');
   const billingMode = watch('billingMode');
+  const billingPeriod = watch("billingPeriod");
   const items = watch("items");
   const invalidatePreview = () => {
     setValue("financials", null);
@@ -210,9 +211,15 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           {expandedRows[index] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                         </button>
                       )}
-                      {item.billingMeta?.calculationType === "PRORATA" && (
-                        <div className="mt-1.5 ml-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded w-max tracking-wide uppercase">
-                          PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
+                      {item.billingMeta?.calculationType === "PRORATA" &&
+                        item.billingMeta?.monthlyBreakdown?.length <= 1 && (
+                          <div className="mt-1.5 ml-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded w-max tracking-wide uppercase">
+                            PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
+                          </div>
+                        )}
+                      {item.billingMeta?.monthlyBreakdown?.length > 1 && (
+                        <div className="mt-1.5 ml-2 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-max tracking-wide uppercase">
+                          {item.billingMeta.monthlyBreakdown.length} Month Billing
                         </div>
                       )}
                     </td>
@@ -498,6 +505,40 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                               </div>
                             )}
                           </div>
+
+                          {item.billingMeta?.monthlyBreakdown?.length > 1 && (
+                            <div className="mt-5">
+                              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                                Billing Breakdown
+                              </p>
+
+                              <div className="space-y-2">
+                                {item.billingMeta.monthlyBreakdown.map((month, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex justify-between items-center rounded-lg bg-white border border-gray-200 px-3 py-2"
+                                  >
+                                    <div>
+                                      <div className="text-sm font-semibold">
+                                        {new Date(month.periodStart).toLocaleDateString("en-IN", {
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                      </div>
+
+                                      <div className="text-xs text-gray-500">
+                                        {month.daysCharged}/{month.daysInMonth} Days
+                                      </div>
+                                    </div>
+
+                                    <div className="text-sm font-bold text-[#EA580C]">
+                                      ₹{Number(month.amount).toLocaleString("en-IN")}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
                         </div>
                       </td>

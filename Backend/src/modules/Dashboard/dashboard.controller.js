@@ -1,7 +1,7 @@
 import Invoice from "../Invoice/invoice.model.js";
 import catchAsync from "../../utils/catchAsync.js";
 import logger from "../../utils/logger.js";
-import { searchCrmCustomers, getCrmDashboardConnections } from "../../services/crm.service.js";
+import { searchCrmCustomers, getCrmCustomerConnections } from "../../services/crm.service.js";
 
 export const getDashboard = catchAsync(async (req, res, next) => {
 
@@ -246,7 +246,7 @@ export const getPendingBillableCustomers = catchAsync(async (req, res, next) => 
         const customerId = customer._id || customer.id;
 
         try {
-          const connectionData = await getCrmDashboardConnections(customerId);
+          const connectionData = await getCrmCustomerConnections(customerId);
 
           if (!connectionData?.count) {
             return null;
