@@ -178,7 +178,6 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
               const isSelected = watch(`items.${index}.isSelected`);
               const sourceType = watch(`items.${index}.sourceType`);
               const activities = item.crmConnectionSnapshot?.recentActivity ?? item.recentActivity ?? [];
-              console.log("ITEM", item);
               return (
                 <React.Fragment key={field.id}>
                   <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white' : 'bg-gray-50 opacity-40'}`}>
@@ -424,11 +423,6 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
                               Recent Activity
                             </p>
-                            {console.log(
-                              "Recent Activity",
-                              item.crmConnectionSnapshot?.connectionId,
-                              item.crmConnectionSnapshot?.recentActivity
-                            )}
                             {activities.length ? (
                               <div className="space-y-3">
                                 {activities.map((activity, i) => {
