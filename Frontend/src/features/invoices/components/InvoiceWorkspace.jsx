@@ -5,6 +5,12 @@ import { ArrowLeft, Building2, MapPin, Calculator } from 'lucide-react';
 import { ServiceItemsTable } from './ServiceItemsTable';
 
 const formatINR = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
+function formatDateInput(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split("T")[0];
+}
 
 function buildInitialInvoiceItems(sourceItems, defaults) {
   return sourceItems.map(conn => {
@@ -41,10 +47,10 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
           periodEnd: conn.invoiceOverrides?.periodEnd ?? conn.periodEnd ?? defaults.billingCycleEnd
         },
         periodStart: conn.periodStart
-          ? new Date(conn.periodStart).toISOString().split("T")[0]
+          ? formatDateInput(conn.periodStart)
           : defaults.billingCycleStart,
         periodEnd: conn.periodEnd
-          ? new Date(conn.periodEnd).toISOString().split("T")[0]
+          ? formatDateInput(conn.periodEnd)
           : defaults.billingCycleEnd
       };
     }
@@ -166,6 +172,33 @@ function buildManualItemsPayload(formData) {
   return manualItems
 }
 
+function calculateBillingDates(period) {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  let end;
+  switch (period) {
+    case "MONTHLY": end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      break;
+
+    case "QUARTERLY": end = new Date(start.getFullYear(), start.getMonth() + 3, 0);
+      break;
+
+    case "HALF_YEARLY": end = new Date(start.getFullYear(), start.getMonth() + 6, 0);
+      break;
+
+    case "YEARLY": end = new Date(start.getFullYear() + 1, start.getMonth(), 0);
+      break;
+
+    default: return null;
+  }
+
+  return {
+    start: formatDateInput(start),
+    end: formatDateInput(end),
+  };
+}
+
 function mergePreviewItems(currentItems, backendItems) {
 
   const mergedItems = backendItems.map((backendItem) => {
@@ -176,7 +209,7 @@ function mergePreviewItems(currentItems, backendItems) {
         return (
           i.sourceType === backendItem.sourceType && i.description === backendItem.description &&
           i.periodStart === (backendItem.periodStart
-            ? new Date(backendItem.periodStart).toISOString().split("T")[0]
+            ? formatDateInput(backendItem.periodStart)
             : ""
           )
         );
@@ -200,10 +233,10 @@ function mergePreviewItems(currentItems, backendItems) {
       },
       sacCode: existing?.sacCode ?? backendItem.sacCode,
       periodStart: backendItem.periodStart
-        ? new Date(backendItem.periodStart).toISOString().split("T")[0]
+        ? formatDateInput(backendItem.periodStart)
         : "",
       periodEnd: backendItem.periodEnd
-        ? new Date(backendItem.periodEnd).toISOString().split("T")[0]
+        ? formatDateInput(backendItem.periodEnd)
         : "",
       isSelected: true,
       status: existing?.status ?? backendItem.status,
@@ -222,6 +255,38 @@ function mergePreviewItems(currentItems, backendItems) {
   });
 
   return mergedItems;
+}
+
+function calculateBillingCycle(invoiceDate, billingPeriod) {
+  const invoice = new Date(invoiceDate);
+  const start = new Date(invoice.getFullYear(), invoice.getMonth(), 1);
+  let end = new Date(start);
+
+  switch (billingPeriod) {
+    case "MONTHLY": end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      break;
+
+    case "TWO_MONTHS": end = new Date(start.getFullYear(), start.getMonth() + 2, 0);
+      break;
+
+    case "QUARTERLY": end = new Date(start.getFullYear(), start.getMonth() + 3, 0);
+      break;
+
+    case "HALF_YEARLY": end = new Date(start.getFullYear(), start.getMonth() + 6, 0);
+      break;
+
+    case "ANNUALLY": end = new Date(start.getFullYear(), start.getMonth() + 12, 0);
+      break;
+
+    case "CUSTOM": return null;
+
+    default: end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  }
+
+  return {
+    start: formatDateInput(start),
+    end: formatDateInput(end)
+  };
 }
 
 export default function InvoiceWorkspace({
@@ -252,17 +317,46 @@ export default function InvoiceWorkspace({
       invoiceDate: firstDayOfMonth,
       dueDate: defaultDueDate,
       billingCycleStart: '', billingCycleEnd: '',
+      billingPeriod: "MONTHLY",
       billingMode: 'PREPAID',
       discount: 0,
     }
   });
 
   const { reset, watch, setValue, getValues, handleSubmit, register } = methods;
+  const invoiceDate = watch("invoiceDate");
+  const billingPeriod = watch("billingPeriod");
   const invalidatePreview = () => {
     setValue("financials", null);
     setValue("previewGeneratedAt", null);
     setValue("previewExpired", true);
   };
+
+  useEffect(() => {
+    if (!billingPeriod || billingPeriod === "CUSTOM") {
+      return;
+    }
+
+    const dates = calculateBillingDates(billingPeriod);
+    if (!dates) return;
+
+    setValue("billingCycleStart", dates.start);
+    setValue("billingCycleEnd", dates.end);
+
+    const currentItems = getValues("items");
+    const updatedItems = currentItems.map(item => ({
+      ...item,
+      periodStart: dates.start,
+      periodEnd: dates.end,
+      invoiceOverrides: {
+        ...item.invoiceOverrides,
+        periodStart: dates.start,
+        periodEnd: dates.end,
+      }
+    }));
+    setValue("items", updatedItems);
+    invalidatePreview();
+  }, [billingPeriod]);
 
   // Hydrate Form from CRM Workspace Data
   useEffect(() => {
@@ -281,6 +375,20 @@ export default function InvoiceWorkspace({
     firstDayOfMonth, defaultDueDate,
     reset
   ]);
+
+  useEffect(() => {
+    if (!invoiceDate) return;
+    if (billingPeriod === "CUSTOM") return;
+
+    const cycle = calculateBillingCycle(invoiceDate, billingPeriod);
+    if (!cycle) return;
+
+    setValue("billingCycleStart", cycle.start);
+    setValue("billingCycleEnd", cycle.end);
+
+    invalidatePreview();
+
+  }, [invoiceDate, billingPeriod]);
 
   const handlePreview = () => {
     const formData = getValues();
@@ -465,7 +573,7 @@ export default function InvoiceWorkspace({
           {/* Section 3: Invoice Dates & Settings */}
           <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Invoice Parameters</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="flex flex-col">
                 <label className="text-xs text-gray-500 font-medium mb-1">Invoice Date</label>
                 <input type="date" {...register('invoiceDate', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
@@ -475,12 +583,26 @@ export default function InvoiceWorkspace({
                 <input type="date" {...register('dueDate', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
+                <label className="text-xs text-gray-500 font-medium mb-1">  Billing Period</label>
+                <select
+                  {...register("billingPeriod")}
+                  className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none"
+                >
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="TWO_MONTHS">2 Months</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="HALF_YEARLY">Half Yearly</option>
+                  <option value="ANNUALLY">Annually</option>
+                  <option value="CUSTOM">Custom</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
                 <label className="text-xs text-gray-500 font-medium mb-1">Cycle Start</label>
-                <input type="date" {...register('billingCycleStart', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
+                <input type="date" disabled={watch("billingPeriod") !== "CUSTOM"} {...register('billingCycleStart', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
                 <label className="text-xs text-gray-500 font-medium mb-1">Cycle End</label>
-                <input type="date" {...register('billingCycleEnd', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
+                <input type="date" disabled={watch("billingPeriod") !== "CUSTOM"} {...register('billingCycleEnd', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
                 <label className="text-xs text-gray-500 font-medium mb-1">Billing Mode</label>

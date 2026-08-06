@@ -1,4 +1,3 @@
-import { connect } from "mongoose";
 import AppError from "../../utils/AppError.js";
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -92,13 +91,7 @@ export function buildRecentActivity(history = [], cycleStart) {
   return latestActivation ? [mapActivity(latestActivation)] : [];
 }
 
-export const buildInvoiceItems = ({
-  connections,
-  manualItems = [],
-  billingCycleStart,
-  billingCycleEnd,
-  billingMode = "POSTPAID"
-}) => {
+export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleStart, billingCycleEnd, billingMode = "POSTPAID", respectConnectionPeriod }) => {
   const hasConnections = Array.isArray(connections) && connections.length > 0;
   const hasManualItems = Array.isArray(manualItems) && manualItems.length > 0;
   if (!hasConnections && !hasManualItems) {
@@ -107,6 +100,8 @@ export const buildInvoiceItems = ({
 
   const cycleStart = new Date(billingCycleStart);
   const cycleEnd = new Date(billingCycleEnd);
+  const segmentStart = respectConnectionPeriod ? new Date(conn.periodStart || cycleStart) : cycleStart;
+  const segmentEnd = respectConnectionPeriod ? new Date(conn.periodEnd || cycleEnd) : cycleEnd;
 
   const allItems = [];
 
@@ -127,14 +122,14 @@ export const buildInvoiceItems = ({
       if (!wasEverActive) continue;
       if (conn.billingOptions?.connection !== false) {
         const connectionItems = buildConnectionSegments(
-          normalizedConnection, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
+          normalizedConnection, segmentStart, segmentEnd, billingMode
         );
         allItems.push(...connectionItems);
       }
 
       if (conn.billingOptions?.ip !== false) {
         const ipItems = buildIpLines(
-          normalizedConnection, new Date(conn.periodStart || cycleStart), new Date(conn.periodEnd || cycleEnd), billingMode
+          normalizedConnection, segmentStart, segmentEnd, billingMode
         );
         allItems.push(...ipItems);
       }
@@ -147,8 +142,13 @@ export const buildInvoiceItems = ({
   }
 
   const validatedManualItems = manualItems.map(item => {
-    const pStart = new Date(item.periodStart);
-    const pEnd = new Date(item.periodEnd);
+    const pStart = item.sourceType === "OTC"
+      ? new Date(item.periodStart || cycleStart)
+      : new Date(cycleStart);
+
+    const pEnd = item.sourceType === "OTC"
+      ? new Date(item.periodEnd || cycleEnd)
+      : new Date(cycleEnd);
     const daysInMonth = getDaysInMonth(pStart);
     const billedDays = daysInclusive(pStart, pEnd);
     const monthlyAmount = round2(Number(item.qty) * Number(item.rate));
@@ -161,8 +161,8 @@ export const buildInvoiceItems = ({
       sourceType: item.sourceType || "MANUAL_SERVICE",
       qty: Number(item.qty),
       rate: Number(item.rate),
-      periodStart: new Date(item.periodStart),
-      periodEnd: new Date(item.periodEnd),
+      periodStart: pStart,
+      periodEnd: pEnd,
       amount,
       billingMeta: {
         billingMode,
@@ -179,6 +179,161 @@ export const buildInvoiceItems = ({
 
   return allItems;
 };
+
+export const buildMultiMonthInvoiceItems = ({ connections, manualItems = [], billingCycleStart, billingCycleEnd, billingMode = "POSTPAID", }) => {
+  const periods = splitBillingPeriods(new Date(billingCycleStart), new Date(billingCycleEnd));
+  const monthlyItems = [];
+
+  const recurringManualItems = manualItems.filter(
+    item => item.sourceType === "MANUAL_SERVICE" || item.sourceType === "IP_ADDRESS"
+  );
+
+  const oneTimeItems = manualItems.filter(item => item.sourceType === "OTC");
+
+  for (const period of periods) {
+    const items = buildInvoiceItems({
+      connections,
+      manualItems: recurringManualItems,
+      billingCycleStart: period.start,
+      billingCycleEnd: period.end,
+      billingMode,
+      respectConnectionPeriod: false,
+    });
+    monthlyItems.push(...items);
+  }
+
+  if (oneTimeItems.length) {
+    const otcItems = buildInvoiceItems({
+      connections: [],
+      manualItems: oneTimeItems,
+      billingCycleStart,
+      billingCycleEnd,
+      billingMode,
+    });
+
+    monthlyItems.push(...otcItems);
+  }
+
+  return monthlyItems;
+};
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function normalizeDate(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isConsecutivePeriod(previous, current) {
+  const previousEnd = normalizeDate(previous.periodEnd);
+  previousEnd.setDate(previousEnd.getDate() + 1);
+  const currentStart = normalizeDate(current.periodStart);
+  return previousEnd.getTime() === currentStart.getTime();
+}
+
+export function mergeInvoiceItems(items) {
+  const grouped = new Map();
+
+  for (const item of items) {
+    const key = [
+      item.sourceType,
+      item.crmConnectionSnapshot?.connectionId ?? "",
+      item.billingMeta?.calculationType,
+    ].join("|");
+
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+
+    grouped.get(key).push({
+      ...item,
+      amount: Number(item.amount),
+      periodStart: new Date(item.periodStart),
+      periodEnd: new Date(item.periodEnd),
+    });
+  }
+
+  const mergedItems = [];
+
+  for (const entries of grouped.values()) {
+    entries.sort((a, b) => new Date(a.periodStart) - new Date(b.periodStart));
+    let current = null;
+    for (const item of entries) {
+      if (!current) {
+        current = {
+          ...item,
+          billingMeta: {
+            ...item.billingMeta,
+            monthlyBreakdown: [
+              {
+                periodStart: item.periodStart,
+                periodEnd: item.periodEnd,
+                amount: item.amount,
+                monthlyMrc: item.billingMeta?.monthlyMrc,
+                monthlyRatePerMb: item.billingMeta?.monthlyRatePerMb,
+                daysCharged: item.billingMeta?.daysCharged,
+                daysInMonth: item.billingMeta?.daysInMonth,
+                calculationType: item.billingMeta?.calculationType,
+              },
+            ],
+          },
+        };
+        continue;
+      }
+
+      if (isConsecutivePeriod(current, item)) {
+        current.amount = round2(current.amount + item.amount);
+        current.periodEnd = item.periodEnd;
+        current.billingMeta.daysCharged += item.billingMeta?.daysCharged ?? 0;
+        current.billingMeta.daysInMonth += item.billingMeta?.daysInMonth ?? 0;
+        current.billingMeta.totalMonths = (current.billingMeta.monthlyBreakdown?.length ?? 1) + 1;
+        current.billingMeta.totalAmount = current.amount;
+        current.billingMeta.monthlyBreakdown.push({
+          periodStart: new Date(item.periodStart),
+          periodEnd: new Date(item.periodEnd),
+          amount: item.amount,
+          monthlyMrc: item.billingMeta?.monthlyMrc,
+          monthlyRatePerMb: item.billingMeta?.monthlyRatePerMb,
+          daysCharged: item.billingMeta?.daysCharged,
+          daysInMonth: item.billingMeta?.daysInMonth,
+          calculationType: item.billingMeta?.calculationType,
+        });
+      } else {
+        mergedItems.push(current);
+
+        current = {
+          ...item,
+          billingMeta: {
+            ...item.billingMeta,
+            monthlyBreakdown: [
+              {
+                periodStart: item.periodStart,
+                periodEnd: item.periodEnd,
+                amount: item.amount,
+                monthlyMrc: item.billingMeta?.monthlyMrc,
+                monthlyRatePerMb: item.billingMeta?.monthlyRatePerMb,
+                daysCharged: item.billingMeta?.daysCharged,
+                daysInMonth: item.billingMeta?.daysInMonth,
+                calculationType: item.billingMeta?.calculationType,
+              },
+            ],
+          },
+        };
+      }
+    }
+
+    if (current) {
+      mergedItems.push(current);
+    }
+  }
+
+  return mergedItems;
+}
 
 /**
  * @desc - Connection segment builder
@@ -319,7 +474,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       rate: segment.ratePerMb,
       periodStart: overlap.start,
       periodEnd: overlap.end,
-      amount: internetMrc,
+      amount,
       billingMeta: {
         billingMode,
         calculationType,
@@ -442,7 +597,6 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
 /** 
  * @desc - Utility functions (HELPERS)
 */
-
 function getOverlap(startA, endA, startB, endB) {
   const start = new Date(Math.max(new Date(startA), new Date(startB)));
   const end = new Date(Math.min(new Date(endA), new Date(endB)));
@@ -456,6 +610,32 @@ function daysInclusive(start, end) {
 function getDaysInMonth(date) {
   const d = new Date(date);
   return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+function splitBillingPeriods(startDate, endDate) {
+  const periods = [];
+
+  const overallStart = new Date(startDate);
+  const overallEnd = new Date(endDate);
+
+  let year = overallStart.getUTCFullYear();
+  let month = overallStart.getUTCMonth();
+
+  while (year < overallEnd.getUTCFullYear() || (year === overallEnd.getUTCFullYear() && month <= overallEnd.getUTCMonth())) {
+    const monthStart = new Date(Date.UTC(year, month, 1));
+    const monthEnd = new Date(Date.UTC(year, month + 1, 0));
+    periods.push({
+      start: new Date(Math.max(monthStart.getTime(), overallStart.getTime())),
+      end: new Date(Math.min(monthEnd.getTime(), overallEnd.getTime())),
+    });
+    month++;
+    if (month > 11) {
+      month = 0;
+      year++;
+    }
+  }
+
+  return periods;
 }
 
 function buildDescription(segment, connection) {
