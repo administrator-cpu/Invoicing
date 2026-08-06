@@ -11,12 +11,14 @@ function formatDateInput(date) {
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().split("T")[0];
 }
+const generateClientRowId = () => crypto.randomUUID();
 
 function buildInitialInvoiceItems(sourceItems, defaults) {
   return sourceItems.map(conn => {
     if (conn.invoiceOverrides) {
       return {
         ...conn,
+        clientRowId: generateClientRowId(),
         isSelected: conn.selected ?? true,
         billingOptions: conn.billingOptions ?? {
           connection: true,
@@ -56,6 +58,7 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
     }
 
     return {
+      clientRowId: conn.clientRowId ?? generateClientRowId(),
       isSelected: conn.selected || false,
       billingOptions: {
         connection: true,
@@ -125,6 +128,7 @@ function buildConnectionsPayload(formData) {
         ipCost: ipItem?.rate ?? item.ips?.cost ?? 0
       };
       return {
+        clientRowId: item.clientRowId,
         invoiceOverrides: overrides,
         billingOptions: item.billingOptions,
         crmConnectionId: item.crmConnectionSnapshot.connectionId,
@@ -160,6 +164,7 @@ function buildManualItemsPayload(formData) {
       (item.sourceType === "IP_ADDRESS" && !item.crmConnectionSnapshot?.connectionId)
     ))
     .map(item => ({
+      clientRowId: item.clientRowId,
       description: item.description,
       qty: item.qty,
       sacCode: item.sacCode,
@@ -206,19 +211,9 @@ function mergePreviewItems(currentItems, backendItems) {
       if (backendItem.sourceType === "MANUAL_SERVICE" || backendItem.sourceType === "OTC" ||
         (backendItem.sourceType === "IP_ADDRESS" && !backendItem.crmConnectionSnapshot?.connectionId)
       ) {
-        return (
-          i.sourceType === backendItem.sourceType && i.description === backendItem.description &&
-          i.periodStart === (backendItem.periodStart
-            ? formatDateInput(backendItem.periodStart)
-            : ""
-          )
-        );
+        return (i.clientRowId === backendItem.clientRowId);
       }
-      return (
-        i.crmConnectionSnapshot?.connectionId ===
-        backendItem.crmConnectionSnapshot?.connectionId &&
-        i.sourceType === backendItem.sourceType
-      );
+      return i.clientRowId === backendItem.clientRowId;
     });
     return {
       ...backendItem,
@@ -228,16 +223,34 @@ function mergePreviewItems(currentItems, backendItems) {
         ipCount: existing?.invoiceOverrides?.ipCount ?? backendItem.crmConnectionSnapshot?.ipCount,
         ipCost: existing?.invoiceOverrides?.ipCost ?? backendItem.crmConnectionSnapshot?.ipCost,
         description: existing?.invoiceOverrides?.description ?? backendItem.description,
-        periodStart: existing?.invoiceOverrides?.periodStart ?? backendItem.periodStart,
-        periodEnd: existing?.invoiceOverrides?.periodEnd ?? backendItem.periodEnd,
+        periodStart: existing?.wasEdited
+          ? existing.periodStart
+          : (
+            backendItem.periodStart
+              ? formatDateInput(backendItem.periodStart)
+              : ""
+          ),
+
+        periodEnd:
+          existing?.wasEdited
+            ? existing.periodEnd
+            : (
+              backendItem.periodEnd
+                ? formatDateInput(backendItem.periodEnd)
+                : ""
+            ),
       },
       sacCode: existing?.sacCode ?? backendItem.sacCode,
-      periodStart: backendItem.periodStart
-        ? formatDateInput(backendItem.periodStart)
-        : "",
-      periodEnd: backendItem.periodEnd
-        ? formatDateInput(backendItem.periodEnd)
-        : "",
+      periodStart: existing?.periodStart ??
+        (backendItem.periodStart
+          ? formatDateInput(backendItem.periodStart)
+          : ""
+        ),
+      periodEnd: existing?.periodEnd ??
+        (backendItem.periodEnd
+          ? formatDateInput(backendItem.periodEnd)
+          : ""
+        ),
       isSelected: true,
       status: existing?.status ?? backendItem.status,
       billingOptions: existing?.billingOptions ?? {

@@ -84,7 +84,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
   let calculatedSubTotal = 0;
   let recurringCharges = 0;
   let oneTimeCharges = 0;
-  const verifiedItems = [];
+  let verifiedItems = [];
 
   incomingItems.forEach((item, index) => {
     if (!item.description) {
@@ -206,6 +206,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
       );
 
     verifiedItems.push({
+      clientRowId: item.clientRowId,
       crmConnectionSnapshot: item.crmConnectionSnapshot || null,
       connectionStatus: item.connectionStatus ?? item.crmConnectionSnapshot?.status ?? null,
       sourceType,

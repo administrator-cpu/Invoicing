@@ -100,8 +100,8 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
 
   const cycleStart = new Date(billingCycleStart);
   const cycleEnd = new Date(billingCycleEnd);
-  const segmentStart = respectConnectionPeriod ? new Date(conn.periodStart || cycleStart) : cycleStart;
-  const segmentEnd = respectConnectionPeriod ? new Date(conn.periodEnd || cycleEnd) : cycleEnd;
+  // const segmentStart = respectConnectionPeriod ? new Date(conn.periodStart || cycleStart) : cycleStart;
+  // const segmentEnd = respectConnectionPeriod ? new Date(conn.periodEnd || cycleEnd) : cycleEnd;
 
   const allItems = [];
 
@@ -114,6 +114,8 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
         bandwidth: billingSnapshot.bandwidth,
         commercials: billingSnapshot.commercials,
       };
+      const segmentStart = respectConnectionPeriod ? new Date(conn.periodStart || cycleStart) : cycleStart;
+      const segmentEnd = respectConnectionPeriod ? new Date(conn.periodEnd || cycleEnd) : cycleEnd;
       if (options.connection === false && options.ip === false && options.shifting === false) {
         throw new AppError(`At least one billing component must be selected for ${conn.opportunityId}.`, 400);
       }
@@ -158,6 +160,7 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
 
     return {
       ...item,
+      clientRowId: item.clientRowId,
       sourceType: item.sourceType || "MANUAL_SERVICE",
       qty: Number(item.qty),
       rate: Number(item.rate),
@@ -424,6 +427,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
     rows.push({
       sourceType: "CONNECTION",
       crmHistoryRefId: segment.historyId,
+      clientRowId: connection.clientRowId,
       billingOptions: connection.billingOptions,
       crmConnectionSnapshot: {
         connectionId: connection.crmConnectionId || connection._id?.toString(),
@@ -518,6 +522,7 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
   return [{
     sourceType: "IP_ADDRESS",
     crmHistoryRefId: null,
+    clientRowId: connection.clientRowId,
     billingOptions: connection.billingOptions,
     crmConnectionSnapshot: {
       connectionId: connection.crmConnectionId,
@@ -566,6 +571,7 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
     markers.push({
       sourceType: "MANUAL_SERVICE",
       billingOptions: connection.billingOptions,
+      clientRowId: connection.clientRowId,
       crmHistoryRefId: entry._id?.toString() || null,
       crmConnectionSnapshot: {
         connectionId: connection.crmConnectionId,
