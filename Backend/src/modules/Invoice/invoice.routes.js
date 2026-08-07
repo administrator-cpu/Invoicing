@@ -3,7 +3,7 @@ import {
   previewInvoice, createDraftInvoice,
   finalizeInvoice, getInvoices, getInvoiceById, getInvoiceWorkspace, getInvoiceEditWorkspace,
   updateDraftInvoice, cancelInvoice, deleteDraftInvoice, downloadInvoicePdf, previewInvoicePdf,
-  recordPayment, generateAdjustmentInvoice, updatePaymentStatus, sendInvoiceMail,
+  recordPayment, generateAdjustmentInvoice, updatePaymentStatus, sendInvoiceMail, getConnectionBillingHistory,
   createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport
 } from './invoice.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
@@ -28,6 +28,7 @@ router.get('/', getInvoices);
 router.get('/:id', getInvoiceById);
 router.get('/:id/pdf', downloadInvoicePdf);
 router.get('/:id/pdf/preview', previewInvoicePdf);
+router.get('/billing-history/:crmConnectionId', getConnectionBillingHistory);
 router.get("/credit-notes/:id", protect, getCreditNoteDetails);
 
 // --- WRITE ROUTES ---

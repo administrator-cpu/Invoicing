@@ -63,6 +63,15 @@ export const getCrmCustomerConnections = async (customerId) => {
   }
 };
 
+export const getBillingHistory = async (crmConnectionId) => {
+  try {
+    const response = await crmClient.get(`/${crmConnectionId}/billing-history`);
+    return response.data;
+  } catch (error) {
+    handleCrmError(error, 'getHistory');
+  }
+};
+
 /** 
  * @desc - Fetches all connections for a specific customer, including their history arrays
  * @param {String} customerId - The CRM Customer ID
