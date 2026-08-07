@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from "react";
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Trash2, PlusCircle, ChevronDown, ChevronUp, Settings2, Pencil, Check } from 'lucide-react';
+import { getConnectionBillingHistory } from '../hooks/useInvoices.js'
 
 const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
@@ -28,25 +29,13 @@ const ACTION_META = {
     label: "Rate Revision",
     badge: "bg-purple-100 text-purple-700"
   },
-  IP_ADDITION: {
-    label: "IP Addition",
-    badge: "bg-cyan-100 text-cyan-700"
-  },
-  SHIFTING: {
-    label: "Shifting",
-    badge: "bg-yellow-100 text-yellow-700"
-  },
-  EXTENDED: {
-    label: "Extended",
-    badge: "bg-indigo-100 text-indigo-700"
-  },
-  RETAINED: {
-    label: "Retained",
-    badge: "bg-emerald-100 text-emerald-700"
-  },
-  TERMINATED: {
-    label: "Terminated",
+  NOTICE_PERIOD: {
+    label: "Notice Period",
     badge: "bg-red-100 text-red-700"
+  },
+  CURRENT_STATE: {
+    label: "Current State",
+    badge: "bg-emerald-100 text-emerald-700"
   }
 };
 
@@ -66,6 +55,8 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
     name: 'items'
   });
   const [expandedRows, setExpandedRows] = React.useState({});
+  const [billingHistory, setBillingHistory] = useState({});
+  const [billingHistoryLoading, setBillingHistoryLoading] = useState({});
 
   const billingCycleStart = watch('billingCycleStart');
   const billingCycleEnd = watch('billingCycleEnd');
@@ -78,11 +69,42 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
     setValue("previewGeneratedAt", null);
     setValue("previewExpired", true);
   };
-  const toggleExpanded = (index) => {
+
+  const toggleExpanded = async (index, crmConnectionId) => {
+    const opening = !expandedRows[index];
     setExpandedRows(prev => ({
       ...prev,
-      [index]: !prev[index]
+      [index]: opening
     }));
+
+    if (!opening) return;
+    if (!crmConnectionId) return;
+    if (billingHistory[crmConnectionId]) return;
+
+    try {
+      setBillingHistoryLoading(prev => ({
+        ...prev,
+        [crmConnectionId]: true
+      }));
+      const response = await getConnectionBillingHistory(crmConnectionId);
+      setBillingHistory(prev => ({
+        ...prev,
+        [crmConnectionId]: response.billingHistory ?? []
+      }));
+
+    } catch (err) {
+      console.error(err);
+      setBillingHistory(prev => ({
+        ...prev,
+        [crmConnectionId]: []
+      }));
+
+    } finally {
+      setBillingHistoryLoading(prev => ({
+        ...prev,
+        [crmConnectionId]: false
+      }));
+    }
   };
 
   const addManualItem = (type, defaultDesc, rate) => {
@@ -178,7 +200,9 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
               const item = watch(`items.${index}`);
               const isSelected = watch(`items.${index}.isSelected`);
               const sourceType = watch(`items.${index}.sourceType`);
-              const activities = item.crmConnectionSnapshot?.recentActivity ?? item.recentActivity ?? [];
+              const connectionId = item.crmConnectionSnapshot?.connectionId;
+              const activities = billingHistory[connectionId] ?? [];
+              const loading = billingHistoryLoading[connectionId];
               return (
                 <React.Fragment key={field.id}>
                   <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white' : 'bg-gray-50 opacity-40'}`}>
@@ -203,7 +227,8 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                       {sourceType === "CONNECTION" && (
                         <button
                           type="button"
-                          onClick={() => toggleExpanded(index)}
+                          onClick={() => toggleExpanded(index, item.crmConnectionSnapshot?.connectionId)
+                          }
                           className="mt-1.5 ml-2 flex items-center gap-1 text-xs font-bold text-[#EA580C] hover:text-orange-700 transition-colors bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-md w-max"
                         >
                           <Settings2 size={13} />
@@ -424,11 +449,15 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
                               Recent Activity
                             </p>
-                            {activities.length ? (
+                            {loading ? (
+                              <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+                                Loading billing history...
+                              </div>
+                            ) : activities.length ? (
                               <div className="space-y-3">
                                 {activities.map((activity, i) => {
-                                  const meta = ACTION_META[activity.action] || {
-                                    label: activity.action.replaceAll("_", " "),
+                                  const meta = ACTION_META[activity.type] || {
+                                    label: activity.type.replaceAll("_", " "),
                                     badge: "bg-gray-100 text-gray-700"
                                   };
 
@@ -437,7 +466,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                       key={i}
                                       className="bg-white rounded-lg border border-gray-200 p-3"
                                     >
-                                      <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center justify-between mb-3">
 
                                         <span
                                           className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${meta.badge}`}
@@ -446,17 +475,108 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                         </span>
 
                                         <span className="text-xs text-gray-500">
-                                          {formatActivityDate(activity.date)}
+                                          {formatActivityDate(
+                                            activity.activatedOn ??
+                                            activity.approvedOn ??
+                                            activity.initiatedOn ??
+                                            activity.raisedOn ??
+                                            activity.acceptedOn ??
+                                            activity.acceptanceDate
+                                          )}
                                         </span>
 
                                       </div>
 
                                       <div className="space-y-1 text-xs text-gray-600">
 
+                                        {activity.acceptedOn && (
+                                          <div>
+                                            <span className="font-semibold">Accepted:</span>{" "}
+                                            {formatActivityDate(activity.acceptedOn)}
+                                          </div>
+                                        )}
+
+                                        {activity.acceptanceDate && (
+                                          <div>
+                                            <span className="font-semibold">Acceptance:</span>{" "}
+                                            {formatActivityDate(activity.acceptanceDate)}
+                                          </div>
+                                        )}
+
+                                        {activity.initiatedOn && (
+                                          <div>
+                                            <span className="font-semibold">Initiated:</span>{" "}
+                                            {formatActivityDate(activity.initiatedOn)}
+                                          </div>
+                                        )}
+
+                                        {activity.approvedOn && (
+                                          <div>
+                                            <span className="font-semibold">Approved:</span>{" "}
+                                            {formatActivityDate(activity.approvedOn)}
+                                          </div>
+                                        )}
+
+                                        {activity.activatedOn && (
+                                          <div>
+                                            <span className="font-semibold">Activated:</span>{" "}
+                                            {formatActivityDate(activity.activatedOn)}
+                                          </div>
+                                        )}
+
+                                        {activity.raisedOn && (
+                                          <div>
+                                            <span className="font-semibold">Raised:</span>{" "}
+                                            {formatActivityDate(activity.raisedOn)}
+                                          </div>
+                                        )}
+
+                                        {activity.finalDate && (
+                                          <div>
+                                            <span className="font-semibold">End Date:</span>{" "}
+                                            {formatActivityDate(activity.finalDate)}
+                                          </div>
+                                        )}
+
+                                        {activity.previous && (
+                                          <>
+                                            <div>
+                                              <span className="font-semibold">Old Bandwidth:</span>{" "}
+                                              {activity.previous.bandwidth} Mbps
+                                            </div>
+
+                                            <div>
+                                              <span className="font-semibold">Old Rate:</span>{" "}
+                                              ₹{activity.previous.ratePerMb}/Mbps
+                                            </div>
+                                          </>
+                                        )}
+
+                                        {activity.revised && (
+                                          <>
+                                            <div>
+                                              <span className="font-semibold">New Bandwidth:</span>{" "}
+                                              {activity.revised.bandwidth} Mbps
+                                            </div>
+
+                                            <div>
+                                              <span className="font-semibold">New Rate:</span>{" "}
+                                              ₹{activity.revised.ratePerMb}/Mbps
+                                            </div>
+                                          </>
+                                        )}
+
                                         {activity.bandwidth && (
                                           <div>
                                             <span className="font-semibold">Bandwidth:</span>{" "}
                                             {activity.bandwidth} Mbps
+                                          </div>
+                                        )}
+
+                                        {activity.ratePerMb != null && (
+                                          <div>
+                                            <span className="font-semibold">Rate:</span>{" "}
+                                            ₹{activity.ratePerMb}/Mbps
                                           </div>
                                         )}
 
@@ -467,25 +587,31 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                           </div>
                                         )}
 
-                                        {activity.commercials?.ratePerMb > 0 && (
-                                          <div>
-                                            <span className="font-semibold">Rate:</span>{" "}
-                                            ₹{activity.commercials.ratePerMb}/Mbps
-                                          </div>
-                                        )}
+                                        {activity.extensions?.length > 0 && (
+                                          <>
+                                            {activity.extensions.map((extension, idx) => (
+                                              <div key={idx} className="mt-2 border-t pt-2">
 
-                                        {activity.commercials?.mrc > 0 && (
-                                          <div>
-                                            <span className="font-semibold">MRC:</span>{" "}
-                                            ₹{activity.commercials.mrc.toLocaleString("en-IN")}
-                                          </div>
-                                        )}
+                                                <div>
+                                                  <span className="font-semibold">
+                                                    {idx === 0
+                                                      ? "Extended On"
+                                                      : `Extension ${idx + 1}`}
+                                                    :
+                                                  </span>{" "}
+                                                  {formatActivityDate(extension.date)}
+                                                </div>
 
-                                        {activity.ips?.count > 0 && (
-                                          <div>
-                                            <span className="font-semibold">Public IPs:</span>{" "}
-                                            {activity.ips.count}
-                                          </div>
+                                                <div>
+                                                  <span className="font-semibold">
+                                                    Revised End Date:
+                                                  </span>{" "}
+                                                  {formatActivityDate(extension.revisedEndDate)}
+                                                </div>
+
+                                              </div>
+                                            ))}
+                                          </>
                                         )}
 
                                       </div>
@@ -495,8 +621,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                               </div>
                             ) : (
                               <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
-                                No billing activity during the previous or current billing
-                                month.
+                                No billing activity available.
                               </div>
                             )}
                           </div>

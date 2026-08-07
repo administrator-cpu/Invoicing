@@ -14,7 +14,7 @@ import { activeInvoiceFilter } from "../../utils/invoice.utils.js";
 import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { generateGSTReport } from '../../services/invoiceExcelTemplate.js';
-import { getCrmCustomerDetails, getCrmCustomerConnections } from "../../services/crm.service.js";
+import { getCrmCustomerDetails, getCrmCustomerConnections, getBillingHistory } from "../../services/crm.service.js";
 import { sendEmail } from '../../services/emailService.js';
 import { prepareInvoiceDelivery } from '../../services/invoiceDeliveryService.js';
 import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
@@ -115,7 +115,6 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
           acceptanceDate: connection.acceptanceDate,
           originalConnection: connection,
           technicalDetails: techDetails,
-          recentActivity: buildRecentActivity(connection.history || [], billingCycleStart),
           invoiceOverrides: {
             bandwidth: savedItem.originalEngineValues?.bandwidth ?? savedItem.crmConnectionSnapshot?.bandwidth ?? connection.bandwidth,
             ratePerMb: savedItem.originalEngineValues?.rate ?? savedItem.rate ?? connection.commercials?.ratePerMb,
@@ -135,7 +134,6 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
         return {
           ...connection,
           technicalDetails: techDetails,
-          recentActivity: buildRecentActivity(connection.history || [], billingCycleStart),
           selected: false,
           editable: true
         };
@@ -144,7 +142,6 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
       return {
         ...connection,
         technicalDetails: techDetails,
-        recentActivity: buildRecentActivity(connection.history || [], billingCycleStart),
         selected: connection.isBillable,
         editable: true
       };
@@ -354,6 +351,14 @@ export const getCreditNoteWorkspace = catchAsync(async (req, res, next) => {
       connections: items,
       companyProfiles
     }
+  });
+});
+
+export const getConnectionBillingHistory = catchAsync(async (req, res, next) => {
+  const history = await getBillingHistory(req.params.crmConnectionId);
+  res.status(200).json({
+    status: "success",
+    data: history
   });
 });
 

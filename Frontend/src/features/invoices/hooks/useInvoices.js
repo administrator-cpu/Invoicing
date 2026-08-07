@@ -59,6 +59,11 @@ export const useInvoices = (filters) => {
   });
 };
 
+export const getConnectionBillingHistory = async (id) => {
+  const response = await apiClient.get(`/invoices/billing-history/${id}`);
+  return response.data;
+};
+
 export const useInvoiceDetails = (id) => {
   return useQuery({
     queryKey: ['invoices', 'details', id],
