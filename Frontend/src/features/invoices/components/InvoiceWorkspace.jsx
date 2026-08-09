@@ -205,58 +205,33 @@ function calculateBillingDates(period) {
 }
 
 function mergePreviewItems(currentItems, backendItems) {
+  return backendItems.map((backendItem) => {
+    const existing = currentItems.find((item) => item.clientRowId === backendItem.clientRowId);
 
-  const mergedItems = backendItems.map((backendItem) => {
-    const existing = currentItems.find(i => {
-      if (backendItem.sourceType === "MANUAL_SERVICE" || backendItem.sourceType === "OTC" ||
-        (backendItem.sourceType === "IP_ADDRESS" && !backendItem.crmConnectionSnapshot?.connectionId)
-      ) {
-        return (i.clientRowId === backendItem.clientRowId);
-      }
-      return i.clientRowId === backendItem.clientRowId;
-    });
+    const backendPeriodStart = backendItem.periodStart ? formatDateInput(backendItem.periodStart) : null;
+    const backendPeriodEnd = backendItem.periodEnd ? formatDateInput(backendItem.periodEnd) : null;
+
+    const isManualItem = backendItem.sourceType === "MANUAL_SERVICE" || backendItem.sourceType === "OTC" || (backendItem.sourceType === "IP_ADDRESS" && !backendItem.crmConnectionSnapshot?.connectionId);
+
     return {
       ...backendItem,
       invoiceOverrides: {
+        ...(existing?.invoiceOverrides || {}),
         bandwidth: existing?.invoiceOverrides?.bandwidth ?? backendItem.crmConnectionSnapshot?.bandwidth,
         ratePerMb: existing?.invoiceOverrides?.ratePerMb ?? backendItem.rate,
         ipCount: existing?.invoiceOverrides?.ipCount ?? backendItem.crmConnectionSnapshot?.ipCount,
         ipCost: existing?.invoiceOverrides?.ipCost ?? backendItem.crmConnectionSnapshot?.ipCost,
         description: existing?.invoiceOverrides?.description ?? backendItem.description,
-        periodStart: existing?.wasEdited
-          ? existing.periodStart
-          : (
-            backendItem.periodStart
-              ? formatDateInput(backendItem.periodStart)
-              : ""
-          ),
-
-        periodEnd:
-          existing?.wasEdited
-            ? existing.periodEnd
-            : (
-              backendItem.periodEnd
-                ? formatDateInput(backendItem.periodEnd)
-                : ""
-            ),
+        periodStart: backendPeriodStart ?? existing?.invoiceOverrides?.periodStart ?? "",
+        periodEnd: backendPeriodEnd ?? existing?.invoiceOverrides?.periodEnd ?? "",
       },
       sacCode: existing?.sacCode ?? backendItem.sacCode,
-      periodStart: existing?.periodStart ??
-        (backendItem.periodStart
-          ? formatDateInput(backendItem.periodStart)
-          : ""
-        ),
-      periodEnd: existing?.periodEnd ??
-        (backendItem.periodEnd
-          ? formatDateInput(backendItem.periodEnd)
-          : ""
-        ),
-      isSelected: true,
+      periodStart: backendPeriodStart ?? existing?.periodStart ?? "",
+      periodEnd: backendPeriodEnd ?? existing?.periodEnd ?? "",
+      isSelected: existing?.isSelected ?? true,
       status: existing?.status ?? backendItem.status,
       billingOptions: existing?.billingOptions ?? {
-        connection: true,
-        ip: true,
-        shifting: true
+        connection: true, ip: true, shifting: true
       },
       history: existing?.history ?? [],
       ips: existing?.ips ?? {},
@@ -264,10 +239,9 @@ function mergePreviewItems(currentItems, backendItems) {
       technicalDetails: existing?.technicalDetails ?? {},
       originalConnection: existing?.originalConnection ?? null,
       terminationDetails: existing?.terminationDetails ?? null,
+      billingMeta: backendItem.billingMeta ?? existing?.billingMeta ?? null
     };
   });
-
-  return mergedItems;
 }
 
 function calculateBillingCycle(invoiceDate, billingPeriod) {

@@ -144,13 +144,8 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
   }
 
   const validatedManualItems = manualItems.map(item => {
-    const pStart = item.sourceType === "OTC"
-      ? new Date(item.periodStart || cycleStart)
-      : new Date(cycleStart);
-
-    const pEnd = item.sourceType === "OTC"
-      ? new Date(item.periodEnd || cycleEnd)
-      : new Date(cycleEnd);
+    const pStart = new Date(item.periodStart || cycleStart);
+    const pEnd = new Date(item.periodEnd || cycleEnd);
     const daysInMonth = getDaysInMonth(pStart);
     const billedDays = daysInclusive(pStart, pEnd);
     const monthlyAmount = round2(Number(item.qty) * Number(item.rate));
