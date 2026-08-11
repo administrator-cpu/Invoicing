@@ -177,21 +177,21 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
       </div>
 
       {/* TABLE SECTION */}
-      <div className="overflow-x-auto flex-grow">
-        <table className="w-full table-fixed border-collapse text-sm text-left whitespace-nowrap">
+      <div className="overflow-x-auto flex-grow custom-scrollbar">
+        <table className="w-full min-w-[1150px] border-collapse text-sm text-left whitespace-nowrap">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="w-[3%] px-2 py-3 text-center"></th>
-              <th className="w-[25%] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
-              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SAC Code</th>
-              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Service<br></br>Type</th>
-              <th className="w-[9%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">State</th>
-              <th className="w-[7%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">BW/Qty</th>
-              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
-              <th className="w-[12%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Billing Period</th>
-              <th className="w-[9%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Rate</th>
-              <th className="w-[8%] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
-              <th className="w-[3%] px-2 py-3 text-center"></th>
+              <th className="w-[4%] min-w-[40px] px-2 py-3 text-center"></th>
+              <th className="w-[22%] min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
+              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SAC Code</th>
+              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Service<br></br>Type</th>
+              <th className="w-[9%] min-w-[100px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">State</th>
+              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">BW/Qty</th>
+              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
+              <th className="w-[12%] min-w-[130px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Billing Period</th>
+              <th className="w-[10%] min-w-[110px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Rate</th>
+              <th className="w-[10%] min-w-[110px] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
+              <th className="w-[3%] min-w-[40px] px-2 py-3 text-center"></th>
             </tr>
           </thead>
 
@@ -222,13 +222,12 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                         disabled={!editMode}
                         {...register(`items.${index}.description`, { onChange: invalidatePreview })}
                         title={item.description}
-                        className="w-full text-ellipsis overflow-hidden bg-transparent border border-transparent disabled:opacity-100 disabled:text-gray-900 rounded py-1.5 px-2 text-sm font-semibold text-gray-900 focus:border-[#EA580C] outline-none hover:border-gray-200 transition-colors"
+                        className="w-full min-w-[180px] text-ellipsis overflow-hidden bg-transparent border border-transparent disabled:opacity-100 disabled:text-gray-900 rounded py-1.5 px-2 text-sm font-semibold text-gray-900 focus:border-[#EA580C] outline-none hover:border-gray-200 transition-colors"
                       />
                       {sourceType === "CONNECTION" && (
                         <button
                           type="button"
-                          onClick={() => toggleExpanded(index, item.crmConnectionSnapshot?.connectionId)
-                          }
+                          onClick={() => toggleExpanded(index, item.crmConnectionSnapshot?.connectionId)}
                           className="mt-1.5 ml-2 flex items-center gap-1 text-xs font-bold text-[#EA580C] hover:text-orange-700 transition-colors bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-md w-max"
                         >
                           <Settings2 size={13} />
@@ -254,15 +253,14 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                       <input
                         disabled={!editMode}
                         {...register(`items.${index}.sacCode`, { onChange: () => invalidatePreview() })}
-                        className="block mx-auto w-full max-w-[100px] min-w-[85px] border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-left font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
+                        className="block mx-auto w-full min-w-[85px] max-w-[100px] border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-center font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
                         placeholder="998422"
                       />
                     </td>
 
-
                     {/* SERVICE TYPE */}
-                    <td className="px-4 py-4 align-middle ">
-                      <span className="text-sm font-semibold text-gray-600 truncate block text-center ">
+                    <td className="px-4 py-4 align-middle">
+                      <span className="text-sm font-semibold text-gray-600 truncate block text-center min-w-[70px]">
                         {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
                           sourceType === 'IP_ADDRESS' ? 'IP' :
                             sourceType === 'OTC' ? '-' : 'Manual'}
@@ -272,12 +270,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                     {/* STATE */}
                     <td
                       title={item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address}
-                      className="px-2 py-4 align-middle text-center max-w-[150px] whitespace-normal break-words"
+                      className="px-2 py-4 align-middle text-center max-w-[150px] min-w-[90px] whitespace-normal break-words"
                     >
                       {item.crmConnectionSnapshot?.technicalDetails?.bEnd?.state || "N/A"}
                     </td>
-
-
 
                     {/* BW / QTY */}
                     <td className="px-4 py-4 align-middle text-center">
@@ -286,27 +282,27 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           <input
                             type="text"
                             {...register(`items.${index}.invoiceOverrides.bandwidth`, { onChange: invalidatePreview })}
-                            className="w-full max-w-[90px] mx-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none transition-all"
+                            className="w-full min-w-[70px] max-w-[90px] mx-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none transition-all"
                           />
                         ) : (
-                          <span className="text-sm font-bold text-gray-900 block truncate">
+                          <span className="text-sm font-bold text-gray-900 block truncate min-w-[50px]">
                             {item.invoiceOverrides?.bandwidth ?? item.crmConnectionSnapshot?.bandwidth ?? "-"}
                           </span>
                         )
                       ) : sourceType === "OTC" ? (
-                        <span className="text-sm font-bold text-gray-400 block">-</span>
+                        <span className="text-sm font-bold text-gray-400 block min-w-[50px]">-</span>
                       ) : (
                         <input
                           type="number" step="any" disabled={!editMode}
                           {...register(`items.${index}.qty`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
-                          className="w-full max-w-[70px] mx-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 font-semibold transition-all"
+                          className="w-full min-w-[60px] max-w-[80px] mx-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 font-semibold transition-all"
                         />
                       )}
                     </td>
 
                     {/* STATUS */}
                     <td className="px-4 py-4 align-middle">
-                      <div className="flex justify-center">
+                      <div className="flex justify-center min-w-[80px]">
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${getStatusBadge(sourceType === 'CONNECTION' ? item.status : item.statusSnapshot)}`}>
                           {sourceType === 'CONNECTION' ? item.status : item.statusSnapshot}
                         </span>
@@ -314,8 +310,8 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                     </td>
 
                     {/* BILLING PERIOD */}
-                    <td className="px-4 py-4 align-middle">
-                      <div className="flex flex-col gap-1.5 items-center max-w-[130px] mx-auto">
+                    <td className="px-2 py-4 align-middle">
+                      <div className="flex flex-col gap-1.5 items-center w-full min-w-[120px] mx-auto">
                         <input
                           disabled={!editMode}
                           type="date"
@@ -338,10 +334,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           <input
                             type="number" step="0.01"
                             {...register(`items.${index}.invoiceOverrides.ratePerMb`, { valueAsNumber: true, onChange: invalidatePreview })}
-                            className="w-full max-w-[100px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
+                            className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
                           />
                         ) : (
-                          <span className="block text-sm font-semibold text-gray-700">
+                          <span className="block text-sm font-semibold text-gray-700 min-w-[80px]">
                             ₹{(item.invoiceOverrides?.ratePerMb ?? item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         )
@@ -353,10 +349,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                               valueAsNumber: true,
                               onChange: invalidatePreview
                             })}
-                            className="w-full max-w-[100px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
+                            className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
                           />
                         ) : (
-                          <span className="block text-sm font-semibold text-gray-700">
+                          <span className="block text-sm font-semibold text-gray-700 min-w-[80px]">
                             ₹{Number(item.rate || 0).toLocaleString("en-IN", {
                               minimumFractionDigits: 2
                             })}
@@ -374,14 +370,14 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                             },
                             onChange: invalidatePreview
                           })}
-                          className="w-full max-w-[100px] ml-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:font-semibold disabled:text-gray-700"
+                          className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:font-semibold disabled:text-gray-700"
                         />
                       )}
                     </td>
 
                     {/* AMOUNT */}
                     <td className="px-4 py-4 align-middle text-right">
-                      <span className="block text-sm font-black text-[#EA580C]">
+                      <span className="block text-sm font-black text-[#EA580C] min-w-[90px]">
                         ₹{Number(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     </td>
@@ -410,7 +406,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                         colSpan={11}
                         className="bg-orange-50/30 px-6 py-5 border-b border-orange-100/50"
                       >
-                        <div className="grid grid-cols-2 gap-10">
+                        <div className="grid grid-cols-2 gap-10 min-w-[900px]">
 
                           {/* LEFT SIDE */}
                           <div>
@@ -426,7 +422,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                               ].map((opt) => (
                                 <label
                                   key={opt.key}
-                                  className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm"
+                                  className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm w-max"
                                 >
                                   <input
                                     type="checkbox"
@@ -627,12 +623,12 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           </div>
 
                           {item.billingMeta?.monthlyBreakdown?.length > 1 && (
-                            <div className="mt-5">
+                            <div className="mt-5 col-span-2">
                               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
                                 Billing Breakdown
                               </p>
 
-                              <div className="space-y-2">
+                              <div className="space-y-2 max-w-md">
                                 {item.billingMeta.monthlyBreakdown.map((month, idx) => (
                                   <div
                                     key={idx}
@@ -672,15 +668,15 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
       </div>
 
       {/* FOOTER ACTIONS */}
-      <div className="bg-gray-50 p-5 border-t border-gray-100 flex gap-4">
-        <button type="button" onClick={() => addManualItem('MANUAL_SERVICE', 'Custom Service Charge', 0)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-gray-300 hover:shadow-md transition-all">
-          <PlusCircle size={18} className="text-gray-400" /> Manual Service
+      <div className="bg-gray-50 p-5 border-t border-gray-100 flex flex-wrap gap-4">
+        <button type="button" onClick={() => addManualItem('MANUAL_SERVICE', 'Custom Service Charge', 0)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
+          <PlusCircle size={18} className="text-[#EA580C]" /> Manual Service
         </button>
-        <button type="button" onClick={() => addManualItem('OTC', 'One Time Installation Charge', 3000)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-gray-300 hover:shadow-md transition-all">
-          <PlusCircle size={18} className="text-gray-400" /> OTC Charge
+        <button type="button" onClick={() => addManualItem('OTC', 'One Time Installation Charge', 3000)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
+          <PlusCircle size={18} className="text-[#EA580C]" /> OTC Charge
         </button>
-        <button type="button" onClick={() => addManualItem('IP_ADDRESS', 'Additional Public IP Charge', 1500)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-gray-300 hover:shadow-md transition-all">
-          <PlusCircle size={18} className="text-gray-400" /> Add IP
+        <button type="button" onClick={() => addManualItem('IP_ADDRESS', 'Additional Public IP Charge', 1500)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
+          <PlusCircle size={18} className="text-[#EA580C]" /> Add IP
         </button>
       </div>
     </div>

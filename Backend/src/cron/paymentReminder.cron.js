@@ -1,142 +1,115 @@
-/* import cron from "node-cron";
-import Invoice from "../modules/Invoice/invoice.model.js";
-import { enqueuePaymentReminder } from "../queues/emailQueue.js";
-import logger from "../utils/logger.js";
-
-const FIRST_REMINDER_AFTER_DAYS = 10;
-const SECOND_REMINDER_AFTER_DAYS = 15;
-
-function startOfToday() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
-
-function calculateOverdueDays(dueDate) {
-  const today = startOfToday();
-  const due = new Date(dueDate);
-  due.setHours(0, 0, 0, 0);
-  return Math.floor((today - due) / (1000 * 60 * 60 * 24));
-}
-
-export function startPaymentReminderCron() {
-  if (process.env.ENABLE_PAYMENT_REMINDER_CRON !== "true") {
-    logger.info("Payment Reminder Cron is disabled.");
-    return;
-  }
-
-  cron.schedule("0 9 * * *",
-    async () => {
-      logger.info("Payment Reminder Cron started.");
-      try {
-        const invoices = await Invoice.find({
-          isDeleted: { $ne: true },
-          status: "FINALIZED",
-          paymentStatus: {
-            $in: ["UNPAID", "PARTIAL"],
-          },
-        }).select("_id invoiceNumber paymentStatus dates reminders customerSnapshot").lean();
-
-        let queued = 0;
-        for (const invoice of invoices) {
-          const overdueDays = calculateOverdueDays(invoice.dates.dueDate);
-          if (overdueDays < 0) {
-            continue;
-          }
-
-          if (overdueDays >= FIRST_REMINDER_AFTER_DAYS && !invoice.reminders?.first?.sentAt) {
-            await enqueuePaymentReminder(invoice._id, 1);
-            queued++;
-            logger.info(`Queued FIRST reminder for invoice ${invoice.invoiceNumber}`);
-            continue;
-          }
-
-          if (overdueDays >= SECOND_REMINDER_AFTER_DAYS && !invoice.reminders?.second?.sentAt) {
-            await enqueuePaymentReminder(invoice._id, 2);
-            queued++;
-            logger.info(`Queued SECOND reminder for invoice ${invoice.invoiceNumber}`);
-          }
-        }
-
-        logger.info(`Payment Reminder Cron completed successfully. ${queued} reminder(s) queued.`);
-      } catch (error) {
-        logger.error("Payment Reminder Cron failed.", {
-          message: error.message,
-          stack: error.stack,
-        });
-      }
-    },
-    {
-      timezone: "Asia/Kolkata",
-    }
-  );
-
-  logger.info("Payment Reminder Cron registered.");
-} */
-
 import cron from "node-cron";
+import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
 import logger from "../utils/logger.js";
+
+const TIMEZONE = "Asia/Kolkata";
+let isCronRunning = false;
+
+export async function processPaymentReminders(overrideDate = null) {
+  if (isCronRunning) {
+    logger.warn("Previous payment reminder run is still processing. Skipping.");
+    return;
+  }
+
+  isCronRunning = true;
+
+  try {
+    let now;
+    if (overrideDate) {
+      now = DateTime.fromISO(overrideDate).setZone(TIMEZONE).startOf("day");
+    } else {
+      now = DateTime.now().setZone(TIMEZONE).startOf("day");
+    }
+
+    const cursor = Invoice.find({
+      isDeleted: { $ne: true },
+      invoiceType: "BASE",
+      status: "FINALIZED",
+      paymentStatus: { $in: ["UNPAID", "PARTIAL"] },
+      "dates.dueDate": { $lt: now.toJSDate() },
+    }).select("_id invoiceNumber paymentStatus dates reminders customerSnapshot").cursor();
+
+    let queued = 0;
+    let failed = 0;
+    let batch = [];
+
+    for await (const invoice of cursor) {
+      const dueDate = DateTime.fromJSDate(invoice.dueDate).setZone(TIMEZONE).startOf("day");
+      const daysOverdue = Math.floor(now.diff(dueDate, "days").days);
+
+      let reminderType = null;
+
+      if (daysOverdue >= 9 && !invoice.reminders?.first?.sentAt) {
+        reminderType = 1;
+      } else if (daysOverdue >= 14 && !invoice.reminders?.second?.sentAt) {
+        reminderType = 2;
+      } else if (daysOverdue >= 19 && !invoice.reminders?.suspension?.sentAt) {
+        reminderType = 3;
+      }
+
+      if (reminderType) {
+        batch.push({
+          invoiceId: invoice._id,
+          reminderType: reminderType,
+          promise: enqueuePaymentReminder(invoice._id, reminderType)
+        });
+      }
+
+      if (batch.length >= 100) {
+        const results = await Promise.allSettled(batch.map(b => b.promise));
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            queued++;
+          } else if (result.status === "rejected") {
+            failed++;
+            logger.error(`Failed to enqueue reminder ${batch[index].reminderType} for invoice ${batch[index].invoiceId}`, {
+              reason: result.reason?.message
+            });
+          }
+        });
+        batch = [];
+      }
+    }
+
+    if (batch.length > 0) {
+      const results = await Promise.allSettled(batch.map(b => b.promise));
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          queued++;
+        } else if (result.status === "rejected") {
+          failed++;
+          logger.error(`Failed to enqueue reminder ${batch[index].reminderType} for invoice ${batch[index].invoiceId}`, {
+            reason: result.reason?.message
+          });
+        }
+      });
+    }
+
+    logger.info(`Payment Reminder processing completed. Queued: ${queued}, Failed: ${failed}.`);
+  } catch (error) {
+    logger.error("Payment Reminder processing failed.", {
+      message: error.message,
+      stack: error.stack,
+    });
+  } finally {
+    isCronRunning = false;
+  }
+}
 
 export function startPaymentReminderCron() {
   if (process.env.ENABLE_PAYMENT_REMINDER_CRON !== "true") {
     logger.info("Payment Reminder Cron is disabled.");
     return;
   }
-  cron.schedule("* * * * *",
-    async () => {
-      logger.info("TEST MODE: Payment Reminder Cron started.");
-      try {
-        const invoices = await Invoice.find({
-          isDeleted: { $ne: true },
-          status: "FINALIZED",
-          paymentStatus: {
-            $in: ["UNPAID", "PARTIAL"],
-          },
-        }).select("_id invoiceNumber paymentStatus dates reminders customerSnapshot").lean();
-        console.log(invoices);
 
-        let queued = 0;
+  // cron.schedule("0 9 * * *", () => {
+  cron.schedule("*/2 * * * *", () => {
+    processPaymentReminders();
+  }, {
+    timezone: TIMEZONE,
+  });
 
-        for (const invoice of invoices) {
-
-          // TEST LOGIC: Bypass the 10-day check. If first reminder is missing, send it immediately!
-          if (!invoice.reminders?.first?.sentAt) {
-            await enqueuePaymentReminder(invoice._id, 1);
-            queued++;
-            logger.info(`Queued FIRST reminder for invoice ${invoice.invoiceNumber}`);
-            continue;
-          }
-
-          // TEST LOGIC: Bypass the 15-day check. If first is sent but second is missing, send it immediately!
-          if (!invoice.reminders?.second?.sentAt) {
-            await enqueuePaymentReminder(invoice._id, 2);
-            queued++;
-            logger.info(`Queued SECOND reminder for invoice ${invoice.invoiceNumber}`);
-            continue;
-          }
-
-          if (!invoice.reminders?.suspension?.sentAt) {
-            await enqueuePaymentReminder(invoice._id, 3);
-            queued++;
-            logger.info(`Queued SERVICE SUSPENSION NOTICE for invoice ${invoice.invoiceNumber}`);
-            continue;
-          }
-        }
-
-        logger.info(`Payment Reminder Cron completed successfully. ${queued} reminder(s) queued.`);
-      } catch (error) {
-        logger.error("Payment Reminder Cron failed.", {
-          message: error.message,
-          stack: error.stack,
-        });
-      }
-    },
-    {
-      timezone: "Asia/Kolkata",
-    }
-  );
-
-  logger.info("Payment Reminder Cron registered in TEST MODE.");
+  logger.info("Payment Reminder Cron registered for daily execution at 09:00 IST.");
 }

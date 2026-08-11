@@ -17,18 +17,23 @@ async function processEmailJob(job, options) {
   try {
     logger.info(`${emailType} email job started`);
     payload = await prepare();
-    emailLog = await EmailLog.create({
-      documentType,
-      documentId: payload.invoice._id,
-      emailType,
-      jobId: job.id,
-      recipients: payload.email.metadata.recipients,
-      subject: payload.email.subject,
-    });
-
-    if (updateInvoice.processing) {
-      await updateInvoice.processing(payload.invoice._id);
-    }
+    emailLog = await EmailLog.findOneAndUpdate(
+      { jobId: job.id }, // Find by Job ID
+      {
+        $setOnInsert: {
+          documentType,
+          documentId: payload.invoice._id,
+          emailType,
+          recipients: payload.email.metadata.recipients,
+          subject: payload.email.subject,
+        },
+        $set: {
+          status: "ATTEMPTING",
+          attempts: job.attemptsMade + 1,
+        }
+      },
+      { upsert: true, new: true }
+    );
 
     const result = await sendEmail(payload.email);
     await emailLog.updateOne({
@@ -146,7 +151,10 @@ const worker = new Worker(
   },
   {
     connection: redis.duplicate(),
-    concurrency: 5,
+    limiter: {
+      max: 10,
+      duration: 1000,
+    },
   }
 );
 

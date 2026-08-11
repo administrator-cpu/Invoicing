@@ -13,6 +13,17 @@ const redis = new IORedis(
     username: process.env.REDIS_USERNAME || undefined,
     password: REDIS_PASSWORD || undefined,
     maxRetriesPerRequest: null,
+    enableOfflineQueue: false,
+    keepAlive: 10000, // Send a TCP keep-alive ping every 10 seconds
+    retryStrategy(times) {
+      // Stop retrying after 10 attempts
+      if (times > 10) {
+        logger.error("Redis connection completely failed after 10 attempts.");
+        return null; // Returning null stops the reconnect loop
+      }
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    },
   }
 );
 
