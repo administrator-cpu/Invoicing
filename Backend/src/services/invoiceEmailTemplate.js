@@ -2,6 +2,7 @@ export const buildInvoiceEmail = (invoice) => {
   const customerName = invoice.customerSnapshot?.name || "Customer";
   const invoiceNumber = invoice.invoiceNumber;
   const amount = invoice.financials?.grandTotal ? invoice.financials.grandTotal.toFixed(2) : "0.00";
+  const isCancelled = invoice.status === "CANCELLED";
 
   const formatDate = (dateString) => {
     return dateString ? new Date(dateString).toLocaleDateString("en-IN") : "N/A";
@@ -13,6 +14,14 @@ export const buildInvoiceEmail = (invoice) => {
   const billingCycleEnd = formatDate(invoice.dates?.billingCycleEnd);
 
   const subject = `${customerName}: ${invoiceNumber}`;
+
+  const introMessage = isCancelled
+    ? "This is to inform you that the invoice recently issued to you is being <strong>cancelled</strong> due to necessary corrections in the billing details.<br><br>A revised invoice with the corrected details will be issued and shared with you shortly."
+    : "Please find the attached invoice(s) generated for the services.";
+
+  const footerMessage = isCancelled
+    ? "We regret any inconvenience caused and request you to kindly disregard the earlier invoice.<br><br>Thank you for your cooperation and understanding."
+    : 'In case of any discrepancy with the invoice, would request you to write an email to <a href="mailto:billing@fab5network.com">billing@fab5network.com</a> on or before due date. Post due date it will be assumed the invoices are accurate.';
 
   const html = `
   <!DOCTYPE html>
@@ -125,7 +134,7 @@ export const buildInvoiceEmail = (invoice) => {
                 />
               </a>
             </td>
-            <td class="header-title">Invoice Notification</td>
+            <td class="header-title">${isCancelled ? 'Cancellation Notification' : 'Invoice Notification'}</td>
           </tr>
         </table>
         
@@ -135,30 +144,32 @@ export const buildInvoiceEmail = (invoice) => {
           
           <div class="intro-text">
             <strong>Greetings from FAB5!</strong><br>
-            Please find the attached invoice(s) generated for the services.
+            ${introMessage}
           </div>
           
           <!-- Data Table (Fixed layout for scaling) -->
           <table class="invoice-table">
             <tr>
-              <th>Invoice #</th>
+              <th>Invoice No.</th>
               <th>Invoice Date</th>
-              <th>Due Date</th>
+              ${!isCancelled ? '<th>Due Date</th>' : ''}
               <th>Invoice Amount</th>
               <th>Period</th>
+              ${isCancelled ? '<th>Status</th>' : ''}
             </tr>
             <tr>
               <td>${invoiceNumber}</td>
               <td>${invoiceDate}</td>
-              <td>${dueDate}</td>
+              ${!isCancelled ? `<td>${dueDate}</td>` : ''}
               <td>₹ ${amount}</td>
               <td>${billingCycleStart} To ${billingCycleEnd}</td>
+              ${isCancelled ? '<td style="color: #ef4444;">CANCELLED</td>' : ''}
             </tr>
           </table>
           
           <!-- Footer Disclaimers -->
           <div class="footer-text">
-            In case of any discrepancy with the invoice, would request you to write an email to <a href="mailto:billing@fab5network.com">billing@fab5network.com</a> on or before due date. Post due date it will be assumed the invoices are accurate.<br><br>
+            ${footerMessage}<br>
             Regards,<br>
             <span style="font-weight: bold;">Billing Team</span><br></br>
             <span style="font-weight: bold;">8929882020</span><br></br>

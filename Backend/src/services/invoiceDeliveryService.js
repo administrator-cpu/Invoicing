@@ -4,9 +4,10 @@ import InvoiceCustomerSettings from "../modules/Invoice/invoiceCustomerSettings.
 import { pdfExists, readInvoicePdf } from "./documentStorage.js";
 import { activeInvoiceFilter } from "../utils/invoice.utils.js";
 import { buildInvoiceEmail } from "./invoiceEmailTemplate.js";
+import generateInvoicePdf from "./invoicePdfService.js";
 
 function buildInvoiceAttachment(invoice, pdfBuffer) {
-  const firstWord = invoice.customerSnapshot.name ?.trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, "") || "Customer";
+  const firstWord = invoice.customerSnapshot.name?.trim().split(/\s+/)[0].replace(/[^a-zA-Z0-9]/g, "") || "Customer";
   return [
     {
       filename: `${invoice.invoiceNumber}_${firstWord}.pdf`,
@@ -45,10 +46,19 @@ export async function prepareInvoiceDelivery(invoiceId) {
   const invoice = await Invoice.findOne(activeInvoiceFilter(invoiceId)).lean();
 
   if (!invoice) throw new AppError("Invoice not found.", 404);
-  if (invoice.status !== "FINALIZED") throw new AppError("Only finalized invoices can be emailed.", 400);
+  if (invoice.status === "DRAFT") { throw new AppError("Draft invoices cannot be emailed.", 400); }
+  if (!["FINALIZED", "CANCELLED"].includes(invoice.status)) { throw new AppError("This invoice cannot be emailed.", 400); }
 
-  if (!invoice.pdf?.relativePath || !(await pdfExists(invoice.pdf.relativePath))) {
-    throw new AppError("Invoice PDF not found.", 404);
+  let pdfBuffer;
+
+  if (invoice.status === "CANCELLED") {
+    const document = await generateInvoicePdf(invoice);
+    pdfBuffer = document.buffer;
+  } else {
+    if (!invoice.pdf?.relativePath || !(await pdfExists(invoice.pdf.relativePath))) {
+      throw new AppError("Invoice PDF not found.", 404);
+    }
+    pdfBuffer = await readInvoicePdf(invoice.pdf.relativePath);
   }
 
   const invoiceCustomerSettings = await InvoiceCustomerSettings.findOne({
@@ -60,8 +70,6 @@ export async function prepareInvoiceDelivery(invoiceId) {
   const { to, cc, bcc } = buildRecipients(invoiceCustomerSettings.recipients);
 
   if (!to.length) throw new AppError("Customer does not have any TO recipients configured.", 400);
-
-  const pdfBuffer = await readInvoicePdf(invoice.pdf.relativePath);
 
   const attachments = buildInvoiceAttachment(invoice, pdfBuffer);
 

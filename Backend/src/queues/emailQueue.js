@@ -17,12 +17,16 @@ const emailQueue = new Queue("emailQueue", {
   defaultJobOptions,
 });
 
-export async function enqueueInvoiceEmail(invoiceId) {
+export async function enqueueInvoiceEmail(invoiceId, overrideId = null) {
   try {
+    const now = new Date();
+    const fallbackId = `${now.toISOString().split('T')[0]}-${now.getUTCHours()}-${now.getUTCMinutes()}`;
+    const idempotencyKey = overrideId || fallbackId;
+
     const job = await emailQueue.add(
       "sendInvoice",
       { invoiceId },
-      { jobId: `invoice-email-${invoiceId}` }
+      { jobId: `invoice-email-${invoiceId}-${idempotencyKey}` }
     );
     return job;
   } catch (error) {
@@ -31,12 +35,16 @@ export async function enqueueInvoiceEmail(invoiceId) {
   }
 }
 
-export async function enqueuePaymentReminder(invoiceId, reminderNumber) {
+export async function enqueuePaymentReminder(invoiceId, reminderNumber, overrideId = null) {
   try {
+    const now = new Date();
+    const fallbackId = `${now.toISOString().split('T')[0]}-${now.getUTCHours()}-${now.getUTCMinutes()}`;
+    const idempotencyKey = overrideId || fallbackId;
+
     return await emailQueue.add(
       "sendPaymentReminder",
       { invoiceId, reminderNumber },
-      { jobId: `reminder-${reminderNumber}-invoice-${invoiceId}` }
+      { jobId: `reminder-${reminderNumber}-invoice-${invoiceId}-${idempotencyKey}` }
     );
   } catch (error) {
     logger.error("Failed to enqueue payment reminder", { invoiceId, reminderNumber, error: error.message });

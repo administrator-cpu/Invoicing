@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
+import {getCustomerOutstandingBalance} from "../services/bahiKhata.service.js";
 import logger from "../utils/logger.js";
 
 const TIMEZONE = "Asia/Kolkata";
@@ -23,11 +24,13 @@ export async function processPaymentReminders(overrideDate = null) {
       now = DateTime.now().setZone(TIMEZONE).startOf("day");
     }
 
+    const reminderStartDate = DateTime.fromISO("2026-07-25", { zone: TIMEZONE }).startOf("day");
     const cursor = Invoice.find({
       isDeleted: { $ne: true },
       invoiceType: "BASE",
       status: "FINALIZED",
       paymentStatus: { $in: ["UNPAID", "PARTIAL"] },
+      "dates.invoiceDate": { $gte: reminderStartDate.toJSDate() },
       "dates.dueDate": { $lt: now.toJSDate() },
     }).select("_id invoiceNumber paymentStatus dates reminders customerSnapshot").cursor();
 
@@ -36,7 +39,26 @@ export async function processPaymentReminders(overrideDate = null) {
     let batch = [];
 
     for await (const invoice of cursor) {
-      const dueDate = DateTime.fromJSDate(invoice.dueDate).setZone(TIMEZONE).startOf("day");
+      const crmId = invoice.customerSnapshot?.crmCustomerId;
+      if (!crmId) {
+        logger.warn("Skipping payment reminder: invoice has no CRM customer ID.", {
+          invoiceId: invoice._id,
+          invoiceNumber: invoice.invoiceNumber,
+        });
+        continue;
+      }
+
+      const outstandingBalance = await getCustomerOutstandingBalance(crmId);
+      if (outstandingBalance <= 0) {
+        logger.info("Skipping payment reminder: customer has no outstanding balance.", {
+          invoiceId: invoice._id,
+          invoiceNumber: invoice.invoiceNumber,
+          outstandingBalance,
+        });
+        continue;
+      }
+
+      const dueDate = DateTime.fromJSDate(invoice.dates.dueDate).setZone(TIMEZONE).startOf("day");
       const daysOverdue = Math.floor(now.diff(dueDate, "days").days);
 
       let reminderType = null;
