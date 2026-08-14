@@ -1,9 +1,18 @@
+import { getCustomerOutstandingBalance } from "../services/bahiKhata.service.js";
+
 const formatCurrency = (amount) => new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 }).format(amount);
+
+const formatOutstandingBalance = (amount) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
 
 const formatDate = (date) => new Intl.DateTimeFormat("en-GB").format(new Date(date));
 
@@ -23,7 +32,7 @@ const reminderConfig = {
     subjectSuffix: "1ST REMINDER",
     introTitle: "First Reminder",
     intro: `
-      This is the <strong>First Reminder</strong> regarding an outstanding payment.
+      This is the <strong>First Reminder</strong> regarding the total outstanding payment of <strong>{{OUTSTANDING_BALANCE}}</strong>.
       We haven't been able to verify your payment.
       If you have already paid and shared the payment information,
       please ignore this email.
@@ -44,7 +53,7 @@ const reminderConfig = {
     subjectSuffix: "2ND REMINDER",
     introTitle: "Second Reminder",
     intro: `
-      This is the <strong>Second Reminder</strong> regarding an outstanding payment.
+      This is the <strong>Second Reminder</strong> regarding the total outstanding payment of <strong>{{OUTSTANDING_BALANCE}}</strong>.
       We still haven't been able to verify your payment.
       If payment has already been made and shared with our Billing Team,
       please ignore this email.
@@ -64,7 +73,7 @@ const reminderConfig = {
     subjectSuffix: "SERVICE SUSPENSION NOTICE",
     introTitle: "Final Reminder",
     intro: `
-      This is our <strong>last and final reminder</strong> about an outstanding payment.
+      This is our <strong>last and final reminder</strong> regarding the total outstanding payment of <strong>{{OUTSTANDING_BALANCE}}</strong>.
       We tried our best to communicate with you and find a solution regarding this
       delayed payment. If you are receiving this message, it means we have exhausted
       all options to prevent your service suspension.
@@ -86,14 +95,17 @@ const reminderConfig = {
   },
 };
 
-export function buildReminderEmail(invoice, reminderNumber) {
+export async function buildReminderEmail(invoice, reminderNumber) {
   const config = reminderConfig[reminderNumber];
   if (!config) {
     throw new Error("Invalid reminder number.");
   }
   const customerName = invoice.customerSnapshot.name || "Customer";
-  const subject = `${customerName.toUpperCase()} : ${invoice.invoiceNumber} - OUTSTANDING PAYMENT (${config.subjectSuffix})`;
+  const subject = `${customerName.toUpperCase()} - OUTSTANDING PAYMENT (${config.subjectSuffix})`;
   const overdueDays = getOverdueDays(invoice.dates.dueDate);
+  const crmId = invoice.customerSnapshot.crmCustomerId;
+  const outstandingBalance = crmId ? await getCustomerOutstandingBalance(crmId) : 0;
+  const outstandingBalanceText = formatOutstandingBalance(outstandingBalance);
 
   const html = `
   <!DOCTYPE html>
@@ -216,42 +228,11 @@ export function buildReminderEmail(invoice, reminderNumber) {
           <div class="greeting">Dear <strong>Customer</strong>,</div>
           
           <div class="intro-text">
-            ${config.intro}
+            ${config.intro.replaceAll("{{OUTSTANDING_BALANCE}}", outstandingBalanceText)}
             <p>
               ${config.closing}
             </p>
           </div>
-          
-          <!-- Data Table (Vertical Layout adapted to approved styling) -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600; color: #6b7280; width: 40%; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;">
-                Invoice No.
-              </td>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background-color: #ffffff; font-weight: bold; color: #111827; font-size: 15px;">
-                ${invoice.invoiceNumber}
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;">
-                Due Date
-              </td>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background-color: #ffffff; font-weight: bold; color: #111827; font-size: 15px;">
-                ${formatDate(invoice.dates.dueDate)} 
-                <span style="color: #ef4444; font-size: 13px; margin-left: 6px; background-color: #fef2f2; padding: 2px 8px; border-radius: 12px; border: 1px solid #fee2e2;">
-                  ${overdueDays} day${overdueDays !== 1 ? "s" : ""} overdue
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background-color: #f9fafb; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;">
-                Outstanding Amount
-              </td>
-              <td style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; background-color: #ffffff; font-weight: 900; color: #ea580c; font-size: 18px;">
-                ${formatCurrency(invoice.financials.balanceDue)}
-              </td>
-            </tr>
-          </table>
           
           <div class="intro-text">
             <p>

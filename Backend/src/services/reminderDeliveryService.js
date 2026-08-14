@@ -54,7 +54,7 @@ export async function prepareReminderDelivery(invoiceId, reminderNumber) {
     throw new AppError("Customer does not have any TO recipients configured.", 400);
   }
 
-  const { subject, html } = buildReminderEmail(invoice, reminderNumber);
+  const { subject, html } = await buildReminderEmail(invoice, reminderNumber);
 
   return {
     invoiceId: invoice._id,
