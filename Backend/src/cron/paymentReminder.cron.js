@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
-import {getCustomerOutstandingBalance} from "../services/bahiKhata.service.js";
+import { getCustomerOutstandingBalance } from "../services/bahiKhata.service.js";
 import logger from "../utils/logger.js";
 
 const TIMEZONE = "Asia/Kolkata";
@@ -126,8 +126,7 @@ export function startPaymentReminderCron() {
     return;
   }
 
-  // cron.schedule("0 9 * * *", () => {
-  cron.schedule("*/2 * * * *", () => {
+  cron.schedule("0 9 * * *", () => {
     processPaymentReminders();
   }, {
     timezone: TIMEZONE,

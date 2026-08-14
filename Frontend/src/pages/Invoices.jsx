@@ -6,10 +6,13 @@ import { FileText, Eye, ChevronLeft, ChevronRight, Plus, ShieldAlert, Download }
 import { useInvoices } from '@/features/invoices/hooks/useInvoices';
 
 const STATUS_TABS = [
-  { label: 'All Invoices', value: 'ALL' },
-  { label: 'Drafts', value: 'DRAFT' },
-  { label: 'Finalized', value: 'FINALIZED' },
-  { label: 'Cancelled', value: 'CANCELLED' }
+  { label: 'All Invoices', value: 'ALL', type: 'status' },
+  { label: 'Drafts', value: 'DRAFT', type: 'status' },
+  { label: 'Finalized', value: 'FINALIZED', type: 'status' },
+  { label: 'Cancelled', value: 'CANCELLED', type: 'status' },
+  { label: 'Unpaid', value: 'UNPAID', type: 'payment' },
+  { label: 'Partial', value: 'PARTIAL', type: 'payment' },
+  { label: 'Paid', value: 'PAID', type: 'payment' }
 ];
 
 const Invoices = () => {
@@ -19,6 +22,7 @@ const Invoices = () => {
 
   const currentStatus = searchParams.get('status') || location.state?.status || 'ALL';
   const currentPage = Number(searchParams.get('page')) || 1;
+  const currentPaymentStatus = searchParams.get('paymentStatus') || 'ALL';
   const searchDate = searchParams.get('date') || '';
   const searchMonth = searchParams.get('month') || '';
   const [showGSTModal, setShowGSTModal] = useState(false);
@@ -36,6 +40,7 @@ const Invoices = () => {
 
   const { data, isLoading, isError } = useInvoices({
     status: currentStatus,
+    paymentStatus: currentPaymentStatus,
     page: currentPage,
     limit: 10,
     searchDate,
@@ -64,8 +69,13 @@ const Invoices = () => {
   const summary = data?.summary || {};
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
-  const handleStatusChange = (statusValue) => {
-    updateParams({ status: statusValue, page: 1 });
+  const handleFilterChange = (tab) => {
+    if (tab.type === 'status') {
+      updateParams({ status: tab.value, paymentStatus: '', page: 1 });
+    }
+    if (tab.type === 'payment') {
+      updateParams({ status: 'ALL', paymentStatus: tab.value, page: 1 });
+    }
   };
 
   const getStatusStyles = (status) => {
@@ -142,23 +152,32 @@ const Invoices = () => {
       </div>
 
 
-      {/* Semantic Pipeline Filtering Tabs */}
+      {/* Invoice and Payment Filtering Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-6 overflow-x-auto whitespace-nowrap scrollbar-none">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => handleStatusChange(tab.value)}
-            className={`pb-3 text-sm font-medium transition-colors relative cursor-pointer ${currentStatus === tab.value
-              ? 'text-primary dark:text-indigo-400 font-semibold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-          >
-            {tab.label}
-            {currentStatus === tab.value && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary dark:bg-indigo-400 rounded-full" />
-            )}
-          </button>
-        ))}
+        {STATUS_TABS.map((tab) => {
+          const isActive = tab.type === 'status'
+            ? tab.value === 'ALL'
+              ? currentStatus === 'ALL' && currentPaymentStatus === 'ALL'
+              : currentStatus === tab.value
+            : currentPaymentStatus === tab.value;
+
+          return (
+            <button
+              key={`${tab.type}-${tab.value}`}
+              onClick={() => handleFilterChange(tab)}
+              className={`pb-3 text-sm font-medium transition-colors relative cursor-pointer ${isActive
+                ? 'text-primary dark:text-indigo-400 font-semibold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+            >
+              {tab.label}
+
+              {isActive && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary dark:bg-indigo-400 rounded-full" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Accounts Receivable Dashboard */}

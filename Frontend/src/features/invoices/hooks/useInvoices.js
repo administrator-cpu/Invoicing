@@ -39,11 +39,14 @@ export const useInvoices = (filters) => {
   return useQuery({
     queryKey: ['invoices', filters],
     queryFn: async () => {
-      const { status, page = 1, limit = 10, searchDate, searchMonth } = filters;
+      const { status, paymentStatus, page = 1, limit = 10, searchDate, searchMonth } = filters;
 
       let queryStr = `?page=${page}&limit=${limit}`;
       if (status && status !== 'ALL') {
         queryStr += `&status=${status}`;
+      }
+      if (paymentStatus && paymentStatus !== 'ALL') {
+        queryStr += `&paymentStatus=${paymentStatus}`;
       }
       if (searchDate) {
         queryStr += `&date=${searchDate}`; // Format: YYYY-MM-DD
