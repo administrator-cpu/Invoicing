@@ -69,14 +69,88 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     Invoice.aggregate([
       {
         $match: {
-          isDeleted: false
+          isDeleted: { $ne: true }
         }
       },
       {
         $group: {
-          _id: "$status",
-          count: {
-            $sum: 1
+          _id: null,
+
+          draft: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "DRAFT"] },
+                1,
+                0
+              ]
+            }
+          },
+
+          finalized: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "FINALIZED"] },
+                1,
+                0
+              ]
+            }
+          },
+
+          cancelled: {
+            $sum: {
+              $cond: [
+                { $eq: ["$status", "CANCELLED"] },
+                1,
+                0
+              ]
+            }
+          },
+
+          partial: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$status", "FINALIZED"] },
+                    { $eq: ["$paymentStatus", "PARTIAL"] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          },
+
+          paid: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$status", "FINALIZED"] },
+                    { $eq: ["$paymentStatus", "PAID"] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          },
+
+          overdue: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$status", "FINALIZED"] },
+                    { $in: ["$paymentStatus", ["UNPAID", "PARTIAL"]] },
+                    { $gt: ["$financials.balanceDue", 0] },
+                    { $lt: ["$dates.dueDate", now] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
           }
         }
       }
@@ -133,7 +207,7 @@ export const getDashboard = catchAsync(async (req, res, next) => {
     ])
   ]);
 
-  const statusSummary = {
+  const statusSummary = invoiceStatus[0] || {
     draft: 0,
     finalized: 0,
     partial: 0,

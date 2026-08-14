@@ -806,7 +806,11 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
  */
 export const getInvoices = catchAsync(async (req, res, next) => {
   const filter = activeInvoiceFilter();
-  if (req.query.status) filter.status = req.query.status;
+  if (req.query.status && req.query.status !== "ALL") filter.status = req.query.status;
+  if (req.query.paymentStatus && req.query.paymentStatus !== "ALL") {
+    filter.status = "FINALIZED";
+    filter.paymentStatus = req.query.paymentStatus;
+  }
   if (req.query.customerId) filter["customerSnapshot.crmCustomerId"] = req.query.customerId;
 
   if (req.query.search) {
