@@ -102,7 +102,6 @@ export async function buildReminderEmail(invoice, reminderNumber) {
   }
   const customerName = invoice.customerSnapshot.name || "Customer";
   const subject = `${customerName.toUpperCase()} - OUTSTANDING PAYMENT (${config.subjectSuffix})`;
-  const overdueDays = getOverdueDays(invoice.dates.dueDate);
   const crmId = invoice.customerSnapshot.crmCustomerId;
   const outstandingBalance = crmId ? await getCustomerOutstandingBalance(crmId) : 0;
   const outstandingBalanceText = formatOutstandingBalance(outstandingBalance);

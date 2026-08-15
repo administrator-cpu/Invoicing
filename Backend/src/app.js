@@ -20,6 +20,8 @@ import customerSettingsRouter from './modules/Invoice/invoiceCustomerSettings.ro
 import emailLogRouter from './modules/Email/emailLog.routes.js';
 import creditNoteRouter from './modules/CreditNote/creditNote.routes.js';
 
+import { setupBullBoard } from './config/bullBoard.js';
+
 const app = express();
 
 const allowedOrigins = [
@@ -96,6 +98,8 @@ app.get("/health", (req, res) => {
   const dbState = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
   res.status(200).json({ status: "ok", db: dbState, uptime: process.uptime() });
 });
+
+setupBullBoard(app);
 
 app.use('/api/auth', authRouter);
 app.use('/api/crm', crmRouter);
