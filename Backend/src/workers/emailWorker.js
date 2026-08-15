@@ -151,6 +151,8 @@ const worker = new Worker(
   },
   {
     connection: redis.duplicate(),
+    prefix: "invoicing",
+    concurrency: 5,
     limiter: {
       max: 10,
       duration: 1000,

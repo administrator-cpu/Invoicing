@@ -160,7 +160,7 @@ export default function InvoiceItemsTable({ invoice }) {
           <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200">
             <tr className="divide-x divide-orange-200">
               <td colSpan={isInterstate ? 7 : 8} className="py-4 px-4 text-right font-bold text-gray-800 uppercase tracking-wider text-xs">
-                {totalLabel}
+                {totalLabel} <span className="text-[10px] text-gray-500 lowercase ml-1 tracking-normal">(Rounded)</span>
               </td>
               <td className="py-4 px-2 text-right font-black text-lg text-[#ea580c]">
                 {formatMoney(Math.abs(invoice.financials?.grandTotal))}

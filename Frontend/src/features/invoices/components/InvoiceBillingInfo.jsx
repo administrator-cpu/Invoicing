@@ -144,7 +144,12 @@ export default function InvoiceBillingInfo({ invoice }) {
 
             <div className="mt-auto pt-4">
               <div className="flex justify-between font-black text-xl border-t border-gray-200 pt-3 text-gray-900">
-                <span>{totalLabel}</span>
+                <div className="flex flex-col">
+                  <span>{totalLabel}</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wide mt-0.5">
+                    (Rounded Off)
+                  </span>
+                </div>
                 <span className="text-[#ea580c]">{formatINR(invoice.financials.grandTotal)}</span>
               </div>
               <div className="border-t border-orange-300 mt-4 pt-3">

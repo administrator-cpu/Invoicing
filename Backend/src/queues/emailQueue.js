@@ -10,10 +10,12 @@ const defaultJobOptions = {
   },
   removeOnComplete: 100,
   removeOnFail: 500,
+  timeout: 15000,
 };
 
 const emailQueue = new Queue("emailQueue", {
   connection: redis.duplicate(),
+  prefix: "invoicing",
   defaultJobOptions,
 });
 

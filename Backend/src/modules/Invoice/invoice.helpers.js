@@ -256,7 +256,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
   }
   const taxableBasis = round2(Math.max(0, finalSubTotal - finalDiscount));
   const taxes = calculateTaxes(taxableBasis, customerState, companyState);
-  const grandTotal = round2(taxableBasis + taxes.totalTax);
+  const grandTotal = Math.round(taxableBasis + taxes.totalTax);
 
   return {
     verifiedItems,
