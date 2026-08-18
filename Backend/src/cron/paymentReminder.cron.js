@@ -126,8 +126,8 @@ export function startPaymentReminderCron() {
     return;
   }
 
-  // cron.schedule("0 9 * * *", () => {
-  cron.schedule("*/10 * * * *", () => {
+  cron.schedule("0 9 * * *", () => {
+  // cron.schedule("*/10 * * * *", () => {
     processPaymentReminders();
   }, {
     timezone: TIMEZONE,

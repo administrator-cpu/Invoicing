@@ -50,7 +50,7 @@ const formatActivityDate = (date) => {
 
 export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) => {
   const { control, register, watch, setValue } = useFormContext();
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: 'items'
   });
@@ -198,8 +198,9 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
           <tbody className="divide-y divide-gray-100">
             {fields.map((field, index) => {
               const item = watch(`items.${index}`);
-              const isSelected = watch(`items.${index}.isSelected`);
-              const sourceType = watch(`items.${index}.sourceType`);
+              if (!item) { return null; }
+              const isSelected = item.isSelected;
+              const sourceType = item.sourceType;
               const connectionId = item.crmConnectionSnapshot?.connectionId;
               const activities = billingHistory[connectionId] ?? [];
               const loading = billingHistoryLoading[connectionId];
