@@ -189,9 +189,14 @@ export const buildMultiMonthInvoiceItems = ({ connections, manualItems = [], bil
   const oneTimeItems = manualItems.filter(item => item.sourceType === "OTC");
 
   for (const period of periods) {
+    const periodManualItems = recurringManualItems.map(item => ({
+      ...item,
+      periodStart: period.start,
+      periodEnd: period.end,
+    }));
     const items = buildInvoiceItems({
       connections,
-      manualItems: recurringManualItems,
+      manualItems: periodManualItems,
       billingCycleStart: period.start,
       billingCycleEnd: period.end,
       billingMode,
@@ -234,15 +239,43 @@ function isConsecutivePeriod(previous, current) {
   return previousEnd.getTime() === currentStart.getTime();
 }
 
+function hasSameCommercialState(previous, current) {
+  const previousBandwidth = previous.crmConnectionSnapshot?.bandwidth ?? previous.bandwidth ?? "";
+  const currentBandwidth = current.crmConnectionSnapshot?.bandwidth ?? current.bandwidth ?? "";
+  const previousRate = previous.crmConnectionSnapshot?.ratePerMb ?? previous.billingMeta?.monthlyRatePerMb ?? previous.rate ?? 0;
+  const currentRate = current.crmConnectionSnapshot?.ratePerMb ?? current.billingMeta?.monthlyRatePerMb ?? current.rate ?? 0;
+
+  return (
+    String(previousBandwidth) === String(currentBandwidth) &&
+    Number(previousRate) === Number(currentRate)
+  );
+}
+
+function getMergeIdentity(item) {
+  const sourceType = item.sourceType ?? "";
+  const connectionId = item.crmConnectionSnapshot?.connectionId ?? "";
+  const description = item.description ?? "";
+  const bandwidth = item.crmConnectionSnapshot?.bandwidth ?? item.bandwidth ?? "";
+  const rate = item.billingMeta?.monthlyRatePerMb ?? item.rate ?? 0;
+  const monthlyMrc = item.billingMeta?.monthlyMrc ?? item.mrc ?? 0;
+  const qty = Number(item.qty ?? 1);
+
+  return [
+    sourceType,
+    connectionId,
+    description,
+    String(bandwidth),
+    Number(rate),
+    Number(monthlyMrc),
+    qty,
+  ].join("|");
+}
+
 export function mergeInvoiceItems(items) {
   const grouped = new Map();
 
   for (const item of items) {
-    const key = [
-      item.sourceType,
-      item.crmConnectionSnapshot?.connectionId ?? "",
-      item.billingMeta?.calculationType,
-    ].join("|");
+    const key = getMergeIdentity(item);
 
     if (!grouped.has(key)) {
       grouped.set(key, []);
@@ -284,7 +317,7 @@ export function mergeInvoiceItems(items) {
         continue;
       }
 
-      if (isConsecutivePeriod(current, item)) {
+      if (isConsecutivePeriod(current, item) && hasSameCommercialState(current, item)) {
         current.amount = round2(current.amount + item.amount);
         current.periodEnd = item.periodEnd;
         current.billingMeta.daysCharged += item.billingMeta?.daysCharged ?? 0;
@@ -339,49 +372,58 @@ export function mergeInvoiceItems(items) {
 function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) {
   const SEGMENT_ACTIONS = ["ACTIVATED"];
 
-  const sortedHistory = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sortedHistory = [...(connection.history || [])].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
 
-  const terminationEntry = sortedHistory.find(h => h.action === "TERMINATED");
+  const terminationEntry = sortedHistory.find((h) => h.action === "TERMINATED");
   const terminationDate = terminationEntry ? new Date(terminationEntry.date) : null;
-  const noticeTerminationDate = connection.status === "Notice Period" && connection.terminationDetails?.finalDate
-    ? new Date(connection.terminationDetails.finalDate)
-    : null;
 
-  if (terminationDate && terminationDate < cycleStart) return [];
+  const noticeTerminationDate =
+    connection.status === "Notice Period" && connection.terminationDetails?.finalDate
+      ? new Date(connection.terminationDetails.finalDate)
+      : null;
+
+  if (terminationDate && terminationDate < cycleStart) {
+    return [];
+  }
 
   const overrides = connection.invoiceOverrides || {};
   const rateSegments = [];
-  const isPendingCommercial = connection.status === "APPROVED" || connection.status === "GENERATION";
 
   for (const entry of sortedHistory) {
-    if (isPendingCommercial && (entry.action === "UPGRADE" || entry.action === "DOWNGRADE" || entry.action === "RATE_REVISION")) {
-      break;
+    if (!SEGMENT_ACTIONS.includes(entry.action)) {
+      continue;
     }
-    if (!SEGMENT_ACTIONS.includes(entry.action)) continue;
 
-    const bandwidth = overrides.bandwidth ?? entry.bandwidth ?? "";
-    const ratePerMb = Number(overrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0);
+    const bandwidth = entry.bandwidth ?? "";
+    const ratePerMb = Number(entry.commercials?.ratePerMb ?? 0);
+
     const parsedBandwidth = Number.parseFloat(String(bandwidth));
     const calculatedMrc = Number.isFinite(parsedBandwidth)
       ? round2(parsedBandwidth * ratePerMb)
       : Number(entry.commercials?.mrc || 0);
 
-    if (calculatedMrc <= 0) continue;
+    if (calculatedMrc <= 0) {
+      continue;
+    }
+
+    const effectiveDate = new Date(entry.date);
 
     rateSegments.push({
-      effectiveDate: entry.action === "ACTIVATED"
-        ? (connection.acceptanceDate ? new Date(connection.acceptanceDate) : new Date(entry.date))
-        : new Date(entry.date),
+      effectiveDate,
       action: entry.action,
       mrc: calculatedMrc,
-      ratePerMb: Number(overrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0),
-      bandwidth: overrides.bandwidth ?? entry.bandwidth ?? "",
+      ratePerMb,
+      bandwidth,
       serviceType: entry.serviceType || connection.serviceType || "",
-      historyId: entry._id?.toString() || null
+      historyId: entry._id?.toString() || null,
     });
   }
 
-  if (rateSegments.length === 0) return [];
+  if (rateSegments.length === 0) {
+    return [];
+  }
 
   const rows = [];
 
@@ -402,7 +444,10 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
     }
 
     const overlap = getOverlap(segment.effectiveDate, segmentEnd, cycleStart, cycleEnd);
-    if (!overlap) continue;
+
+    if (!overlap) {
+      continue;
+    }
 
     const daysInMonth = getDaysInMonth(overlap.start);
     const billedDays = daysInclusive(overlap.start, overlap.end);
@@ -412,12 +457,12 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       ? round2(internetMrc)
       : round2((internetMrc / daysInMonth) * billedDays);
 
-    let calculationType;
-    if (segment.action === "ACTIVATED") {
-      calculationType = isFullMonth ? "FULL_MONTH" : "PRORATA";
-    } else {
-      calculationType = segment.action;
-    }
+    const calculationType =
+      segment.action === "ACTIVATED"
+        ? isFullMonth
+          ? "FULL_MONTH"
+          : "PRORATA"
+        : segment.action;
 
     rows.push({
       sourceType: "CONNECTION",
@@ -431,40 +476,38 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
           mrc: internetMrc,
           ratePerMb: segment.ratePerMb,
           otc: connection.commercials?.otc ?? 0,
-          advance: connection.commercials?.advance ?? 0
+          advance: connection.commercials?.advance ?? 0,
         },
         providerCost: {
           mrc: connection.providerCost?.mrc ?? 0,
           ratePerMb: connection.providerCost?.ratePerMb ?? 0,
-          updatedAt: connection.providerCost?.updatedAt ?? null
+          updatedAt: connection.providerCost?.updatedAt ?? null,
         },
         technicalDetails: {
           aEnd: {
             btsId: connection.technicalDetails?.aEnd?.btsId || "",
             address: connection.technicalDetails?.aEnd?.address || "",
             latitude: connection.technicalDetails?.aEnd?.latitude || "",
-            longitude: connection.technicalDetails?.aEnd?.longitude || ""
+            longitude: connection.technicalDetails?.aEnd?.longitude || "",
           },
           bEnd: {
             btsId: connection.technicalDetails?.bEnd?.btsId || "",
             address: connection.technicalDetails?.bEnd?.address || "",
             state: extractStateFromAddress(connection.technicalDetails?.bEnd?.address),
             latitude: connection.technicalDetails?.bEnd?.latitude || "",
-            longitude: connection.technicalDetails?.bEnd?.longitude || ""
-          }
+            longitude: connection.technicalDetails?.bEnd?.longitude || "",
+          },
         },
-        recentActivity: buildRecentActivity(
-          connection.history,
-          cycleStart
-        ),
+        recentActivity: buildRecentActivity(connection.history, cycleStart),
         circuitId: connection.fabCircuitId,
         serviceType: segment.serviceType,
         bandwidth: segment.bandwidth,
         ratePerMb: segment.ratePerMb,
         mrc: internetMrc,
         acceptanceDate: connection.acceptanceDate || null,
-        activationDateAtBilling: segment.action === "ACTIVATED" ? segment.effectiveDate : undefined,
-        historyEventType: segment.action
+        activationDateAtBilling:
+          segment.action === "ACTIVATED" ? segment.effectiveDate : undefined,
+        historyEventType: segment.action,
       },
       description: overrides.description ?? buildDescription(segment, connection),
       sacCode: connection.invoiceOverrides?.sacCode ?? connection.sacCode ?? "998422",
@@ -478,15 +521,12 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         billingMode,
         calculationType,
         originalCalculationType: calculationType,
-
         monthlyMrc: internetMrc,
         monthlyRatePerMb: segment.ratePerMb,
-
         originalPeriodStart: overlap.start,
         originalPeriodEnd: overlap.end,
-
         daysCharged: billedDays,
-        daysInMonth
+        daysInMonth,
       },
       statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
       connectionStatus: connection.status,

@@ -114,46 +114,58 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
 
 function buildConnectionsPayload(formData) {
   const ipItems = formData.items.filter(item => item.isSelected && item.sourceType === "IP_ADDRESS");
-  return formData.items.filter(item => item.isSelected && item.sourceType === "CONNECTION")
-    .map(item => {
-      const ipItem = ipItems.find(ip =>
-        ip.crmConnectionSnapshot?.connectionId === item.crmConnectionSnapshot?.connectionId
-      );
-      const overrides = {
-        ...(item.invoiceOverrides || {}),
-        bandwidth: item.invoiceOverrides?.bandwidth,
-        ratePerMb: item.invoiceOverrides?.ratePerMb,
-        description: item.invoiceOverrides?.description ?? item.description,
-        ipCount: ipItem?.qty ?? item.ips?.count ?? 0,
-        ipCost: ipItem?.rate ?? item.ips?.cost ?? 0
-      };
-      return {
-        clientRowId: item.clientRowId,
-        invoiceOverrides: overrides,
-        billingOptions: item.billingOptions,
-        crmConnectionId: item.crmConnectionSnapshot.connectionId,
-        opportunityId: item.crmConnectionSnapshot.opportunityId,
-        fabCircuitId: item.crmConnectionSnapshot.circuitId,
-        serviceType: item.crmConnectionSnapshot.serviceType,
-        sacCode: item.sacCode,
-        bandwidth: overrides.bandwidth ?? item.crmConnectionSnapshot.bandwidth,
-        periodStart: item.periodStart,
-        periodEnd: item.periodEnd,
-        commercials: {
-          mrc: item.commercials?.mrc || 0,
-          ratePerMb: overrides.ratePerMb ?? item.commercials?.ratePerMb ?? item.rate,
-          otc: item.commercials?.otc || 0,
-          advance: item.commercials?.advance || 0
-        },
-        history: item.history || [],
-        ips: item.ips || {},
-        technicalDetails: item.technicalDetails || {},
-        acceptanceDate: item.originalConnection?.acceptanceDate ?? null,
-        status: item.originalConnection.status ?? item.status,
-        providerCost: item.originalConnection.providerCost || {},
-        terminationDetails: item.terminationDetails || null
-      }
-    });
+  const selectedConnectionItems = formData.items.filter(item => item.isSelected && item.sourceType === "CONNECTION");
+  const uniqueConnections = new Map();
+
+  for (const item of selectedConnectionItems) {
+    const connectionId = item.crmConnectionSnapshot?.connectionId || item.originalConnection?.crmConnectionId || item.crmConnectionId;
+    if (!connectionId) {
+      continue;
+    }
+    if (!uniqueConnections.has(connectionId)) {
+      uniqueConnections.set(connectionId, item);
+    }
+  }
+
+  return Array.from(uniqueConnections.values()).map(item => {
+    const connectionId = item.crmConnectionSnapshot?.connectionId || item.originalConnection?.crmConnectionId || item.crmConnectionId;
+    const ipItem = ipItems.find(ip => ip.crmConnectionSnapshot?.connectionId === connectionId);
+    const overrides = {
+      ...(item.invoiceOverrides || {}),
+      bandwidth: item.invoiceOverrides?.bandwidth ?? item.crmConnectionSnapshot?.bandwidth,
+      ratePerMb: item.invoiceOverrides?.ratePerMb ?? item.rate,
+      description: item.invoiceOverrides?.description ?? item.description,
+      ipCount: ipItem?.qty ?? item.invoiceOverrides?.ipCount ?? item.ips?.count ?? 0,
+      ipCost: ipItem?.rate ?? item.invoiceOverrides?.ipCost ?? item.ips?.cost ?? 0
+    };
+
+    return {
+      clientRowId: item.clientRowId,
+      invoiceOverrides: overrides,
+      billingOptions: item.billingOptions,
+      crmConnectionId: connectionId,
+      opportunityId: item.crmConnectionSnapshot?.opportunityId,
+      fabCircuitId: item.crmConnectionSnapshot?.circuitId,
+      serviceType: item.crmConnectionSnapshot?.serviceType,
+      sacCode: item.sacCode,
+      bandwidth: overrides.bandwidth ?? item.crmConnectionSnapshot?.bandwidth,
+      periodStart: item.periodStart,
+      periodEnd: item.periodEnd,
+      commercials: {
+        mrc: item.commercials?.mrc || 0,
+        ratePerMb: overrides.ratePerMb ?? item.commercials?.ratePerMb ?? item.rate,
+        otc: item.commercials?.otc || 0,
+        advance: item.commercials?.advance || 0
+      },
+      history: item.history || [],
+      ips: item.ips || {},
+      technicalDetails: item.technicalDetails || {},
+      acceptanceDate: item.originalConnection?.acceptanceDate ?? null,
+      status: item.originalConnection?.status ?? item.status,
+      providerCost: item.originalConnection?.providerCost || {},
+      terminationDetails: item.terminationDetails || null
+    };
+  });
 }
 
 function buildManualItemsPayload(formData) {
@@ -206,31 +218,59 @@ function calculateBillingDates(period) {
 
 function mergePreviewItems(currentItems, backendItems) {
   return backendItems.map((backendItem) => {
-    const existing = currentItems.find((item) => item.clientRowId === backendItem.clientRowId);
+    const isConnectionItem = backendItem.sourceType === "CONNECTION";
+    const isConnectionIpItem =
+      backendItem.sourceType === "IP_ADDRESS" &&
+      !!backendItem.crmConnectionSnapshot?.connectionId;
 
-    const backendPeriodStart = backendItem.periodStart ? formatDateInput(backendItem.periodStart) : null;
-    const backendPeriodEnd = backendItem.periodEnd ? formatDateInput(backendItem.periodEnd) : null;
+    const isStandaloneManualItem =
+      backendItem.sourceType === "MANUAL_SERVICE" ||
+      backendItem.sourceType === "OTC" ||
+      (backendItem.sourceType === "IP_ADDRESS" &&
+        !backendItem.crmConnectionSnapshot?.connectionId);
 
-    const isManualItem = backendItem.sourceType === "MANUAL_SERVICE" || backendItem.sourceType === "OTC" || (backendItem.sourceType === "IP_ADDRESS" && !backendItem.crmConnectionSnapshot?.connectionId);
+    let existing = null;
+    if (isConnectionItem || isConnectionIpItem) {
+      const connectionId = backendItem.crmConnectionSnapshot?.connectionId;
+      existing = currentItems.find(
+        (item) =>
+          item.crmConnectionSnapshot?.connectionId === connectionId &&
+          item.sourceType === backendItem.sourceType
+      );
+    }
+
+    if (isStandaloneManualItem) {
+      existing = currentItems.find((item) => item.clientRowId === backendItem.clientRowId);
+    }
+
+    const backendPeriodStart = backendItem.periodStart ? formatDateInput(backendItem.periodStart) : "";
+    const backendPeriodEnd = backendItem.periodEnd ? formatDateInput(backendItem.periodEnd) : "";
+    const backendBandwidth = backendItem.crmConnectionSnapshot?.bandwidth ?? backendItem.bandwidth ?? existing?.bandwidth ?? "";
+    const backendRate = backendItem.crmConnectionSnapshot?.ratePerMb ?? backendItem.rate ?? existing?.rate ?? 0;
+    const backendMrc = backendItem.billingMeta?.monthlyMrc ?? backendItem.crmConnectionSnapshot?.mrc ?? backendItem.mrc ?? existing?.mrc ?? 0;
 
     return {
       ...backendItem,
+      clientRowId: backendItem.clientRowId ?? existing?.clientRowId ?? crypto.randomUUID(),
+      bandwidth: backendBandwidth,
+      rate: backendRate,
+      mrc: backendMrc,
       invoiceOverrides: {
         ...(existing?.invoiceOverrides || {}),
-        bandwidth: existing?.invoiceOverrides?.bandwidth ?? backendItem.crmConnectionSnapshot?.bandwidth,
-        ratePerMb: existing?.invoiceOverrides?.ratePerMb ?? backendItem.rate,
-        ipCount: existing?.invoiceOverrides?.ipCount ?? backendItem.crmConnectionSnapshot?.ipCount,
-        ipCost: existing?.invoiceOverrides?.ipCost ?? backendItem.crmConnectionSnapshot?.ipCost,
-        description: existing?.invoiceOverrides?.description ?? backendItem.description,
-        periodStart: backendPeriodStart ?? existing?.invoiceOverrides?.periodStart ?? "",
-        periodEnd: backendPeriodEnd ?? existing?.invoiceOverrides?.periodEnd ?? "",
+        bandwidth: backendBandwidth,
+        ratePerMb: backendRate,
+        ipCount: existing?.invoiceOverrides?.ipCount ?? backendItem.crmConnectionSnapshot?.ipCount ?? 0,
+        ipCost: existing?.invoiceOverrides?.ipCost ?? backendItem.crmConnectionSnapshot?.ipCost ?? 0,
+        description: existing?.invoiceOverrides?.description ?? backendItem.description ?? "",
+        periodStart: backendPeriodStart || existing?.invoiceOverrides?.periodStart || "",
+        periodEnd: backendPeriodEnd || existing?.invoiceOverrides?.periodEnd || "",
       },
-      sacCode: existing?.sacCode ?? backendItem.sacCode,
-      periodStart: backendPeriodStart ?? existing?.periodStart ?? "",
-      periodEnd: backendPeriodEnd ?? existing?.periodEnd ?? "",
+      sacCode: existing?.sacCode ?? backendItem.sacCode ?? "998422",
+      periodStart: backendPeriodStart || existing?.periodStart || "",
+      periodEnd: backendPeriodEnd || existing?.periodEnd || "",
       isSelected: existing?.isSelected ?? true,
-      status: existing?.status ?? backendItem.status,
-      billingOptions: existing?.billingOptions ?? {
+      status: existing?.status ?? backendItem.status ?? null,
+      billingOptions: existing?.billingOptions ?? backendItem.billingOptions ?? {
         connection: true, ip: true, shifting: true
       },
       history: existing?.history ?? [],
@@ -239,7 +279,7 @@ function mergePreviewItems(currentItems, backendItems) {
       technicalDetails: existing?.technicalDetails ?? {},
       originalConnection: existing?.originalConnection ?? null,
       terminationDetails: existing?.terminationDetails ?? null,
-      billingMeta: backendItem.billingMeta ?? existing?.billingMeta ?? null
+      billingMeta: backendItem.billingMeta ?? existing?.billingMeta ?? null,
     };
   });
 }
@@ -399,17 +439,23 @@ export default function InvoiceWorkspace({
       version: watch("previewVersion")
     };
 
-    // 3. Send to API and replace table/summary with Canonical Backend Response
     previewInvoice(previewPayload, {
       onSuccess: (data) => {
-        const mergedItems = mergePreviewItems(getValues("items"), data.items);
-        setValue("items", mergedItems);
-        setValue("financials", data.financials);
+        const currentValues = getValues();
+        const mergedItems = mergePreviewItems(currentValues.items || [], data.items);
+        reset({
+          ...currentValues,
+          items: mergedItems,
+          financials: data.financials,
+          previewGeneratedAt: data.previewGeneratedAt,
+          previewExpired: false
+        });
+        // setValue("financials", data.financials);
         if (data.previewVersion != null) {
           setInvoiceVersion(data.previewVersion);
         }
-        setValue("previewGeneratedAt", data.previewGeneratedAt);
-        setValue("previewExpired", false);
+        // setValue("previewGeneratedAt", data.previewGeneratedAt);
+        // setValue("previewExpired", false);
       }
     });
   };
