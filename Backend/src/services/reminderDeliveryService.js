@@ -23,9 +23,17 @@ function buildRecipients(recipients) {
   };
 }
 
-export async function prepareReminderDelivery(invoiceId, reminderNumber) {
+export async function prepareReminderDelivery(invoiceId, customerId, reminderNumber, cycle) {
   if (![1, 2, 3].includes(reminderNumber)) {
     throw new AppError("Invalid reminder number.", 400);
+  }
+
+  if (!customerId) {
+    throw new AppError("Customer ID is required for payment reminder.", 400);
+  }
+
+  if (!cycle) {
+    throw new AppError("Reminder cycle is required.", 400);
   }
 
   const invoice = await Invoice.findOne(activeInvoiceFilter(invoiceId)).lean();
@@ -58,6 +66,8 @@ export async function prepareReminderDelivery(invoiceId, reminderNumber) {
 
   return {
     invoiceId: invoice._id,
+    customerId,
+    cycle,
     invoice,
     reminderNumber,
     email: {
