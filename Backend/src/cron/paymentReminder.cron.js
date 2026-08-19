@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
+import InvoiceCustomerReminder from "../modules/Invoice/invoiceCustomerReminder.model.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
 import { getCustomerOutstandingBalance } from "../services/bahiKhata.service.js";
 import logger from "../utils/logger.js";
@@ -24,92 +25,157 @@ export async function processPaymentReminders(overrideDate = null) {
       now = DateTime.now().setZone(TIMEZONE).startOf("day");
     }
 
+    const reminderSchedule = { 15: 1, 20: 2, 25: 3, };
+    const reminderNumber = reminderSchedule[now.day];
+
+    if (!reminderNumber) {
+      logger.info(`Payment reminder run skipped. ${now.toFormat("dd LLL yyyy")} is not a reminder date.`);
+      return;
+    }
+
     const reminderStartDate = DateTime.fromISO("2026-07-25", { zone: TIMEZONE }).startOf("day");
-    const cursor = Invoice.find({
+
+    const invoices = await Invoice.find({
       isDeleted: { $ne: true },
       invoiceType: "BASE",
       status: "FINALIZED",
       paymentStatus: { $in: ["UNPAID", "PARTIAL"] },
-      "dates.invoiceDate": { $gte: reminderStartDate.toJSDate() },
-      "dates.dueDate": { $lt: now.toJSDate() },
-    }).select("_id invoiceNumber paymentStatus dates reminders customerSnapshot").cursor();
+      "dates.invoiceDate": { $gte: reminderStartDate.toJSDate(), },
+      "dates.dueDate": { $lt: now.toJSDate(), },
+    }).select("_id invoiceNumber paymentStatus dates reminders customerSnapshot").lean();
 
-    let queued = 0;
-    let failed = 0;
-    let batch = [];
+    const customers = new Map();
 
-    for await (const invoice of cursor) {
+    for (const invoice of invoices) {
       const crmId = invoice.customerSnapshot?.crmCustomerId;
       if (!crmId) {
-        logger.warn("Skipping payment reminder: invoice has no CRM customer ID.", {
+        logger.warn("Skipping payment reminder invoice without CRM customer ID.", {
           invoiceId: invoice._id,
           invoiceNumber: invoice.invoiceNumber,
         });
         continue;
       }
 
-      const outstandingBalance = await getCustomerOutstandingBalance(crmId);
-      if (outstandingBalance <= 0) {
-        logger.info("Skipping payment reminder: customer has no outstanding balance.", {
-          invoiceId: invoice._id,
-          invoiceNumber: invoice.invoiceNumber,
+      if (!customers.has(crmId)) {
+        customers.set(crmId, invoice);
+      }
+    }
+
+    logger.info("Payment reminder customer evaluation started.", {
+      date: now.toISODate(),
+      reminderNumber,
+      eligibleInvoiceCount: invoices.length,
+      uniqueCustomerCount: customers.size,
+    });
+
+    let queued = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    const cycle = now.toFormat("yyyy-MM");
+
+    for (const [crmId, representativeInvoice] of customers) {
+      try {
+        const outstandingBalance =
+          await getCustomerOutstandingBalance(crmId);
+
+        if (Number(outstandingBalance) <= 0) {
+          skipped++;
+
+          logger.info(
+            "Skipping reminder because customer has no outstanding balance.",
+            {
+              crmCustomerId: crmId,
+              outstandingBalance,
+              reminderNumber,
+            }
+          );
+
+          continue;
+        }
+
+        const state = await InvoiceCustomerReminder.findOne({
+          customerId: crmId,
+          cycle,
+        }).lean();
+
+        const stageField = reminderNumber === 1
+          ? "first"
+          : reminderNumber === 2
+            ? "second"
+            : "suspension";
+
+        console.log("[REMINDER DEBUG] Customer state match", {
+          crmCustomerId: crmId,
+          invoiceId: representativeInvoice._id,
+          invoiceNumber: representativeInvoice.invoiceNumber,
+          cycle,
+          reminderNumber,
+          stateFound: Boolean(state),
+          stateCustomerId: state?.customerId ?? null,
+          stateCycle: state?.cycle ?? null,
+          firstSentAt: state?.first?.sentAt ?? null,
+          secondSentAt: state?.second?.sentAt ?? null,
+          suspensionSentAt: state?.suspension?.sentAt ?? null,
+        });
+
+        if (state?.[stageField]?.sentAt) {
+          skipped++;
+          logger.info("Skipping reminder because customer reminder was already sent.", {
+            crmCustomerId: crmId,
+            cycle,
+            reminderNumber,
+            sentAt: state[stageField].sentAt,
+          });
+          continue;
+        }
+
+        await InvoiceCustomerReminder.updateOne(
+          {
+            customerId: crmId,
+            cycle,
+          },
+          {
+            $setOnInsert: {
+              customerId: crmId,
+              cycle,
+            },
+          },
+          {
+            upsert: true,
+          }
+        );
+
+        await enqueuePaymentReminder(crmId, representativeInvoice._id, reminderNumber, cycle);
+
+        queued++;
+
+        logger.info("Payment reminder queued.", {
+          crmCustomerId: crmId,
+          invoiceId: representativeInvoice._id,
+          invoiceNumber: representativeInvoice.invoiceNumber,
+          reminderNumber,
+          cycle,
           outstandingBalance,
         });
-        continue;
-      }
-
-      const dueDate = DateTime.fromJSDate(invoice.dates.dueDate).setZone(TIMEZONE).startOf("day");
-      const daysOverdue = Math.floor(now.diff(dueDate, "days").days);
-
-      let reminderType = null;
-
-      if (daysOverdue >= 9 && !invoice.reminders?.first?.sentAt) {
-        reminderType = 1;
-      } else if (daysOverdue >= 14 && !invoice.reminders?.second?.sentAt) {
-        reminderType = 2;
-      } else if (daysOverdue >= 19 && !invoice.reminders?.suspension?.sentAt) {
-        reminderType = 3;
-      }
-
-      if (reminderType) {
-        batch.push({
-          invoiceId: invoice._id,
-          reminderType: reminderType,
-          promise: enqueuePaymentReminder(invoice._id, reminderType)
+      } catch (error) {
+        failed++;
+        logger.error("Failed processing customer payment reminder.", {
+          crmCustomerId: crmId,
+          invoiceId: representativeInvoice._id,
+          reminderNumber,
+          error: error.message,
         });
-      }
-
-      if (batch.length >= 100) {
-        const results = await Promise.allSettled(batch.map(b => b.promise));
-        results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
-            queued++;
-          } else if (result.status === "rejected") {
-            failed++;
-            logger.error(`Failed to enqueue reminder ${batch[index].reminderType} for invoice ${batch[index].invoiceId}`, {
-              reason: result.reason?.message
-            });
-          }
-        });
-        batch = [];
       }
     }
 
-    if (batch.length > 0) {
-      const results = await Promise.allSettled(batch.map(b => b.promise));
-      results.forEach((result, index) => {
-        if (result.status === "fulfilled") {
-          queued++;
-        } else if (result.status === "rejected") {
-          failed++;
-          logger.error(`Failed to enqueue reminder ${batch[index].reminderType} for invoice ${batch[index].invoiceId}`, {
-            reason: result.reason?.message
-          });
-        }
-      });
-    }
-
-    logger.info(`Payment Reminder processing completed. Queued: ${queued}, Failed: ${failed}.`);
+    logger.info("Payment Reminder processing completed.", {
+      date: now.toISODate(),
+      reminderNumber,
+      queued,
+      skipped,
+      failed,
+    });
   } catch (error) {
     logger.error("Payment Reminder processing failed.", {
       message: error.message,
@@ -127,7 +193,7 @@ export function startPaymentReminderCron() {
   }
 
   cron.schedule("0 9 * * *", () => {
-  // cron.schedule("*/10 * * * *", () => {
+    // cron.schedule("*/10 * * * *", () => {
     processPaymentReminders();
   }, {
     timezone: TIMEZONE,

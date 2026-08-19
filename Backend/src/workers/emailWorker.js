@@ -2,6 +2,7 @@ import { Worker, UnrecoverableError } from "bullmq";
 import redis from "../config/redis.js";
 import EmailLog from "../modules/Email/emailLog.model.js";
 import Invoice from "../modules/Invoice/invoice.model.js";
+import InvoiceCustomerReminder from "../modules/Invoice/invoiceCustomerReminder.model.js";
 import { sendEmail } from "../services/emailService.js";
 import { prepareInvoiceDelivery } from "../services/invoiceDeliveryService.js";
 import { prepareReminderDelivery } from "../services/reminderDeliveryService.js";
@@ -113,31 +114,44 @@ const worker = new Worker(
         return processEmailJob(job, {
           emailType: emailTypeMap[job.data.reminderNumber],
           documentType: "INVOICE",
-          prepare: () => prepareReminderDelivery(job.data.invoiceId, job.data.reminderNumber),
+          prepare: () => prepareReminderDelivery(
+            job.data.invoiceId,
+            job.data.customerId,
+            job.data.reminderNumber,
+            job.data.cycle
+          ),
           updateInvoice: {
             processing: null,
-            success: (invoiceId, emailLogId, payload) => {
-              const update = { "reminders.lastReminderSentAt": new Date(), };
-              switch (payload.reminderNumber) {
-                case 1:
-                  update["reminders.first.sentAt"] = new Date();
-                  update["reminders.first.emailLogId"] = emailLogId;
-                  break;
+            success: async (invoiceId, emailLogId, payload) => {
+              const stageField = payload.reminderNumber === 1
+                ? "first"
+                : payload.reminderNumber === 2
+                  ? "second"
+                  : "suspension";
 
-                case 2:
-                  update["reminders.second.sentAt"] = new Date();
-                  update["reminders.second.emailLogId"] = emailLogId;
-                  break;
+              const update = {
+                [`${stageField}.sentAt`]: new Date(),
+                [`${stageField}.emailLogId`]: emailLogId,
+                lastReminderSentAt: new Date(),
+              };
 
-                case 3:
-                  update["reminders.suspension.sentAt"] = new Date();
-                  update["reminders.suspension.emailLogId"] = emailLogId;
-                  break;
-              }
+              await InvoiceCustomerReminder.updateOne(
+                {
+                  customerId: payload.customerId,
+                  cycle: payload.cycle,
+                  [`${stageField}.sentAt`]: null,
+                },
+                {
+                  $set: update,
+                }
+              );
+
               return Invoice.updateOne(
                 { _id: invoiceId },
                 {
-                  $set: update,
+                  $set: {
+                    "reminders.lastReminderSentAt": new Date(),
+                  },
                 }
               );
             },

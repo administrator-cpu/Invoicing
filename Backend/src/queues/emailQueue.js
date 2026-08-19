@@ -37,19 +37,29 @@ export async function enqueueInvoiceEmail(invoiceId, overrideId = null) {
   }
 }
 
-export async function enqueuePaymentReminder(invoiceId, reminderNumber, overrideId = null) {
+export async function enqueuePaymentReminder(customerId, invoiceId, reminderNumber, cycle, overrideId = null) {
   try {
-    const now = new Date();
-    const fallbackId = `${now.toISOString().split('T')[0]}-${now.getUTCHours()}-${now.getUTCMinutes()}`;
-    const idempotencyKey = overrideId || fallbackId;
+    const idempotencyKey = overrideId || `${cycle}-${customerId}-${reminderNumber}`;
 
     return await emailQueue.add(
       "sendPaymentReminder",
-      { invoiceId, reminderNumber },
-      { jobId: `reminder-${reminderNumber}-invoice-${invoiceId}-${idempotencyKey}` }
+      {
+        customerId,
+        invoiceId,
+        reminderNumber,
+        cycle,
+      },
+      { jobId: `reminder-${idempotencyKey}` }
     );
   } catch (error) {
-    logger.error("Failed to enqueue payment reminder", { invoiceId, reminderNumber, error: error.message });
+    logger.error("Failed to enqueue payment reminder", {
+      customerId,
+      invoiceId,
+      reminderNumber,
+      cycle,
+      error: error.message,
+    });
+
     throw error;
   }
 }
