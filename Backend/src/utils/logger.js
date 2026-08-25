@@ -2,8 +2,24 @@ import winston from "winston";
 
 const { combine, timestamp, errors, json, colorize, printf } = winston.format;
 
-const customConsoleFormat = printf(({ timestamp, level, message, stack, ...meta }) => {
+const errorExtractionFormat = winston.format((info) => {
+  const splat = info[Symbol.for("splat")] || [];
+  const errorArg = splat.find((arg) => arg instanceof Error);
+
+  if (errorArg) {
+    info.stack = errorArg.stack;
+    info.errorMessage = errorArg.message;
+  }
+  return info;
+});
+
+const customConsoleFormat = printf(({ timestamp, level, message, stack, errorMessage, ...meta }) => {
   let logOutput = `${timestamp} ${level}: ${message}`;
+
+  if (errorMessage && !message.includes(errorMessage)) {
+    logOutput += ` - ${errorMessage}`;
+  }
+
   if (meta.method && meta.url) {
     logOutput += ` | ${meta.method} ${meta.url}`;
   }
@@ -30,22 +46,19 @@ const customConsoleFormat = printf(({ timestamp, level, message, stack, ...meta 
 
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
-
   format: combine(
+    errorExtractionFormat(),
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     errors({ stack: true }),
     json()
   ),
-
   transports: [
     new winston.transports.File({ filename: "logs/error.log", level: "error" }),
     new winston.transports.File({ filename: "logs/combined.log" }),
   ],
-
   exceptionHandlers: [
     new winston.transports.File({ filename: "logs/exceptions.log" }),
   ],
-
   rejectionHandlers: [
     new winston.transports.File({ filename: "logs/rejections.log" }),
   ],
@@ -55,6 +68,7 @@ logger.add(
   new winston.transports.Console({
     format: combine(
       colorize(),
+      errorExtractionFormat(),
       timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
       errors({ stack: true }),
       customConsoleFormat
