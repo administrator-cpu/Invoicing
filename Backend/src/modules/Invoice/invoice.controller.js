@@ -15,6 +15,7 @@ import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { generateGSTReport } from '../../services/invoiceExcelTemplate.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections, getBillingHistory } from "../../services/crm.service.js";
+import { syncFinalizedInvoiceToBahiKhata, deleteInvoiceFromBahiKhata } from "../../services/bahiKhata.service.js";
 import { sendEmail } from '../../services/emailService.js';
 import { prepareInvoiceDelivery } from '../../services/invoiceDeliveryService.js';
 import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
@@ -683,19 +684,22 @@ export const deleteDraftInvoice = catchAsync(async (req, res, next) => {
 export const cancelInvoice = catchAsync(async (req, res, next) => {
 
   const { cancelReason = null, cancelRemarks = null } = req.body;
-  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status audit");
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status audit invoiceNumber");
   if (!invoice) return next(new AppError('Invoice not found', 404));
 
   if (invoice.status !== 'FINALIZED') {
     return next(new AppError(`Only FINALIZED invoices can be cancelled. Invoices with payments must be adjusted through a Credit Note. Current status: ${invoice.status}`, 400));
   }
 
-  invoice.status = 'CANCELLED';
   if (!cancelReason?.trim()) {
     return next(
       new AppError("Cancellation reason is required.", 400)
     );
   }
+
+  await deleteInvoiceFromBahiKhata(invoice.invoiceNumber);
+
+  invoice.status = "CANCELLED";
   invoice.audit = {
     ...invoice.audit,
     cancelledAt: new Date(),
@@ -788,6 +792,8 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
       error: err.message,
     });
   }
+
+  syncFinalizedInvoiceToBahiKhata(finalizedInvoice);
 
   res.status(200).json({
     status: "success",
