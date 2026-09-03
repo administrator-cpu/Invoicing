@@ -13,30 +13,14 @@ const getStatusBadge = (status) => {
 };
 
 const ACTION_META = {
-  ACTIVATED: {
-    label: "Activated",
-    badge: "bg-green-100 text-green-700"
-  },
-  UPGRADE: {
-    label: "Upgrade",
-    badge: "bg-blue-100 text-blue-700"
-  },
-  DOWNGRADE: {
-    label: "Downgrade",
-    badge: "bg-orange-100 text-orange-700"
-  },
-  RATE_REVISION: {
-    label: "Rate Revision",
-    badge: "bg-purple-100 text-purple-700"
-  },
-  NOTICE_PERIOD: {
-    label: "Notice Period",
-    badge: "bg-red-100 text-red-700"
-  },
-  CURRENT_STATE: {
-    label: "Current State",
-    badge: "bg-emerald-100 text-emerald-700"
-  }
+  ACTIVATED: { label: "Activated", badge: "bg-green-100 text-green-700" },
+  UPGRADE: { label: "Upgrade", badge: "bg-blue-100 text-blue-700" },
+  DOWNGRADE: { label: "Downgrade", badge: "bg-orange-100 text-orange-700" },
+  RATE_REVISION: { label: "Rate Revision", badge: "bg-purple-100 text-purple-700" },
+  NOTICE_PERIOD: { label: "Notice Period", badge: "bg-orange-100 text-[#EA580C]" },
+  RETAINED: { label: "Retained", badge: "bg-teal-100 text-teal-700" },
+  DISCONNECTED: { label: "Disconnected", badge: "bg-red-100 text-red-700" },
+  CURRENT_STATE: { label: "Current State", badge: "bg-emerald-100 text-emerald-700" }
 };
 
 const formatActivityDate = (date) => {
@@ -476,6 +460,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                             activity.activatedOn ??
                                             activity.approvedOn ??
                                             activity.initiatedOn ??
+                                            activity.retainedOn ??
                                             activity.raisedOn ??
                                             activity.acceptedOn ??
                                             activity.acceptanceDate
@@ -485,6 +470,13 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                       </div>
 
                                       <div className="space-y-1 text-xs text-gray-600">
+
+                                        {activity.retainedOn && (
+                                          <div>
+                                            <span className="font-semibold">Retained On:</span>{" "}
+                                            {formatActivityDate(activity.retainedOn)}
+                                          </div>
+                                        )}
 
                                         {activity.acceptedOn && (
                                           <div>

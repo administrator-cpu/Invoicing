@@ -1,53 +1,36 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ToWords } from "to-words";
-import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, X, AlertTriangle } from 'lucide-react';
-import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
-import ReferenceInvoiceCard from "@/features/invoices/components/ReferenceInvoiceCard";
-import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
-import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
-import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
-import CancelInvoiceModal from "@/features/invoices/components/CancelInvoiceModal";
-import InvoiceBillingInfo from "@/features/invoices/components/InvoiceBillingInfo";
-import InvoicePaymentDetails from "@/features/invoices/components/InvoicePaymentDetails";
-import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSection";
-import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
-import {
-  useCreditNoteDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
-  useSendInvoiceEmail, useInvoiceEmailHistory
-} from '@/features/invoices/components/hooks/useInvoices';
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, AlertTriangle, Trash2 } from "lucide-react";
 
-const toWords = new ToWords({
-  localeCode: "en-IN",
-  converterOptions: { currency: true }
-});
+import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
+import InvoicePaymentDetails from "@/features/invoices/components/InvoicePaymentDetails";
+import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
+
+import CreditNoteHeader from "@/features/creditNote/components/CreditNoteHeader";
+import CreditNoteBillingInfo from "@/features/creditNote/components/CreditNoteBillingInfo";
+import CreditNoteItemsSection from "@/features/creditNote/components/CreditNoteItemsSection";
+
+import { useCreditNoteDetails, useFinalizeCreditNote, useCancelCreditNote, useDeleteCreditNote } from "@/features/creditNote/hooks/useCreditNote";
 
 const CreditNoteDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
-
-  const { data: creditNote, isLoading, isError } = useCreditNoteDetails(id);
-  const { data: emailHistory, isLoading: emailHistoryLoading, } = useInvoiceEmailHistory(id, emailHistoryOpen, creditNote?.email?.status);
-  const { mutate: finalizeInvoice, isPending: isFinalizing } = useFinalizeInvoice();
-  const { mutate: cancelInvoice, isPending: isCancelling } = useCancelInvoice();
-  const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice();
-  const { mutate: sendInvoiceEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
-
   const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: '', message: '',
-    type: 'primary',
-    confirmText: '',
-    onConfirm: () => { }
+    isOpen: false, title: "", message: "", type: "primary", confirmText: "", onConfirm: () => { }
   });
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+
+  const { data, isLoading, isError } = useCreditNoteDetails(id);
+  const creditNote = data?.creditNote;
+
+  const { mutate: finalizeCreditNote, isPending: isFinalizing } = useFinalizeCreditNote();
+  const { mutate: cancelCreditNote, isPending: isCancelling } = useCancelCreditNote();
+  const { mutate: deleteCreditNote, isPending: isDeleting } = useDeleteCreditNote();
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -55,70 +38,81 @@ const CreditNoteDetails = () => {
   if (isError || !creditNote) {
     return (
       <div className="text-center py-12 text-red-500 font-medium">
-        Failed to fetch target statement record details.
+        Failed to fetch credit note details.
       </div>
     );
   }
 
-  const openFinalizeModal = () => {
-    setModalConfig({
-      isOpen: true,
-      title: 'Finalize & Lock Credit Note',
-      message: 'Finalizing will assign a legal sequential invoice number and lock this document permanently. This action cannot be undone.',
-      type: 'primary',
-      confirmText: 'Issue Credit Note',
-      onConfirm: () => finalizeInvoice(id)
+  const isDraft = creditNote.status === "DRAFT";
+  const isFinalized = creditNote.status === "FINALIZED";
+  const isCancelled = creditNote.status === "CANCELLED";
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
     });
   };
 
-  const openCancelModal = () => { setCancelModalOpen(true); };
+  const openFinalizeModal = () => {
+    setModalConfig({
+      isOpen: true,
+      title: "Finalize & Lock Credit Note",
+      message:
+        "Finalizing this credit note will permanently issue the document. This action cannot be undone.",
+      type: "primary",
+      confirmText: "Finalize Credit Note",
+      onConfirm: () => finalizeCreditNote(id)
+    });
+  };
 
   const openDeleteModal = () => {
     setModalConfig({
       isOpen: true,
       title: "Delete Draft Credit Note",
       message:
-        "This draft credit note will be deleted from the operational workflow. It can no longer be edited or finalized.",
+        "This draft credit note will be permanently deleted and can no longer be finalized.",
       type: "danger",
       confirmText: "Delete Draft",
-      onConfirm: () =>
-        deleteInvoice(id, {
-          onSuccess: () => {
-            navigate("/credit-notes");
-          },
-        }),
+      onConfirm: () => deleteCreditNote(id)
     });
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+  const openCancelModal = () => {
+    setModalConfig({
+      isOpen: true,
+      title: "Cancel Credit Note",
+      message:
+        "This credit note will be marked as cancelled and will no longer be treated as a valid credit document.",
+      type: "danger",
+      confirmText: "Cancel Credit Note",
+      onConfirm: () => cancelCreditNote(id)
     });
   };
 
-  const formatPeriod = (start, end) => {
-    if (!start || !end) return 'N/A';
-    return `${formatDate(start)} - ${formatDate(end)}`;
+  const downloadCreditNote = () => {
+    window.open(`${import.meta.env.VITE_API_BASE_URL}/credit-notes/${id}/pdf`, "_blank");
   };
-
-  const isDraft = creditNote.status === 'DRAFT';
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto w-full px-4 md:px-8 pb-10 md:pb-16">
 
-      {/* Action Controller Deck */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      {/* Action Controller */}
+      <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+
         <button
-          onClick={() => navigate('credit-notes')}
+          onClick={() => navigate(-1)}
           className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" /> Back to Ledger
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Back to Credit Notes
         </button>
 
         <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+
           {isDraft && (
             <>
               <button
@@ -126,141 +120,80 @@ const CreditNoteDetails = () => {
                 disabled={isDeleting || isFinalizing}
                 className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                <Ban className="w-4 h-4 mr-2" /> Delete Draft
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Draft
               </button>
 
               <button
                 onClick={() => navigate(`/credit-notes/${id}/edit`)}
-                disabled={isCancelling || isFinalizing}
+                disabled={isDeleting || isFinalizing}
                 className="flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                <Edit className="w-4 h-4 mr-2" /> Modify Fields
+                <Edit className="w-4 h-4 mr-2" />
+                Modify Fields
               </button>
 
               <button
                 onClick={openFinalizeModal}
-                disabled={isFinalizing || isCancelling}
+                disabled={isFinalizing || isDeleting}
                 className="flex items-center px-4 py-2 bg-primary hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                <CheckCircle className="w-4 h-4 mr-2" /> Finalize & Issue
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Finalize & Issue
               </button>
             </>
           )}
 
-          {!isDraft && (
+          {isFinalized && (
             <>
-              {creditNote.status === "FINALIZED" && (
-                <button
-                  onClick={openCancelModal} disabled={isCancelling}
-                  className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
-                >
-                  <Ban className="w-4 h-4 mr-2" />
-                  Cancel Credit Note
-                </button>
-              )}
+              <button
+                onClick={openCancelModal}
+                disabled={isCancelling}
+                className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Cancel Credit Note
+              </button>
 
               <button
-                onClick={() =>
-                  window.open(
-                    `${import.meta.env.VITE_API_BASE_URL}/credit-notes/${id}/pdf`,
-                    "_blank"
-                  )
-                }
+                onClick={downloadCreditNote}
                 className="flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
               >
                 <Printer className="w-4 h-4 mr-2" />
                 Download Credit Note
-              </button>
-              <button
-                onClick={() => {
-                  setModalConfig({
-                    isOpen: true,
-                    title: creditNote.email.status === "SENT" ? "Resend Credit Note" : "Send Credit Note",
-                    message: creditNote.email.status === "SENT"
-                      ? "The credit note has already been emailed. A new copy will be sent to all configured recipients."
-                      : "The finalized credit note will be queued for email delivery to all configured recipients.",
-                    type: "primary",
-                    confirmText: creditNote.email.status === "SENT" ? "Send Again" : "Send Credit Note",
-                    onConfirm: () => sendInvoiceEmail(id),
-                  });
-                }}
-                disabled={isSendingEmail || creditNote.email?.status === "PROCESSING"}
-                className="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                {
-                  creditNote.email?.status === "PROCESSING"
-                    ? "Sending..."
-                    : creditNote.email.status === "SENT"
-                      ? "Send Again"
-                      : "Send Credit Note"
-                }
               </button>
             </>
           )}
         </div>
       </div>
 
-      <InvoiceEmailCard
-        invoice={creditNote}
-        onViewHistory={() => {
-          setEmailHistoryOpen(true);
-        }}
-      />
-
-      <ReferenceInvoiceCard invoice={creditNote} />
-
-      <EmailHistoryModal
-        isOpen={emailHistoryOpen}
-        onClose={() => setEmailHistoryOpen(false)}
-        history={emailHistory}
-        isLoading={emailHistoryLoading}
-      />
-
-      {creditNote.status === "CANCELLED" && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
+      {/* Cancelled Notice */}
+      {isCancelled && (
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-6 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
-              {/* Expanding/blinking ring effect */}
-              <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-25"></div>
-              <Ban className="relative z-10 w-6 h-6 text-red-600" />
+
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
+              <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-25" />
+              <Ban className="relative z-10 w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
 
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-red-700">
-                Cancelled Invoice
+              <h2 className="text-xl font-bold text-red-700 dark:text-red-400">
+                Cancelled Credit Note
               </h2>
 
-              <p className="mt-1 text-sm text-red-600">
-                This invoice has been cancelled and is no longer valid for payment.
+              <p className="mt-1 text-sm text-red-600 dark:text-red-300">
+                This credit note has been cancelled and is no longer valid.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 mt-6">
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Cancellation Reason
+                    Reason
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
-                    {creditNote.audit?.cancelReason || "Not Provided"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Cancelled On
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
-                    {formatDate(creditNote.audit?.cancelledAt)}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Cancelled By
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
-                    {creditNote.audit?.cancelledBy?.name || "Unknown"}
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {creditNote.reason || "Not Provided"}
                   </p>
                 </div>
 
@@ -268,8 +201,8 @@ const CreditNoteDetails = () => {
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Remarks
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800 whitespace-pre-wrap">
-                    {creditNote.audit?.cancelRemarks || "No Remarks"}
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {creditNote.remarks || "No Remarks"}
                   </p>
                 </div>
 
@@ -279,41 +212,38 @@ const CreditNoteDetails = () => {
         </div>
       )}
 
+      {/* Main Credit Note Document */}
       <div className="relative bg-white dark:bg-slate-950 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
 
-        {creditNote.status === "CANCELLED" && (
+        {isCancelled && (
           <div
             className="absolute inset-0 pointer-events-none z-0 rounded-xl"
             style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-family='system-ui, sans-serif' font-size='140' font-weight='900' fill='%23ef4444' opacity='0.10' transform='rotate(-45, 500, 500)' letter-spacing='0.1em'%3ECANCELLED%3C/text%3E%3C/svg%3E")`,
-              backgroundRepeat: 'repeat-y',
-              backgroundPosition: 'center top',
-              backgroundSize: '100% 100vh'
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-family='system-ui, sans-serif' font-size='120' font-weight='900' fill='%23ef4444' opacity='0.10' transform='rotate(-45, 500, 500)' letter-spacing='0.1em'%3ECANCELLED%3C/text%3E%3C/svg%3E")`,
+              backgroundRepeat: "repeat-y",
+              backgroundPosition: "center top",
+              backgroundSize: "100% 100vh"
             }}
           />
         )}
 
-        {/* Document Frame Header Banner */}
-        <InvoiceHeader invoice={creditNote} />
+        <div className="relative z-10">
 
-        {/* Snapshot Information */}
-        <InvoiceBillingInfo invoice={creditNote} />
+          <CreditNoteHeader creditNote={creditNote} />
 
-        {/* Payment Options */}
-        <InvoicePaymentDetails />
+          <CreditNoteBillingInfo creditNote={creditNote} />
 
-        <div className="page-break" />
+          {/* <InvoicePaymentDetails /> */}
 
-        {/* Items Section */}
-        <InvoiceItemsSection invoice={creditNote} />
+          <CreditNoteItemsSection creditNote={creditNote} />
 
-        {/* Terms & Conditions */}
-        <InvoiceTerms />
+          <InvoiceTerms />
 
-        <div className="mt-16 border-t pt-5 text-center text-xs text-gray-500">
-          Generated by FAB Five Network Billing System
+          <div className="mt-16 border-t pt-5 text-center text-xs text-gray-500">
+            Generated by FAB Five Network Billing System
+          </div>
+
         </div>
-
       </div>
 
       <ConfirmationModal
@@ -323,21 +253,15 @@ const CreditNoteDetails = () => {
         type={modalConfig.type}
         confirmText={modalConfig.confirmText}
         onConfirm={modalConfig.onConfirm}
-        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onClose={() =>
+          setModalConfig(prev => ({
+            ...prev,
+            isOpen: false
+          }))
+        }
       />
 
-      <CancelInvoiceModal
-        isOpen={cancelModalOpen}
-        isLoading={isCancelling}
-        onClose={() => setCancelModalOpen(false)}
-        onConfirm={(payload) => {
-          cancelInvoice(
-            { id, payload, },
-            { onSuccess: () => { setCancelModalOpen(false); }, }
-          );
-        }}
-      />
-    </div >
+    </div>
   );
 };
 

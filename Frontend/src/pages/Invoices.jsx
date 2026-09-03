@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from "sonner";
 import apiClient from '@/config/axios';
-import { FileText, Eye, ChevronLeft, ChevronRight, Plus, ShieldAlert, Download } from 'lucide-react';
+import { FileText, FileSearchCorner, ChevronLeft, ChevronRight, Plus, ShieldAlert, Download } from 'lucide-react';
 import { useInvoices } from '@/features/invoices/hooks/useInvoices';
 
 const STATUS_TABS = [
@@ -133,6 +133,14 @@ const Invoices = () => {
 
         {/* Wrap the buttons in a flex row to group them together on the right */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => navigate("/credit-notes")}
+            className="flex items-center justify-center px-4 py-2 bg-orange-600 hover:bg-orange-400 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
+          >
+            <FileSearchCorner className="w-4 h-4 mr-2" />
+            Credit Notes
+          </button>
+
           <button
             onClick={() => navigate('/customers')}
             className="flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-primary hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"

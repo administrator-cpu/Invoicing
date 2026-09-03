@@ -108,7 +108,7 @@ app.use('/api/company-profiles', companyProfileRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/invoice-customer-settings', customerSettingsRouter);
 app.use('/api/emails', emailLogRouter);
-app.use("/api/v1/credit-notes", creditNoteRouter);
+app.use("/api/credit-notes", creditNoteRouter);
 
 app.all(/.*/, (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
