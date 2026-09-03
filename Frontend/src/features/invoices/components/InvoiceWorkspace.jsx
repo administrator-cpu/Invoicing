@@ -45,8 +45,8 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
         },
         invoiceOverrides: {
           ...conn.invoiceOverrides,
-          periodStart: conn.invoiceOverrides?.periodStart ?? conn.periodStart ?? defaults.billingCycleStart,
-          periodEnd: conn.invoiceOverrides?.periodEnd ?? conn.periodEnd ?? defaults.billingCycleEnd
+          periodStart: defaults.billingCycleStart,
+          periodEnd: defaults.billingCycleEnd
         },
         periodStart: conn.periodStart
           ? formatDateInput(conn.periodStart)
@@ -132,6 +132,8 @@ function buildConnectionsPayload(formData) {
     const ipItem = ipItems.find(ip => ip.crmConnectionSnapshot?.connectionId === connectionId);
     const overrides = {
       ...(item.invoiceOverrides || {}),
+      periodStart: item.periodStart ?? formData.billingCycleStart,
+      periodEnd: item.periodEnd ?? formData.billingCycleEnd,
       bandwidth: item.invoiceOverrides?.bandwidth ?? item.crmConnectionSnapshot?.bandwidth,
       ratePerMb: item.invoiceOverrides?.ratePerMb ?? item.rate,
       description: item.invoiceOverrides?.description ?? item.description,
