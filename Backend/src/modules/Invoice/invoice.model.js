@@ -59,25 +59,6 @@ const invoiceItemSchema = new mongoose.Schema({
     count: { type: Number, default: 0 },
     cost: { type: Number, default: 0 }
   },
-  // providerCost: {
-  //   mrc: { type: Number, default: 0 },
-  //   ratePerMb: { type: Number, default: 0 },
-  //   updatedAt: { type: Date, default: null }
-  // },
-  // technicalDetails: {
-  //   aEnd: {
-  //     btsId: String,
-  //     address: String,
-  //     latitude: String,
-  //     longitude: String
-  //   },
-  //   bEnd: {
-  //     btsId: String,
-  //     address: String,
-  //     latitude: String,
-  //     longitude: String
-  //   }
-  // },
   history: [{
     type: mongoose.Schema.Types.Mixed
   }],
@@ -196,7 +177,7 @@ const InvoiceSchema = new mongoose.Schema({
   },
   invoiceType: {
     type: String,
-    enum: ["BASE", "CREDIT_NOTE", "DEBIT_NOTE"],
+    enum: ["BASE", "DEBIT_NOTE"],
     default: "BASE"
   },
   billingRunId: {
@@ -224,45 +205,11 @@ const InvoiceSchema = new mongoose.Schema({
     ref: "Invoice",
     default: null
   },
-  referenceInvoiceId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Invoice",
-    default: null
-  },
 
   creditNotes: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Invoice",
+    ref: "CreditNote",
   }],
-
-  creditNote: {
-    reason: {
-      type: String,
-      default: null,
-      trim: true
-    },
-
-    remarks: {
-      type: String,
-      default: null,
-      trim: true,
-    },
-
-    adjustmentType: {
-      type: String,
-      enum: [
-        "FULL_REVERSAL",
-        "PARTIAL",
-        "PRORATA",
-      ],
-      default: null,
-    },
-
-    effectiveDate: {
-      type: Date,
-      default: null,
-    },
-  },
 
   status: {
     type: String,
@@ -472,6 +419,11 @@ const InvoiceSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+
+  creditNoteVersion: {
+    type: Number,
+    default: 0,
+  }
 }, {
   timestamps: true
 });

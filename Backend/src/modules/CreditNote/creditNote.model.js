@@ -1,113 +1,326 @@
 import mongoose from "mongoose";
 
+const creditNoteItemSchema = new mongoose.Schema({
+  adjustmentType: {
+    type: String,
+    enum: ["LINE_ITEM", "MANUAL"],
+    required: true,
+  },
+
+  originalItemId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+  },
+
+  sourceType: {
+    type: String,
+    enum: [
+      "CONNECTION",
+      "IP_ADDRESS",
+      "MANUAL_SERVICE",
+      "OTC",
+    ],
+    required: true,
+  },
+
+  description: {
+    type: String,
+    required: true,
+  },
+
+  originalQty: {
+    type: Number,
+    default: null,
+  },
+
+  creditedQty: {
+    type: Number,
+    default: null,
+  },
+
+  originalRate: {
+    type: Number,
+    default: null,
+  },
+
+  creditedRate: {
+    type: Number,
+    default: null,
+  },
+
+  originalAmount: {
+    type: Number,
+    default: null,
+  },
+
+  originalTaxAmount: {
+    type: Number,
+    default: null,
+  },
+
+  originalTotalAmount: {
+    type: Number,
+    default: null,
+  },
+
+  remainingCreditableAmount: {
+    type: Number,
+    default: null,
+  },
+
+  previouslyCreditedAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  creditedAmount: {
+    type: Number,
+    default: null,
+  },
+
+  creditAmount: {
+    type: Number,
+    required: true,
+  },
+
+  originalTaxRate: {
+    type: Number,
+    default: 0,
+  },
+
+  taxType: {
+    type: String,
+    enum: ["IGST", "CGST_SGST", "NONE"],
+    default: "NONE",
+  },
+
+  igstRate: {
+    type: Number,
+    default: 0,
+  },
+
+  igstCreditAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  cgstRate: {
+    type: Number,
+    default: 0,
+  },
+
+  cgstCreditAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  sgstRate: {
+    type: Number,
+    default: 0,
+  },
+
+  sgstCreditAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  taxCreditAmount: {
+    type: Number,
+    default: 0,
+  },
+
+  totalCreditAmount: {
+    type: Number,
+    required: true,
+  },
+
+  crmConnectionSnapshot: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
+  },
+
+  sacCode: {
+    type: String,
+    default: null,
+  },
+
+  clientRowId: {
+    type: String,
+    default: null,
+  },
+});
+
 const CreditNoteSchema = new mongoose.Schema(
   {
-    tenantId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Tenant",
-      required: true,
-      index: true
-    },
-
     creditNoteNumber: {
       type: String,
-      required: true,
       unique: true,
-      index: true
+      sparse: true,
+      index: true,
+      default: null,
+    },
+
+    invoiceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Invoice",
+      required: true,
+      index: true,
+    },
+
+    invoiceNumber: {
+      type: String,
+      required: true,
+    },
+
+    customerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    customerSnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+    },
+
+    companySnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+    },
+
+    reason: {
+      type: String,
+      required: true,
+    },
+
+    remarks: {
+      type: String,
+      default: null,
+    },
+
+    items: {
+      type: [creditNoteItemSchema],
+      required: true,
+    },
+
+    effectiveDate: {
+      type: Date,
+      required: true,
+      default: Date.now,
+    },
+
+    financials: {
+      originalBaseAmount: {
+        type: Number,
+        required: true,
+      },
+
+      originalTaxAmount: {
+        type: Number,
+        default: 0,
+      },
+
+      creditBaseAmount: {
+        type: Number,
+        required: true,
+      },
+
+      taxCreditAmount: {
+        type: Number,
+        required: true,
+      },
+
+      igstCreditAmount: {
+        type: Number,
+        default: 0,
+      },
+
+      cgstCreditAmount: {
+        type: Number,
+        default: 0,
+      },
+
+      sgstCreditAmount: {
+        type: Number,
+        default: 0,
+      },
+
+      totalCreditAmount: {
+        type: Number,
+        required: true,
+      },
+    },
+
+    pdf: {
+      generatedAt: Date,
+      fileName: String,
+      relativePath: String,
+      size: Number,
+      version: {
+        type: Number,
+        default: 1,
+      },
+      checksum: String,
     },
 
     status: {
       type: String,
       enum: [
         "DRAFT",
-        "ISSUED",
-        "CANCELLED"
+        "FINALIZED",
+        "CANCELLED",
+        "DELETED"
       ],
       default: "DRAFT",
-      index: true
     },
 
-    reason: {
+    ledgerSyncStatus: {
       type: String,
-      trim: true,
-      maxlength: 1000
+      enum: [
+        "NOT_SYNCED",
+        "PENDING",
+        "SYNCED",
+        "FAILED",
+      ],
+      default: "NOT_SYNCED",
     },
-
-    referenceInvoice: {
-      invoiceId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Invoice",
-        required: true,
-        index: true
-      },
-      invoiceNumber: String,
-      invoiceDate: Date,
-      originalGrandTotal: Number,
-      originalTaxableAmount: Number,
-      originalTax: Number
+    ledgerEntryId: {
+      type: String,
+      default: null,
     },
-
-    companyProfile: {
-      type: mongoose.Schema.Types.Mixed,
-      required: true
+    ledgerSyncAttempts: {
+      type: Number,
+      default: 0,
     },
-
-    customer: {
-      type: mongoose.Schema.Types.Mixed,
-      required: true
+    ledgerSyncError: {
+      type: String,
+      default: null,
     },
-
-    billingPeriod: {
-      periodStart: Date,
-      periodEnd: Date
-    },
-
-    items: {
-      type: [mongoose.Schema.Types.Mixed],
-      default: []
-    },
-
-    financials: {
-      subtotal: Number,
-      discount: Number,
-      taxableAmount: Number,
-      cgst: Number,
-      sgst: Number,
-      igst: Number,
-      totalTax: Number,
-      roundOff: Number,
-      grandTotal: Number
+    ledgerSyncedAt: {
+      type: Date,
+      default: null,
     },
 
     audit: {
       createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "User",
+        required: true,
       },
-      issuedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      },
-      cancelledBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      },
-      createdAt: Date,
-      issuedAt: Date,
-      cancelledAt: Date
-    },
 
-    metadata: {
-      previewVersion: Number,
-      generatedFrom: {
-        type: String,
-        default: "INVOICE"
-      }
+      finalizedAt: Date,
+
+      finalizedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    },
+    creditNoteVersion: {
+      type: Number,
+      default: 0,
     }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("CreditNote", CreditNoteSchema);

@@ -27,8 +27,8 @@ function getBillingCommercialSnapshot(connection) {
   const history = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (
-    connection.status === "ACTIVE" ||
-    connection.status === "NOTICE PERIOD"
+    connection.status === "Active" ||
+    connection.status === "Notice Period"
   ) {
     return {
       bandwidth: connection.bandwidth,

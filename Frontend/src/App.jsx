@@ -18,7 +18,10 @@ import InvoiceEdit from '@/pages/InvoiceEdit';
 import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import InvoiceDeliverySettings from "@/pages/InvoiceDeliverySettings";
-import CreateCreditNote from '@/pages/CreateCreditNote';
+import CreditNotes from "@/pages/CreditNotes"
+import CreditNoteDetails from '@/pages/CreditNoteDetails';
+import CreditNoteCreate from '@/pages/CreditNoteCreate';
+import CreditNoteEdit from "@/pages/CreditNoteEdit";
 
 function App() {
   const { setUser, clearAuth, isCheckingAuth, setCheckingAuth } = useAuthStore();
@@ -72,7 +75,10 @@ function App() {
             <Route path="/invoices/customer-settings/:customerId" element={<InvoiceDeliverySettings />} />
             <Route path="/invoices/:id" element={<InvoiceDetails />} />
             <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
-            <Route path="/invoices/:id/create-credit-note" element={<CreateCreditNote />} />
+            <Route path="/credit-notes" element={<CreditNotes />} />
+            <Route path="/credit-notes/:id" element={<CreditNoteDetails />} />
+            <Route path="/credit-notes/create" element={<CreditNoteCreate />} />
+            <Route path="/credit-notes/:id/edit" element={<CreditNoteEdit />} />
             <Route path="/invoices/create" element={<InvoiceCreate />} />
           </Route>
         </Route>

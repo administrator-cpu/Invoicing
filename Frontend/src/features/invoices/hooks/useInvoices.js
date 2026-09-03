@@ -163,25 +163,7 @@ export const useInvoiceEmailHistory = (invoiceId, enabled = true, invoiceStatus)
   });
 };
 
-/* export const useCreateCreditNote = () => {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  return useMutation({
-    mutationFn: async ({ invoiceId, payload }) => {
-      return await apiClient.post(`/invoices/${invoiceId}/credit-note`, payload)
-    },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["invoices", "details", variables.invoiceId], });
-      toast.success(data.message);
-      navigate(`/credit-notes/${data.creditNote._id}/edit`);
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to create credit note.");
-    },
-  });
-}; */
-
-export const useCreditNoteDetails = (id) => {
+/* export const useCreditNoteDetails = (id) => {
   return useQuery({
     queryKey: ["credit-note", id],
     queryFn: async () => {
@@ -190,7 +172,7 @@ export const useCreditNoteDetails = (id) => {
     },
     enabled: !!id,
   });
-};
+}; */
 
 export const useUpdateInvoice = () => {
   const queryClient = useQueryClient();

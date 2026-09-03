@@ -5,7 +5,6 @@ import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, FilePlus2, X, A
 import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
 import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
-import CreateCreditNoteModal from "@/features/invoices/components/CreateCreditNoteModal";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
 import CancelInvoiceModal from "@/features/invoices/components/CancelInvoiceModal";
 import { SendInvoiceModal } from "@/features/invoices/components/SendInvoiceModal";
@@ -107,7 +106,7 @@ const InvoiceDetails = () => {
   };
 
   const isDraft = invoice.status === 'DRAFT';
-  const canCreateCreditNote = invoice.invoiceType === "BASE" && ["FINALIZED", "PARTIAL", "PAID", "OVERDUE"].includes(invoice.status);
+  const canCreateCreditNote = invoice.invoiceType === "BASE" && invoice.status === "FINALIZED";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full px-4 md:px-8 pb-10 md:pb-16">
@@ -162,15 +161,15 @@ const InvoiceDetails = () => {
                 </button>
               )}
 
-              {/* {canCreateCreditNote && (
+              {canCreateCreditNote && (
                 <button
-                  onClick={() => navigate(`/invoices/${id}/create-credit-note`)}
+                  onClick={() => navigate("/credit-notes/create", { state: { invoiceId: id }, })}
                   className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer"
                 >
                   <FilePlus2 className="w-4 h-4 mr-2" />
                   Create Credit Note
                 </button>
-              )} */}
+              )}
 
               <button
                 onClick={() =>
