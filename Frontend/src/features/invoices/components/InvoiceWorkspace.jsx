@@ -280,7 +280,7 @@ function mergePreviewItems(currentItems, backendItems) {
       commercials: existing?.commercials ?? {},
       technicalDetails: existing?.technicalDetails ?? {},
       originalConnection: existing?.originalConnection ?? null,
-      terminationDetails: existing?.terminationDetails ?? null,
+      terminationDetails: backendItem.terminationDetails ?? existing?.terminationDetails ?? null,
       billingMeta: backendItem.billingMeta ?? existing?.billingMeta ?? null,
     };
   });
@@ -443,8 +443,30 @@ export default function InvoiceWorkspace({
 
     previewInvoice(previewPayload, {
       onSuccess: (data) => {
+        console.log("PREVIEW API RESPONSE:", data);
+        console.log(
+          "PREVIEW TERMINATION DETAILS:",
+          data.items?.map(item => ({
+            crmConnectionId: item.crmConnectionSnapshot?.connectionId,
+            terminationDetails: item.terminationDetails
+          }))
+        );
         const currentValues = getValues();
+        console.log(
+          "BEFORE MERGE TERMINATION DETAILS:",
+          currentValues.items?.map(item => ({
+            crmConnectionId: item.crmConnectionSnapshot?.connectionId,
+            terminationDetails: item.terminationDetails
+          }))
+        );
         const mergedItems = mergePreviewItems(currentValues.items || [], data.items);
+        console.log(
+          "AFTER MERGE TERMINATION DETAILS:",
+          mergedItems?.map(item => ({
+            crmConnectionId: item.crmConnectionSnapshot?.connectionId,
+            terminationDetails: item.terminationDetails
+          }))
+        );
         reset({
           ...currentValues,
           items: mergedItems,

@@ -4,7 +4,7 @@ import {
   finalizeInvoice, getInvoices, getInvoiceById, getInvoiceWorkspace, getInvoiceEditWorkspace,
   updateDraftInvoice, cancelInvoice, deleteDraftInvoice, downloadInvoicePdf, previewInvoicePdf,
   recordPayment, generateAdjustmentInvoice, updatePaymentStatus, sendInvoiceMail, getConnectionBillingHistory,
-  createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport
+  createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport, retryInvoiceBahiKhataSync
 } from './invoice.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
 import verifyInternalApiKey from '../../middlewares/internalApiKeyMiddleware.js';
@@ -34,6 +34,7 @@ router.get("/credit-notes/:id", protect, getCreditNoteDetails);
 // --- WRITE ROUTES ---
 router.post('/preview', previewInvoice);
 router.post('/draft', createDraftInvoice);
+router.post("/:id/retry-bahi-khata-sync", retryInvoiceBahiKhataSync);
 router.post("/:id/credit-note", protect, createCreditNote);
 router.post("/:id/send", sendInvoiceMail);
 router.patch('/:id/finalize', finalizeInvoice);
