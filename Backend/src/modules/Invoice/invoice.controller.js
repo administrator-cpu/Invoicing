@@ -806,6 +806,35 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
 
 });
 
+export const retryInvoiceBahiKhataSync = catchAsync(async (req, res, next) => {
+  const invoice = await Invoice.findOne(
+    activeInvoiceFilter(req.params.id)
+  ).lean();
+
+  if (!invoice) {
+    throw new AppError("Invoice not found", 404);
+  }
+
+  if (invoice.status !== "FINALIZED") {
+    throw new AppError(`Only FINALIZED invoices can be synced to Bahi Khata. Current status: ${invoice.status}`, 400);
+  }
+
+  if (!invoice.invoiceNumber) {
+    throw new AppError("Cannot sync invoice to Bahi Khata because invoice number is missing.", 400);
+  }
+
+  syncFinalizedInvoiceToBahiKhata(invoice);
+
+  res.status(200).json({
+    status: "success",
+    message: "Invoice Bahi Khata sync has been triggered.",
+    data: {
+      invoiceId: invoice._id,
+      invoiceNumber: invoice.invoiceNumber,
+    },
+  });
+});
+
 /**
  * @desc - Get a paginated list of all invoices (Draft and Finalized)
  * @route - GET /api/v1/invoices
