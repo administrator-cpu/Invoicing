@@ -5,21 +5,63 @@ import EmailLog from '../Email/emailLog.model.js';
 import catchAsync from '../../utils/catchAsync.js';
 import AppError from '../../utils/AppError.js';
 import { getBrowser } from '../../services/pdfBrowser.js';
-import { generateNextDocumentNumber, validateAndRecalculateInvoice } from './invoice.helpers.js';
-import { generateBillingFingerprint } from '../../utils/billingFingerprint.js';
+import { generateNextDocumentNumber, validateAndRecalculateInvoice, assertNoDuplicateConnectionBilling } from './invoice.helpers.js';
+import { generateBillingFingerprint, activeInvoiceFilter } from '../../utils/invoice.utils.js';
 import { buildInvoiceItems, buildRecentActivity } from './invoiceBillingEngine.js';
 import CompanyProfile from '../CompanyProfile/companyProfile.model.js';
 import { saveInvoicePdf, readInvoicePdf, pdfExists } from '../../services/documentStorage.js';
-import { activeInvoiceFilter } from "../../utils/invoice.utils.js";
 import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { generateGSTReport } from '../../services/invoiceExcelTemplate.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections, getBillingHistory } from "../../services/crm.service.js";
 import { syncFinalizedInvoiceToBahiKhata, deleteInvoiceFromBahiKhata } from "../../services/bahiKhata.service.js";
 import { sendEmail } from '../../services/emailService.js';
-import { prepareInvoiceDelivery } from '../../services/invoiceDeliveryService.js';
+import { prepareInvoiceDelivery } from '../../services/deliveryService.js';
 import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
 import logger from '../../utils/logger.js';
+
+/**
+ * @desc Builds a lookup of { connectionId -> [{ periodStart, periodEnd, invoiceNumber, status }] }
+ * from every non-cancelled BASE invoice already billed for this customer, so the workspace can
+ * warn the user in advance if a connection they're about to select is already billed for an
+ * overlapping period. This is a UI hint only — `assertNoDuplicateConnectionBilling` in
+ * invoice.helpers.js is what actually enforces it server-side on save.
+ */
+const getBilledPeriodsByConnection = async (customerId, excludeInvoiceId = null) => {
+  const customerInvoices = await Invoice.find({
+    "customerSnapshot.crmCustomerId": customerId,
+    invoiceType: "BASE",
+    status: { $ne: "CANCELLED" },
+    isDeleted: { $ne: true },
+    ...(excludeInvoiceId && { _id: { $ne: excludeInvoiceId } }),
+  })
+    .select("invoiceNumber status items.crmConnectionSnapshot.connectionId items.sourceType items.periodStart items.periodEnd")
+    .lean();
+
+  const billedPeriodsByConnection = new Map();
+
+  for (const inv of customerInvoices) {
+    for (const item of inv.items || []) {
+      if (!["CONNECTION", "IP_ADDRESS"].includes(item.sourceType)) continue;
+      const connectionId = item.crmConnectionSnapshot?.connectionId;
+      if (!connectionId) continue;
+
+      if (!billedPeriodsByConnection.has(connectionId)) {
+        billedPeriodsByConnection.set(connectionId, []);
+      }
+
+      billedPeriodsByConnection.get(connectionId).push({
+        invoiceNumber: inv.invoiceNumber,
+        status: inv.status,
+        sourceType: item.sourceType,
+        periodStart: item.periodStart,
+        periodEnd: item.periodEnd,
+      });
+    }
+  }
+
+  return billedPeriodsByConnection;
+};
 
 /**
  * @desc Workspaces For Create and Edit Inoice and Credit Note Invoice
@@ -33,7 +75,7 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
   const billingCycleStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const billingCycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const [customer, connections, companyProfiles, latestInvoice] = await Promise.all([
+  const [customer, connections, companyProfiles, latestInvoice, billedPeriodsByConnection] = await Promise.all([
     getCrmCustomerDetails(customerId),
     getCrmCustomerConnections(customerId),
     CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean(),
@@ -42,7 +84,8 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
       invoiceType: "BASE",
       status: { $in: ["FINALIZED", "PAID", "PARTIAL", "OVERDUE"] },
       isDeleted: false
-    }).sort({ "dates.billingCycleStart": -1 }).lean()
+    }).sort({ "dates.billingCycleStart": -1 }).lean(),
+    getBilledPeriodsByConnection(customerId)
   ]);
 
   if (!customer) {
@@ -104,6 +147,7 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     };
 
     const savedItem = invoiceItemMap.get(connection.crmConnectionId?.toString());
+    const billedPeriods = billedPeriodsByConnection.get(connection.crmConnectionId?.toString()) || [];
 
     if (latestInvoice) {
       if (savedItem) {
@@ -129,14 +173,17 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
           periodEnd: null,
           selected: true,
           editable: true,
-          status: connection.status
+          status: connection.status,
+          terminationDetails: connection.terminationDetails,
+          billedPeriods
         };
       } else {
         return {
           ...connection,
           technicalDetails: techDetails,
           selected: false,
-          editable: true
+          editable: true,
+          billedPeriods
         };
       }
     } else {
@@ -144,7 +191,8 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
         ...connection,
         technicalDetails: techDetails,
         selected: connection.isBillable,
-        editable: true
+        editable: true,
+        billedPeriods
       };
     }
   });
@@ -210,19 +258,23 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
   };
 
   const customerId = invoice.customerSnapshot.crmCustomerId;
-  const [customer, connections, companyProfiles] = await Promise.all([
+  const [customer, connections, companyProfiles, billedPeriodsByConnection] = await Promise.all([
     getCrmCustomerDetails(customerId),
     getCrmCustomerConnections(customerId),
-    CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean()
+    CompanyProfile.find({ isActive: true }).sort({ createdAt: -1 }).lean(),
+    getBilledPeriodsByConnection(customerId, invoice._id)
   ]);
 
   const mergedItems = (connections.connections || []).map(connection => {
     const savedItem = invoiceItemMap.get(connection.crmConnectionId?.toString());
+    const billedPeriods = billedPeriodsByConnection.get(connection.crmConnectionId?.toString()) || [];
+
     if (!savedItem) {
       return {
         ...connection,
         selected: connection.isBillable,
-        editable: true
+        editable: true,
+        billedPeriods
       };
     }
 
@@ -245,7 +297,8 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
         periodEnd: formatDate(savedItem.periodEnd)
       },
       selected: true,
-      editable: true
+      editable: true,
+      billedPeriods
     };
   });
 
@@ -483,6 +536,8 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
       customerState, companyState, discount
     });
 
+  await assertNoDuplicateConnectionBilling(verifiedItems);
+
   const billingFingerprint = generateBillingFingerprint({
     customerId: customer._id || customer.id,
     cycleStart: billingCycleStart,
@@ -596,6 +651,8 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
   } catch (err) {
     return next(new AppError(err.message, 400));
   }
+
+  await assertNoDuplicateConnectionBilling(items, { excludeInvoiceId: req.params.id });
 
   const updatePayload = {
     items,

@@ -2,10 +2,9 @@ import { Worker, UnrecoverableError } from "bullmq";
 import redis from "../config/redis.js";
 import EmailLog from "../modules/Email/emailLog.model.js";
 import Invoice from "../modules/Invoice/invoice.model.js";
-import InvoiceCustomerReminder from "../modules/Invoice/invoiceCustomerReminder.model.js";
+import { InvoiceCustomerReminder } from "../modules/Invoice/invoice.secondaryModels.js";
 import { sendEmail } from "../services/emailService.js";
-import { prepareInvoiceDelivery } from "../services/invoiceDeliveryService.js";
-import { prepareReminderDelivery } from "../services/reminderDeliveryService.js";
+import { prepareInvoiceDelivery, prepareReminderDelivery } from "../services/deliveryService.js";
 import AppError from "../utils/AppError.js";
 import logger from "../utils/logger.js";
 

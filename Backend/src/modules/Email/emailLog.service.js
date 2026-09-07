@@ -11,3 +11,14 @@ export async function getInvoiceEmailHistory(invoiceId) {
 
   return emailHistory;
 };
+
+export async function getCreditNoteEmailHistory(creditNoteId) {
+  if (!creditNoteId) throw new AppError("Credit note ID is required.", 400);
+
+  const emailHistory = await EmailLog.find({
+    documentType: "CREDIT_NOTE",
+    documentId: creditNoteId
+  }).sort({ createdAt: -1 }).lean();
+
+  return emailHistory;
+};

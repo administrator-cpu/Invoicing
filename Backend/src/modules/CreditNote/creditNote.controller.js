@@ -1,10 +1,16 @@
 import mongoose from "mongoose";
 import CreditNote from "./creditNote.model.js";
 import Invoice from "../Invoice/invoice.model.js";
+import EmailLog from "../Email/emailLog.model.js";
 import { calculateCreditNote, getExistingCreditNotes, getPreviouslyCreditedAmountForItem } from "./creditNote.service.js";
 import { generateNextDocumentNumber } from "../Invoice/invoice.helpers.js";
+import generateCreditNotePdf from "../../services/creditNotePdfService.js";
+import { saveCreditNotePdf, readCreditNotePdf, creditNotePdfExists } from "../../services/documentStorage.js";
+import { prepareCreditNoteDelivery } from "../../services/deliveryService.js";
+import { sendEmail } from "../../services/emailService.js";
 import catchAsync from "../../utils/catchAsync.js";
 import AppError from "../../utils/AppError.js";
+import logger from "../../utils/logger.js";
 
 const round2 = (value) => { return Math.round((Number(value) + Number.EPSILON) * 100) / 100; };
 
@@ -422,27 +428,27 @@ export const finalizeCreditNote = catchAsync(async (req, res, next) => {
     await session.endSession();
   }
 
-  // try {
-  //   const document = await generateCreditNotePdf(creditNote);
-  //   const metadata = await saveCreditNotePdf(creditNote, document);
+  try {
+    const document = await generateCreditNotePdf(creditNote);
+    const metadata = await saveCreditNotePdf(creditNote, document);
 
-  //   await CreditNote.updateOne(
-  //     { _id: creditNote._id },
-  //     {
-  //       $set: {
-  //         pdf: metadata,
-  //       },
-  //     }
-  //   );
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      {
+        $set: {
+          pdf: metadata,
+        },
+      }
+    );
 
-  //   creditNote.pdf = metadata;
-  // } catch (error) {
-  //   logger.error("Failed to generate credit note PDF.", {
-  //     creditNoteId: creditNote._id,
-  //     creditNoteNumber: creditNote.creditNoteNumber,
-  //     error: error.message,
-  //   });
-  // }
+    creditNote.pdf = metadata;
+  } catch (error) {
+    logger.error("Failed to generate credit note PDF.", {
+      creditNoteId: creditNote._id,
+      creditNoteNumber: creditNote.creditNoteNumber,
+      error: error.message,
+    });
+  }
 
   return res.status(200).json({
     status: "success",
@@ -492,4 +498,154 @@ export const cancelCreditNote = catchAsync(async (req, res, next) => {
       creditNote,
     },
   });
+});
+/**
+ * @desc - Download a finalized credit note as PDF (regenerates from stored data if the file is missing)
+ * @route - GET /api/credit-notes/:id/pdf
+ */
+export const downloadCreditNotePdf = catchAsync(async (req, res, next) => {
+  const creditNote = await CreditNote.findOne({
+    _id: req.params.id,
+    status: { $ne: "DELETED" },
+  }).lean();
+
+  if (!creditNote) {
+    return next(new AppError("Credit note not found.", 404));
+  }
+
+  if (creditNote.status === "DRAFT") {
+    return next(new AppError("Draft credit notes cannot be downloaded. Finalize it first.", 400));
+  }
+
+  let document;
+  let pdfMetadata = creditNote.pdf;
+  const pdfAvailable = pdfMetadata?.relativePath && await creditNotePdfExists(pdfMetadata.relativePath);
+
+  if (!pdfAvailable) {
+    logger.info("Regenerating missing credit note PDF", {
+      creditNoteId: creditNote._id,
+      creditNoteNumber: creditNote.creditNoteNumber,
+    });
+
+    const generatedDocument = await generateCreditNotePdf(creditNote);
+    pdfMetadata = await saveCreditNotePdf(creditNote, generatedDocument);
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      { $set: { pdf: pdfMetadata } }
+    );
+    document = generatedDocument;
+  } else {
+    document = {
+      buffer: await readCreditNotePdf(pdfMetadata.relativePath),
+      mimeType: "application/pdf",
+      fileName: pdfMetadata.fileName,
+    };
+  }
+
+  res.setHeader("Content-Type", document.mimeType);
+  res.setHeader("Content-Disposition", `inline; filename="${document.fileName}"`);
+  res.send(document.buffer);
+});
+
+/**
+ * @desc - Preview a DRAFT credit note as PDF, generated on the fly without persisting
+ * @route - GET /api/credit-notes/:id/pdf/preview
+ */
+export const previewCreditNotePdf = catchAsync(async (req, res, next) => {
+  const creditNote = await CreditNote.findOne({
+    _id: req.params.id,
+    status: { $ne: "DELETED" },
+  }).lean();
+
+  if (!creditNote) {
+    return next(new AppError("Credit note not found.", 404));
+  }
+
+  const document = await generateCreditNotePdf(creditNote);
+
+  res.setHeader("Content-Type", document.mimeType);
+  res.setHeader("Content-Disposition", `inline; filename="${document.fileName}"`);
+  res.send(document.buffer);
+});
+
+/**
+ * @desc - Email a finalized credit note to the customer's configured recipients
+ * @route - POST /api/credit-notes/:id/send
+ */
+export const sendCreditNoteMail = catchAsync(async (req, res, next) => {
+  const creditNoteId = req.params.id;
+  const creditNote = await CreditNote.findById(creditNoteId);
+  if (!creditNote) {
+    return next(new AppError("Credit note not found.", 404));
+  }
+  if (creditNote.email?.status === "PROCESSING") {
+    return next(new AppError("This credit note is currently sending. Please wait a moment.", 400));
+  }
+
+  await CreditNote.updateOne(
+    { _id: creditNoteId },
+    { $set: { "email.status": "PROCESSING" } }
+  );
+
+  let emailLog;
+  let payload;
+
+  try {
+    payload = await prepareCreditNoteDelivery(creditNoteId);
+
+    emailLog = await EmailLog.create({
+      documentType: "CREDIT_NOTE",
+      documentId: creditNoteId,
+      recipients: payload.email.metadata.recipients,
+      subject: payload.email.subject,
+      status: "PROCESSING"
+    });
+
+    const result = await sendEmail(payload.email);
+
+    await emailLog.updateOne({
+      status: "SENT",
+      providerMessageId: result.id,
+      sentAt: new Date(),
+      attempts: 1,
+    });
+
+    await CreditNote.updateOne(
+      { _id: creditNoteId },
+      {
+        $set: {
+          "email.status": "SENT",
+          "email.lastSentAt": new Date(),
+          "email.lastEmailLogId": emailLog._id,
+        }
+      }
+    );
+
+    res.status(200).json({
+      status: "success",
+      message: "Credit note email sent successfully.",
+      providerId: result.id
+    });
+
+  } catch (error) {
+    if (emailLog) {
+      await emailLog.updateOne({
+        status: "FAILED",
+        error: error.message,
+        attempts: 1,
+      });
+    }
+
+    await CreditNote.updateOne(
+      { _id: creditNoteId },
+      {
+        $set: {
+          "email.status": "FAILED",
+          "email.lastEmailLogId": emailLog ? emailLog._id : null,
+        }
+      }
+    );
+
+    return next(new AppError(`Failed to send email: ${error.message}`, 500));
+  }
 });

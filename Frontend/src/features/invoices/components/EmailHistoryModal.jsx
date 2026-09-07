@@ -20,7 +20,7 @@ const STATUS = {
   },
 };
 
-const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading }) => {
+const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentLabel = "invoice" }) => {
   if (!isOpen) return null;
 
   return (
@@ -36,7 +36,7 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading }) => {
               Email History
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Complete delivery history for this invoice
+              Complete delivery history for this {documentLabel}
             </p>
           </div>
           <button
@@ -65,7 +65,7 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading }) => {
                 No Emails Sent
               </h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                This invoice has never been emailed.
+                This {documentLabel} has never been emailed.
               </p>
             </div>
           )}

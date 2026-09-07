@@ -36,7 +36,7 @@ export default function CreditNoteCreate() {
     );
   }
 
-  const handleSubmit = (payload, options) => { createCreditNote({ invoiceId, payload }, options); };
+  const handleSubmit = (mutationPayload, options) => { createCreditNote(mutationPayload, options); };
 
   return (
     <CreditNoteWorkspace

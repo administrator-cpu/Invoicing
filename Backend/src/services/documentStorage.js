@@ -69,3 +69,70 @@ export const pdfExists = async (relativePath) => {
     return false;
   }
 };
+
+const buildCreditNoteDirectory = (creditNote) => {
+  const tenant = creditNote.tenantId?.toString() || "default";
+  const year = new Date(creditNote.effectiveDate || creditNote.createdAt).getFullYear();
+
+  return path.join(
+    STORAGE_ROOT,
+    "credit-notes",
+    tenant,
+    year.toString()
+  );
+};
+
+const buildCreditNoteRelativePath = (creditNote) => {
+  const tenant = creditNote.tenantId?.toString() || "default";
+  const year = new Date(creditNote.effectiveDate || creditNote.createdAt).getFullYear();
+  const safeFileName = `${creditNote.creditNoteNumber}`.replace(/[<>:"/\\|?*]/g, "-");
+
+  return path.join(
+    "credit-notes",
+    tenant,
+    year.toString(),
+    `${safeFileName}.pdf`
+  );
+};
+
+export const saveCreditNotePdf = async (creditNote, document) => {
+  const directory = buildCreditNoteDirectory(creditNote);
+
+  await fs.mkdir(directory, { recursive: true, });
+
+  const absolutePath = path.join(
+    directory,
+    document.fileName
+  );
+
+  await fs.writeFile(
+    absolutePath,
+    document.buffer,
+    { flag: "w" }
+  );
+
+  return {
+    fileName: document.fileName,
+    relativePath: buildCreditNoteRelativePath(creditNote),
+    size: document.buffer.length,
+    generatedAt: new Date(),
+  };
+};
+
+export const readCreditNotePdf = async (relativePath) => {
+  const absolutePath = path.join(STORAGE_ROOT, relativePath);
+  return fs.readFile(absolutePath);
+};
+
+export const creditNotePdfExists = async (relativePath) => {
+  try {
+    const absolutePath = path.join(
+      STORAGE_ROOT,
+      relativePath
+    );
+    await fs.access(absolutePath);
+    return true;
+  } catch {
+    return false;
+  }
+};

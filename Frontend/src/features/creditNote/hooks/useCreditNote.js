@@ -162,3 +162,34 @@ export const useDeleteCreditNote = () => {
     onError: (error) => { toast.error(error.message || "Something Went Wrong!"); },
   });
 };
+
+export const useSendCreditNoteEmail = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      return await apiClient.post(`/credit-notes/${id}/send`);
+    },
+
+    onSuccess: (response, id) => {
+      queryClient.invalidateQueries({ queryKey: ["credit-notes"], });
+      queryClient.invalidateQueries({ queryKey: ["credit-notes", "details", id], });
+      queryClient.invalidateQueries({ queryKey: ["credit-note-email-history", id], });
+      toast.success(response.message || "Credit note email sent successfully.");
+    },
+
+    onError: (error) => { toast.error(error.message || "Failed to send credit note email."); },
+  });
+};
+
+export const useCreditNoteEmailHistory = (creditNoteId, enabled = true, creditNoteEmailStatus) => {
+  return useQuery({
+    queryKey: ["credit-note-email-history", creditNoteId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/emails/credit-note/${creditNoteId}/history`);
+      return response.data;
+    },
+    enabled: enabled && !!creditNoteId,
+    refetchInterval: enabled && creditNoteEmailStatus === "PROCESSING" ? 2000 : false,
+  });
+};

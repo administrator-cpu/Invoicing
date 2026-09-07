@@ -358,9 +358,7 @@ export const calculateCreditNote = async (invoiceId, items, session = null, excl
     throw new AppError(`Unsupported credit adjustment type: ${requestedItem.adjustmentType}`, 400);
   }
 
-  const originalBaseAmount = round2(
-    calculatedItems.reduce((total, item) => total + Number(item.originalAmount || 0), 0)
-  );
+  const originalBaseAmount = round2(invoiceTotalBaseAmount);
 
   const creditBaseAmount = round2(
     calculatedItems.reduce((total, item) => total + Number(item.creditAmount || 0), 0)

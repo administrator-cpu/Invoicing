@@ -1,4 +1,5 @@
-import InvoiceSequence from "./invoiceSequence.model.js";
+import Invoice from "./invoice.model.js";
+import { InvoiceSequence } from "./invoice.secondaryModels.js";
 import AppError from "../../utils/AppError.js";
 
 const round2 = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
@@ -46,6 +47,57 @@ export const generateNextDocumentNumber = async (invoiceDate = new Date(), sessi
 
   const serial = String(counter.seq).padStart(3, "0");
   return `${prefix}/${serial}`;
+};
+
+export const assertNoDuplicateConnectionBilling = async (items, { excludeInvoiceId = null } = {}) => {
+  const billableConnectionItems = items.filter(
+    (item) =>
+      ["CONNECTION", "IP_ADDRESS"].includes(item.sourceType) &&
+      item.crmConnectionSnapshot?.connectionId
+  );
+
+  if (!billableConnectionItems.length) return;
+
+  const overlapClauses = billableConnectionItems.map((item) => ({
+    items: {
+      $elemMatch: {
+        "crmConnectionSnapshot.connectionId": item.crmConnectionSnapshot.connectionId,
+        sourceType: item.sourceType,
+        periodStart: { $lte: new Date(item.periodEnd) },
+        periodEnd: { $gte: new Date(item.periodStart) },
+      },
+    },
+  }));
+
+  const conflict = await Invoice.findOne({
+    invoiceType: "BASE",
+    status: { $ne: "CANCELLED" },
+    isDeleted: { $ne: true },
+    ...(excludeInvoiceId && { _id: { $ne: excludeInvoiceId } }),
+    $or: overlapClauses,
+  })
+    .select("invoiceNumber items.crmConnectionSnapshot.connectionId items.crmConnectionSnapshot.opportunityId items.sourceType items.periodStart items.periodEnd")
+    .lean();
+
+  if (!conflict) return;
+
+  const conflictingItem = conflict.items.find((existingItem) =>
+    billableConnectionItems.some(
+      (item) =>
+        item.crmConnectionSnapshot.connectionId === existingItem.crmConnectionSnapshot?.connectionId &&
+        item.sourceType === existingItem.sourceType &&
+        new Date(existingItem.periodStart) <= new Date(item.periodEnd) &&
+        new Date(existingItem.periodEnd) >= new Date(item.periodStart)
+    )
+  );
+
+  const opportunityId = conflictingItem?.crmConnectionSnapshot?.opportunityId || "This connection";
+  const reference = conflict.invoiceNumber || "an existing draft";
+
+  throw new AppError(
+    `${opportunityId} is already billed on ${reference} for an overlapping period. Remove it or adjust the billing cycle.`,
+    409
+  );
 };
 
 /**
