@@ -16,7 +16,7 @@ export default function InvoiceCreate() {
 
   if (!customerId) return <div className="p-8 text-center">No Customer Selected.</div>;
   if (isLoading) return <div className="p-8 text-center">Loading Workspace...</div>;
-  if (isError) return <div className="p-8 text-center text-red-500">Failed to load workspace.</div>;
+  if (isError) return <div className="p-8 text-center text-red-500 dark:text-red-400">Failed to load workspace.</div>;
 
   return (
     <InvoiceWorkspace

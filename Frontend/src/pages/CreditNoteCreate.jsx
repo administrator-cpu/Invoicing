@@ -30,7 +30,7 @@ export default function CreditNoteCreate() {
 
   if (isError || !invoice) {
     return (
-      <div className="p-8 text-center text-red-500">
+      <div className="p-8 text-center text-red-500 dark:text-red-400">
         Failed to load invoice.
       </div>
     );

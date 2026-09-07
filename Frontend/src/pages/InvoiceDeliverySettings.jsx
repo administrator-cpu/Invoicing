@@ -54,7 +54,7 @@ export default function InvoiceDeliverySettings() {
   }
   if (isError) {
     return (
-      <div className="flex justify-center items-center h-96 text-red-500">
+      <div className="flex justify-center items-center h-96 text-red-500 dark:text-red-400">
         Failed to load delivery settings.
       </div>
     );
@@ -65,29 +65,29 @@ export default function InvoiceDeliverySettings() {
 
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center pt-8 text-sm font-large text-slate-700 hover:text-slate-900 cursor-pointer"
+        className="flex items-center pt-8 text-sm font-large text-slate-700 dark:text-slate-300 hover:text-slate-900 cursor-pointer"
       >
         <ChevronLeft className="w-5 h-5 mr-1" />
         Back
       </button>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="px-6 py-5 border-b border-slate-200">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Mail className="w-6 h-6 text-primary" />
             Invoice Delivery Settings
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             CRM manages customer information.
             This page only controls where invoices will be delivered.
           </p>
 
         </div>
 
-        <div className="mx-6 mt-6 rounded-xl border border-slate-200 bg-slate-50">
+        <div className="mx-6 mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
 
-          <div className="px-6 py-4 border-b">
+          <div className="px-6 py-4 border-b dark:border-slate-700">
 
             <h2 className="font-bold text-lg">
               Customer Information
@@ -97,7 +97,7 @@ export default function InvoiceDeliverySettings() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-6">
             <div>
-              <p className="text-xs uppercase text-slate-500">
+              <p className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 Customer
               </p>
 
@@ -107,7 +107,7 @@ export default function InvoiceDeliverySettings() {
             </div>
 
             <div>
-              <p className="text-xs uppercase text-slate-500">
+              <p className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 Sales Representative
               </p>
 
@@ -117,7 +117,7 @@ export default function InvoiceDeliverySettings() {
             </div>
 
             <div>
-              <p className="text-xs uppercase text-slate-500">
+              <p className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 Primary Email
               </p>
 
@@ -131,13 +131,13 @@ export default function InvoiceDeliverySettings() {
 
         <div className="p-6 space-y-5">
 
-          <div className="flex flex-col gap-4 pb-4 border-b border-slate-100">
+          <div className="flex flex-col gap-4 pb-4 border-b dark:border-slate-700 border-slate-100 dark:border-slate-800">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                   Invoice Recipients
                 </h2>
-                <p className="mt-1 text-sm font-medium text-slate-500">
+                <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
                   Configure who receives invoice emails.
                 </p>
               </div>
@@ -157,13 +157,13 @@ export default function InvoiceDeliverySettings() {
             </div>
 
             {hasChanges && (
-              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 rounded-xl border dark:border-slate-700 border-amber-200 dark:border-amber-500/20 bg-amber-50/80 px-4 py-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                <AlertCircle className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-bold text-amber-900">
                     You have unsaved changes
                   </p>
-                  <p className="text-xs font-medium text-amber-700 mt-0.5">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mt-0.5">
                     Click <strong className="font-bold text-amber-900">Save Changes</strong> to apply your updates before leaving.
                   </p>
                 </div>
@@ -171,11 +171,11 @@ export default function InvoiceDeliverySettings() {
             )}
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200">
+          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
 
             <table className="min-w-full">
 
-              <thead className="bg-slate-50">
+              <thead className="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
                   <th className="px-5 py-3 text-left text-xs font-bold uppercase">
                     Label
@@ -203,7 +203,7 @@ export default function InvoiceDeliverySettings() {
                   return (
                     <tr
                       key={recipient.id}
-                      className="border-t border-slate-200 hover:bg-slate-50"
+                      className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       <td className="px-5 py-4">
                         <div className="font-semibold">
@@ -211,7 +211,7 @@ export default function InvoiceDeliverySettings() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="px-2 py-1 rounded bg-slate-100 text-xs font-semibold">
+                        <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
                           {recipient.type}
                         </span>
                       </td>
@@ -220,11 +220,11 @@ export default function InvoiceDeliverySettings() {
                       </td>
                       <td className="px-5 py-4 text-center">
                         {recipient.isDefault ? (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                          <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-400">
                             Default
                           </span>
                         ) : (
-                          <span className="text-slate-400">
+                          <span className="text-slate-400 dark:text-slate-500">
                             —
                           </span>
                         )}
@@ -258,8 +258,8 @@ export default function InvoiceDeliverySettings() {
                               setDeleteModalOpen(true);
                             }}
                             className={`text-sm font-semibold ${disableDelete
-                              ? "text-slate-300 cursor-not-allowed"
-                              : "text-red-600 hover:text-red-700 cursor-pointer"
+                              ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                              : "text-red-600 dark:text-red-400 hover:text-red-700 cursor-pointer"
                               }`}
                           >
                             <Trash2 size={18} />

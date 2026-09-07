@@ -536,20 +536,20 @@ export default function InvoiceWorkspace({
       <form onSubmit={handleSubmit(onSubmitDraft)} className="min-h-screen bg-[#EAECEF] pb-24">
 
         {/* Top Action Bar */}
-        <div className="bg-white px-8 py-4 border-b border-gray-200 sticky top-0 z-40 flex justify-between items-center shadow-sm">
+        <div className="bg-white dark:bg-slate-900 px-8 py-4 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40 flex justify-between items-center shadow-sm">
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+            <button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors text-gray-500 dark:text-slate-400">
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">
               {mode === "credit-note"
                 ? "Credit Note Workspace"
                 : "Billing Workspace"}
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => navigate("/customers")} className="px-6 py-2.5 rounded-full font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm">Cancel</button>
-            <button type="button" onClick={handlePreview} disabled={isPreviewing || editMode} className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 hover:bg-orange-100 transition-colors text-sm flex items-center gap-2">
+            <button type="button" onClick={() => navigate("/customers")} className="px-6 py-2.5 rounded-full font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 transition-colors text-sm">Cancel</button>
+            <button type="button" onClick={handlePreview} disabled={isPreviewing || editMode} className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/20 transition-colors text-sm flex items-center gap-2">
               <Calculator size={16} /> {isPreviewing ? 'Calculating...' : editMode ? 'Finish Editing' : 'Preview Engine'}
             </button>
             <button type="submit" disabled={isSaving || isSubmitting || !watch("financials") || watch("previewExpired")} className="px-6 py-2.5 rounded-full font-medium text-white bg-[#09090B] hover:bg-gray-800 disabled:opacity-50 transition-colors text-sm shadow-md">
@@ -568,19 +568,19 @@ export default function InvoiceWorkspace({
         <div className="max-w-[1600px] mx-auto w-full px-4 md:px-8 py-8 space-y-6">
 
           {/* Section 1: Customer Details */}
-          <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
             <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-2xl font-black text-gray-900">{customer.name}</h2>
-                <div className="flex items-center gap-6 mt-3 text-sm text-gray-500 font-medium">
-                  <span className="flex items-center gap-1.5"><Building2 size={16} className="text-gray-400" /> {customer.person || 'No Contact'}</span>
-                  <span className="text-gray-300">|</span>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-slate-100">{customer.name}</h2>
+                <div className="flex items-center gap-6 mt-3 text-sm text-gray-500 dark:text-slate-400 font-medium">
+                  <span className="flex items-center gap-1.5"><Building2 size={16} className="text-gray-400 dark:text-slate-500" /> {customer.person || 'No Contact'}</span>
+                  <span className="text-gray-300 dark:text-slate-600">|</span>
                   <span>{customer.email || 'N/A'}</span>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-300 dark:text-slate-600">|</span>
                   <span>{customer.mobile || 'N/A'}</span>
                 </div>
               </div>
-              <span className="px-4 py-1.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-full uppercase tracking-wider">
+              <span className="px-4 py-1.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 text-xs font-bold rounded-full uppercase tracking-wider">
                 {customer.customerType || 'Enterprise'}
               </span>
             </div>
@@ -588,19 +588,19 @@ export default function InvoiceWorkspace({
 
           {/* Section 2: Profiles Selection Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800 flex flex-col gap-4">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Customer Billing Address</label>
-                <select {...register('selectedGstProfileId', { onChange: invalidatePreview })} className="w-full border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-900 focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none bg-gray-50">
+                <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 block">Customer Billing Address</label>
+                <select {...register('selectedGstProfileId', { onChange: invalidatePreview })} className="w-full border border-gray-200 dark:border-slate-700 rounded-xl p-3 text-sm font-medium text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none bg-gray-50 dark:bg-slate-800/50">
                   {customer.billingProfile?.map(p => (
                     <option key={p._id} value={p._id}>{p.label} {p.gstNumber ? `- GST: ${p.gstNumber}` : ''}</option>
                   ))}
                 </select>
               </div>
               {activeGstProfile && (
-                <div className="bg-orange-50/50 rounded-xl p-4 border border-orange-100/50 mt-auto">
-                  <p className="text-xs text-gray-500 font-medium mb-1">GST: <span className="text-gray-900">{activeGstProfile.gstNumber || 'Unregistered'}</span></p>
-                  <p className="text-sm text-gray-700 flex items-start gap-1.5 mt-2">
+                <div className="bg-orange-50/50 rounded-xl p-4 border dark:border-slate-700 border-orange-100/50 mt-auto">
+                  <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">GST: <span className="text-gray-900 dark:text-slate-100">{activeGstProfile.gstNumber || 'Unregistered'}</span></p>
+                  <p className="text-sm text-gray-700 dark:text-slate-300 flex items-start gap-1.5 mt-2">
                     <MapPin size={16} className="text-[#EA580C] shrink-0 mt-0.5" />
                     {formatAddress(activeGstProfile.address)}
                   </p>
@@ -608,20 +608,20 @@ export default function InvoiceWorkspace({
               )}
             </div>
 
-            <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800 flex flex-col gap-4">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">Issuer Company Profile</label>
-                <select {...register('selectedCompanyProfileId', { onChange: invalidatePreview })} className="w-full border border-gray-200 rounded-xl p-3 text-sm font-medium text-gray-900 focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none bg-gray-50">
+                <label className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2 block">Issuer Company Profile</label>
+                <select {...register('selectedCompanyProfileId', { onChange: invalidatePreview })} className="w-full border border-gray-200 dark:border-slate-700 rounded-xl p-3 text-sm font-medium text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none bg-gray-50 dark:bg-slate-800/50">
                   {companyProfiles?.map(c => (
                     <option key={c._id} value={c._id}>{c.label || c.name} - GST: {c.gstNumber}</option>
                   ))}
                 </select>
               </div>
               {activeCompanyProfile && (
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mt-auto">
-                  <p className="text-xs text-gray-500 font-medium mb-1">GST: <span className="text-gray-900">{activeCompanyProfile.gstNumber}</span></p>
-                  <p className="text-sm text-gray-700 flex items-start gap-1.5 mt-2">
-                    <MapPin size={16} className="text-gray-400 shrink-0 mt-0.5" />
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-xl p-4 border dark:border-slate-700 border-gray-100 dark:border-slate-800 mt-auto">
+                  <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">GST: <span className="text-gray-900 dark:text-slate-100">{activeCompanyProfile.gstNumber}</span></p>
+                  <p className="text-sm text-gray-700 dark:text-slate-300 flex items-start gap-1.5 mt-2">
+                    <MapPin size={16} className="text-gray-400 dark:text-slate-500 shrink-0 mt-0.5" />
                     {formatAddress(activeCompanyProfile.address)}
                   </p>
                 </div>
@@ -630,22 +630,22 @@ export default function InvoiceWorkspace({
           </div>
 
           {/* Section 3: Invoice Dates & Settings */}
-          <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Invoice Parameters</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
+            <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4">Invoice Parameters</h3>
             <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
               <div className="flex flex-col">
-                <label className="text-xs text-gray-500 font-medium mb-1">Invoice Date</label>
-                <input type="date" {...register('invoiceDate', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
+                <label className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Invoice Date</label>
+                <input type="date" {...register('invoiceDate', { onChange: invalidatePreview })} className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
-                <label className="text-xs text-gray-500 font-medium mb-1">Due Date</label>
-                <input type="date" {...register('dueDate', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
+                <label className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Due Date</label>
+                <input type="date" {...register('dueDate', { onChange: invalidatePreview })} className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
-                <label className="text-xs text-gray-500 font-medium mb-1">  Billing Period</label>
+                <label className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">  Billing Period</label>
                 <select
                   {...register("billingPeriod")}
-                  className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none"
+                  className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none"
                 >
                   <option value="MONTHLY">Monthly</option>
                   <option value="TWO_MONTHS">2 Months</option>
@@ -656,16 +656,16 @@ export default function InvoiceWorkspace({
                 </select>
               </div>
               <div className="flex flex-col">
-                <label className="text-xs text-gray-500 font-medium mb-1">Cycle Start</label>
-                <input type="date" disabled={watch("billingPeriod") !== "CUSTOM"} {...register('billingCycleStart', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
+                <label className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Cycle Start</label>
+                <input type="date" disabled={watch("billingPeriod") !== "CUSTOM"} {...register('billingCycleStart', { onChange: invalidatePreview })} className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
-                <label className="text-xs text-gray-500 font-medium mb-1">Cycle End</label>
-                <input type="date" disabled={watch("billingPeriod") !== "CUSTOM"} {...register('billingCycleEnd', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
+                <label className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Cycle End</label>
+                <input type="date" disabled={watch("billingPeriod") !== "CUSTOM"} {...register('billingCycleEnd', { onChange: invalidatePreview })} className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none" />
               </div>
               <div className="flex flex-col">
-                <label className="text-xs text-gray-500 font-medium mb-1">Billing Mode</label>
-                <select {...register('billingMode', { onChange: invalidatePreview })} className="border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none">
+                <label className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">Billing Mode</label>
+                <select {...register('billingMode', { onChange: invalidatePreview })} className="border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-[#EA580C] outline-none appearance-none">
                   <option value="POSTPAID">Postpaid</option>
                   <option value="PREPAID">Prepaid</option>
                 </select>
@@ -678,56 +678,56 @@ export default function InvoiceWorkspace({
 
           {/* Section 5: Bottom Right Authoritative Financial Summary */}
           <div className="flex justify-end">
-            <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100 w-full max-w-sm">
-              <h3 className="text-gray-900 font-bold mb-4">Financial Summary</h3>
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800 w-full max-w-sm">
+              <h3 className="text-gray-900 dark:text-slate-100 font-bold mb-4">Financial Summary</h3>
 
               {!financials ? (
-                <div className="py-8 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                  <Calculator className="w-8 h-8 mx-auto mb-2 opacity-50 text-gray-400" />
+                <div className="py-8 text-center text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700">
+                  <Calculator className="w-8 h-8 mx-auto mb-2 opacity-50 text-gray-400 dark:text-slate-500" />
                   <p className="text-sm font-medium">Click <span className="text-[#EA580C]">Preview Engine</span> to calculate totals based on selected items.</p>
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3 mb-4 border-b border-gray-100 pb-4">
+                  <div className="space-y-3 mb-4 border-b dark:border-slate-700 border-gray-100 dark:border-slate-800 pb-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Selected Items</span>
-                      <span className="font-semibold text-gray-900">{selectedItemsCount}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Selected Items</span>
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">{selectedItemsCount}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span className="font-semibold text-gray-900">{formatINR(financials.subTotal)}</span>
+                      <span className="text-gray-500 dark:text-slate-400">Subtotal</span>
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">{formatINR(financials.subTotal)}</span>
                     </div>
                     {financials.discount > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Discount</span>
+                        <span className="text-gray-500 dark:text-slate-400">Discount</span>
                         <span className="font-semibold text-[#EA580C]">-{formatINR(financials.discount)}</span>
                       </div>
                     )}
                     {financials.taxes.isInterstate ? (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">
+                        <span className="text-gray-500 dark:text-slate-400">
                           IGST ({financials.taxes.igstRate}%)
                         </span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-slate-100">
                           {formatINR(financials.taxes.igstAmount)}
                         </span>
                       </div>
                     ) : (
                       <>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">
+                          <span className="text-gray-500 dark:text-slate-400">
                             CGST ({financials.taxes.cgstRate}%)
                           </span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 dark:text-slate-100">
                             {formatINR(financials.taxes.cgstAmount)}
                           </span>
                         </div>
 
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">
+                          <span className="text-gray-500 dark:text-slate-400">
                             SGST ({financials.taxes.sgstRate}%)
                           </span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 dark:text-slate-100">
                             {formatINR(financials.taxes.sgstAmount)}
                           </span>
                         </div>
@@ -735,7 +735,7 @@ export default function InvoiceWorkspace({
                     )}
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-900 font-black text-lg">Grand Total</span>
+                    <span className="text-gray-900 dark:text-slate-100 font-black text-lg">Grand Total</span>
                     <span className="text-2xl font-black text-[#EA580C]">{formatINR(financials.grandTotal)}</span>
                   </div>
                 </>

@@ -467,10 +467,11 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
   let financials;
 
   try {
-    ({ items, financials } = buildInvoiceDocument({
+    ({ items, financials } = await buildInvoiceDocument({
       connections, manualItems,
       billingCycleStart: start, billingCycleEnd: end, billingMode,
       customerState, companyState, discount,
+      customerId,
     }));
   } catch (err) {
     return next(new AppError(err.message, 400));
@@ -528,18 +529,20 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
 
   const customerState = selectedCustomerBillingProfile.address.state;
   const companyState = selectedCompanyProfile.address.state;
+  const customerId = customer._id || customer.id;
 
   const { items: verifiedItems, financials } =
-    buildInvoiceDocument({
+    await buildInvoiceDocument({
       connections, manualItems,
       billingCycleStart: new Date(billingCycleStart), billingCycleEnd: new Date(billingCycleEnd), billingMode,
-      customerState, companyState, discount
+      customerState, companyState, discount,
+      customerId,
     });
 
   await assertNoDuplicateConnectionBilling(verifiedItems);
 
   const billingFingerprint = generateBillingFingerprint({
-    customerId: customer._id || customer.id,
+    customerId,
     cycleStart: billingCycleStart,
     cycleEnd: billingCycleEnd,
     items: verifiedItems
@@ -627,7 +630,7 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
     );
   }
 
-  const existingInvoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status");
+  const existingInvoice = await Invoice.findOne(activeInvoiceFilter(req.params.id)).select("status customerSnapshot.crmCustomerId");
   if (!existingInvoice) {
     return next(new AppError("Invoice not found.", 404));
   }
@@ -643,10 +646,11 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
   let financials;
 
   try {
-    ({ items, financials } = buildInvoiceDocument({
+    ({ items, financials } = await buildInvoiceDocument({
       connections, manualItems,
       billingCycleStart: new Date(billingCycleStart), billingCycleEnd: new Date(billingCycleEnd), billingMode,
       customerState, companyState, discount,
+      customerId: existingInvoice.customerSnapshot.crmCustomerId,
     }));
   } catch (err) {
     return next(new AppError(err.message, 400));

@@ -117,7 +117,7 @@ const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-slate-50 overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 overflow-hidden">
 
       <style>
         {`
@@ -140,26 +140,26 @@ const Login = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-300/40 blur-[100px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-300/40 blur-[120px]" />
 
-        <FileText className="absolute top-[15%] left-[10%] w-32 h-32 text-indigo-600 opacity-10 animate-float" />
-        <PieChart className="absolute bottom-[20%] left-[15%] w-48 h-48 text-blue-600 opacity-10 animate-float-reverse" />
-        <CreditCard className="absolute top-[25%] right-[15%] w-40 h-40 text-slate-600 opacity-[0.08] animate-float-delayed" />
-        <TrendingUp className="absolute bottom-[15%] right-[10%] w-32 h-32 text-green-600 opacity-10 animate-float" />
-        <Building className="absolute top-[40%] left-[5%] w-24 h-24 text-indigo-500 opacity-[0.12] animate-float-reverse" />
+        <FileText className="absolute top-[15%] left-[10%] w-32 h-32 text-indigo-600 dark:text-indigo-400 opacity-10 animate-float" />
+        <PieChart className="absolute bottom-[20%] left-[15%] w-48 h-48 text-blue-600 dark:text-blue-400 opacity-10 animate-float-reverse" />
+        <CreditCard className="absolute top-[25%] right-[15%] w-40 h-40 text-slate-600 dark:text-slate-400 opacity-[0.08] animate-float-delayed" />
+        <TrendingUp className="absolute bottom-[15%] right-[10%] w-32 h-32 text-green-600 dark:text-green-400 opacity-10 animate-float" />
+        <Building className="absolute top-[40%] left-[5%] w-24 h-24 text-indigo-500 dark:text-indigo-400 opacity-[0.12] animate-float-reverse" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden p-8 space-y-6 m-4">
+      <div className="relative z-10 w-full max-w-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border dark:border-slate-700 border-white/50 dark:border-slate-800/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden p-8 space-y-6 m-4">
 
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-sm border border-indigo-100/50">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3 shadow-sm border dark:border-slate-700 border-indigo-100/50">
             <ShieldCheck className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             {step === 'LOGIN' && 'Gatekeeper Terminal'}
             {step === 'ASK_NAME' && 'Initialize Profile'}
             {step === 'ENTER_OTP' && 'Identity Verification'}
             {step === 'NEW_PASSWORD' && 'Claim Workspace'}
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {step === 'LOGIN' && 'Enter your company credentials to access your terminal.'}
             {step === 'ASK_NAME' && 'First-time authentication caught. Please supply your legal name.'}
             {step === 'ENTER_OTP' && 'An entry OTP key has been transmitted to your workspace mailbox.'}
@@ -168,7 +168,7 @@ const Login = () => {
         </div>
 
         {serverError && (
-          <div className="p-3 text-sm font-medium text-red-600 bg-red-50 rounded-xl border border-red-100">
+          <div className="p-3 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl border dark:border-slate-700 border-red-100 dark:border-red-500/20">
             {serverError}
           </div>
         )}
@@ -176,36 +176,36 @@ const Login = () => {
         {step === 'LOGIN' && (
           <form onSubmit={handleSubmit(handleInitialSubmit)} className="space-y-4 text-sm">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Workspace Email</label>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Workspace Email</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-3 w-4 h-4 text-slate-400" />
-                <input {...register('email')} type="text" placeholder="name@company.com" className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white/50 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
+                <Mail className="absolute left-4 top-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input {...register('email')} type="text" placeholder="name@company.com" className="w-full pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all" />
               </div>
-              {errors.email && <p className="text-red-500 text-xs mt-1 ml-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-red-500 dark:text-red-400 text-xs mt-1 ml-1">{errors.email.message}</p>}
             </div>
 
             <div>
               <div className="flex justify-between items-center mb-1.5 ml-1 mr-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Password Key</label>
-                <Link to="/forgot-password" className="text-xs font-semibold text-indigo-600 hover:underline">Forgot Key?</Link>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Password Key</label>
+                <Link to="/forgot-password" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Forgot Key?</Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-4 top-3 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-4 top-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'} // Dynamic type
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-2.5 border border-slate-200 rounded-xl bg-white/50 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                  className="w-full pl-11 pr-12 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                  className="absolute right-3 top-2.5 p-1 text-slate-400 dark:text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-red-500 text-xs mt-1 ml-1">{errors.password.message}</p>}
+              {errors.password && <p className="text-red-500 dark:text-red-400 text-xs mt-1 ml-1">{errors.password.message}</p>}
             </div>
 
             <button type="submit" disabled={isPending} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold shadow-lg shadow-slate-900/20 transition-all cursor-pointer disabled:opacity-50 mt-4">
@@ -217,10 +217,10 @@ const Login = () => {
         {step === 'ASK_NAME' && (
           <form onSubmit={handleProvisionName} className="space-y-4 text-sm">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
               <div className="relative">
-                <User className="absolute left-4 top-3 w-4 h-4 text-slate-400" />
-                <input type="text" placeholder="John Doe" required value={cachedForm.name} onChange={(e) => setCachedForm(prev => ({ ...prev, name: e.target.value }))} className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white/50 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                <User className="absolute left-4 top-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input type="text" placeholder="John Doe" required value={cachedForm.name} onChange={(e) => setCachedForm(prev => ({ ...prev, name: e.target.value }))} className="w-full pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
               </div>
             </div>
             <button type="submit" disabled={isPending} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-600/20 cursor-pointer flex items-center justify-center mt-4">
@@ -232,10 +232,10 @@ const Login = () => {
         {step === 'ENTER_OTP' && (
           <form onSubmit={handleVerifyOtp} className="space-y-4 text-sm">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Verification OTP</label>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Verification OTP</label>
               <div className="relative">
-                <KeyRound className="absolute left-4 top-3 w-4 h-4 text-slate-400" />
-                <input type="text" name="otp" placeholder="123456" maxLength={6} required className="w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white/50 text-slate-900 tracking-[8px] font-mono font-bold placeholder:tracking-normal text-center outline-none focus:ring-2 focus:ring-indigo-500/50 placeholder:text-slate-400 transition-all" />
+                <KeyRound className="absolute left-4 top-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input type="text" name="otp" placeholder="123456" maxLength={6} required className="w-full pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white tracking-[8px] font-mono font-bold placeholder:tracking-normal text-center outline-none focus:ring-2 focus:ring-indigo-500/50 placeholder:text-slate-400 transition-all" />
               </div>
             </div>
             <button type="submit" disabled={isPending} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-600/20 cursor-pointer mt-4">
@@ -247,20 +247,20 @@ const Login = () => {
         {step === 'NEW_PASSWORD' && (
           <form onSubmit={handleClaimPassword} className="space-y-4 text-sm">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">New Permanent Password</label>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">New Permanent Password</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-3 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-4 top-3 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type={showNewPassword ? 'text' : 'password'} // Dynamic type
                   name="newPassword"
                   placeholder="••••••••"
                   required
-                  className="w-full pl-11 pr-12 py-2.5 border border-slate-200 rounded-xl bg-white/50 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  className="w-full pl-11 pr-12 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-900/50 text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                  className="absolute right-3 top-2.5 p-1 text-slate-400 dark:text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

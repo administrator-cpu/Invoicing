@@ -61,17 +61,17 @@ const DashboardLayout = () => {
   const currentRouteName = location.pathname.split('/')[1] || 'Dashboard';
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-500 relative font-sans">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-800/50 overflow-hidden transition-colors duration-500 relative font-sans">
 
       {/* THEME TRANSITION OVERLAY */}
-      <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-all duration-300 pointer-events-none ${isThemeChanging ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+      <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md transition-all duration-300 pointer-events-none ${isThemeChanging ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
         }`}>
         <div className="relative flex items-center justify-center">
           <div className="absolute animate-bounce">
             {targetIcon === 'dark' ? (
               <Moon className="w-6 h-6 text-indigo-400 transition-transform duration-300 rotate-12" />
             ) : (
-              <Sun className="w-6 h-6 text-amber-500 transition-transform duration-300 rotate-45" />
+              <Sun className="w-6 h-6 text-amber-500 dark:text-amber-400 transition-transform duration-300 rotate-45" />
             )}
           </div>
         </div>
@@ -89,11 +89,11 @@ const DashboardLayout = () => {
       )}
 
       {/* SIDEBAR */}
-      <aside className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 ease-in-out md:relative shadow-xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
+      <aside className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-300 ease-in-out md:relative shadow-xl md:shadow-none ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'
         } ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}>
 
         {/* Logo Area */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shrink-0 shadow-sm">
               <FileText className="w-4 h-4 text-white" />
@@ -104,7 +104,7 @@ const DashboardLayout = () => {
             </span>
           </div>
           <button
-            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="md:hidden p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -132,7 +132,7 @@ const DashboardLayout = () => {
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#EA580C] rounded-r-full" />
                 )}
 
-                <Icon className={`w-5 h-5 shrink-0 transition-colors ${isActive ? 'text-[#EA580C] dark:text-orange-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
+                <Icon className={`w-5 h-5 shrink-0 transition-colors ${isActive ? 'text-[#EA580C] dark:text-orange-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'
                   } ${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
 
                 {/* FIX 3: Replaced w-0 with max-w-0 and overflow-hidden */}
@@ -152,9 +152,9 @@ const DashboardLayout = () => {
         </nav>
 
         {/* User Profile & Collapse Toggle */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
           <div className={`flex items-center mb-4 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center' : 'px-2'}`}>
-            <div className="w-9 h-9 rounded-full bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] font-bold text-sm border border-[#EA580C]/20 shrink-0">
+            <div className="w-9 h-9 rounded-full bg-[#EA580C]/10 flex items-center justify-center text-[#EA580C] font-bold text-sm border dark:border-slate-700 border-[#EA580C]/20 shrink-0">
               {user?.name?.charAt(0) || 'A'}
             </div>
             {/* FIX 4: Applied max-w-0 and overflow-hidden to profile details */}
@@ -166,7 +166,7 @@ const DashboardLayout = () => {
 
           <button
             onClick={handleLogout}
-            className={`flex items-center py-2 text-sm font-medium text-slate-500 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors w-full ${isSidebarCollapsed ? 'justify-center px-0' : 'px-3 hover:bg-red-50 dark:hover:bg-red-500/10'}`}
+            className={`flex items-center py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors w-full ${isSidebarCollapsed ? 'justify-center px-0' : 'px-3 hover:bg-red-50 dark:hover:bg-red-500/10'}`}
             title="Sign Out"
           >
             <LogOut className={`w-4 h-4 shrink-0 ${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
@@ -180,7 +180,7 @@ const DashboardLayout = () => {
         {/* Desktop Sidebar Toggle */}
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="hidden md:flex absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 hover:text-[#EA580C] shadow-sm hover:shadow transition-all z-50"
+          className="hidden md:flex absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 dark:text-slate-500 hover:text-[#EA580C] shadow-sm hover:shadow transition-all z-50"
         >
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -190,12 +190,12 @@ const DashboardLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#EAECEF] dark:bg-slate-950">
 
         {/* TOP HEADER */}
-        <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm z-10 shrink-0 transition-colors duration-300">
+        <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm z-10 shrink-0 transition-colors duration-300">
 
           {/* Left Side: Mobile toggle & Greeting */}
           <div className="flex items-center gap-4">
             <button
-              className="md:hidden p-2 -ml-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="md:hidden p-2 -ml-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="w-5 h-5" />
@@ -219,7 +219,7 @@ const DashboardLayout = () => {
           <div className="flex items-center space-x-2 md:space-x-4">
 
             {/* Financial Year Badge */}
-            <div className="hidden md:flex items-center px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20">
+            <div className="hidden md:flex items-center px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-500/10 border dark:border-slate-700 border-orange-100 dark:border-orange-500/20">
               <span className="w-2 h-2 rounded-full bg-[#EA580C] animate-pulse mr-2" />
               <span className="text-xs font-bold text-[#EA580C] dark:text-orange-400 uppercase tracking-wide">
                 FY 26-27
@@ -235,9 +235,9 @@ const DashboardLayout = () => {
               aria-label="Toggle Theme"
             >
               {theme === 'dark' ? (
-                <Sun className="w-5 h-5 text-amber-500" />
+                <Sun className="w-5 h-5 text-amber-500 dark:text-amber-400" />
               ) : (
-                <Moon className="w-5 h-5 text-slate-700" />
+                <Moon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
               )}
             </button>
           </div>

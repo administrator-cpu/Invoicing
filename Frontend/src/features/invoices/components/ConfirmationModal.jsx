@@ -7,7 +7,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, type = 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800 transform scale-100 transition-transform duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-700 transform scale-100 transition-transform duration-200">
 
         {/* Header decoration based on severity */}
         <div className="flex items-start p-6 gap-4">
@@ -23,7 +23,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, type = 
         </div>
 
         {/* Action Tray */}
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800/60 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-700 border-slate-100 dark:border-slate-800/60 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}

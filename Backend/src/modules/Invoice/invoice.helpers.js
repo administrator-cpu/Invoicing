@@ -143,7 +143,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
       throw new AppError(`Missing description at row ${index + 1}`, 400);
     }
     const sourceType = item.sourceType || "MANUAL_SERVICE";
-    const validTypes = ["CONNECTION", "IP_ADDRESS", "MANUAL_SERVICE", "OTC"];
+    const validTypes = ["CONNECTION", "IP_ADDRESS", "MANUAL_SERVICE", "OTC", "PRIOR_PERIOD_ADJUSTMENT"];
     if (!validTypes.includes(sourceType)) {
       throw new AppError(`Invalid sourceType at row ${index + 1}`, 400);
     }
@@ -168,9 +168,9 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     if (!Number.isFinite(displayRate)) {
       throw new AppError(`Invalid rate at row ${index + 1}`, 400);
     }
-    if (sourceType !== "MANUAL_SERVICE" && displayRate < 0) {
+    if (!["MANUAL_SERVICE", "PRIOR_PERIOD_ADJUSTMENT"].includes(sourceType) && displayRate < 0) {
       throw new AppError(
-        `Negative rate is only allowed for Manual Service at row ${index + 1}`,
+        `Negative rate is only allowed for Manual Service or a Prior Period Adjustment at row ${index + 1}`,
         400
       );
     }
@@ -230,7 +230,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
     }
 
     calculatedSubTotal += expectedAmount;
-    if (sourceType === "OTC") {
+    if (sourceType === "OTC" || sourceType === "PRIOR_PERIOD_ADJUSTMENT") {
       oneTimeCharges += expectedAmount;
     } else {
       recurringCharges += expectedAmount;
@@ -303,7 +303,11 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
 
   const finalSubTotal = round2(calculatedSubTotal);
   const finalDiscount = round2(Number(discount));
-  if (finalDiscount < 0 || finalDiscount > finalSubTotal) {
+  // A prior-period adjustment can make the subtotal negative (a large overbilling
+  // correction against a small current cycle) — the no-discount default must still be
+  // valid in that case, so only enforce the "discount can't exceed the subtotal" bound
+  // when an actual discount is being requested.
+  if (finalDiscount < 0 || (finalDiscount > 0 && finalDiscount > finalSubTotal)) {
     throw new AppError("Invalid Discount Value.", 400);
   }
   const taxableBasis = round2(Math.max(0, finalSubTotal - finalDiscount));

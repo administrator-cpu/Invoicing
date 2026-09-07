@@ -4,15 +4,15 @@ const CreditNoteItemsSection = ({ creditNote }) => {
   const items = creditNote.items || [];
 
   return (
-    <div className="printing-sheet page-break bg-white p-10 mt-6">
+    <div className="printing-sheet page-break bg-white dark:bg-slate-900 p-10 mt-6">
 
-      <div className="flex justify-between items-start border-b pb-6">
+      <div className="flex justify-between items-start border-b dark:border-slate-700 pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-[#F58220] via-[#E04924] via-45% to-[#9A0D14] bg-clip-text text-transparent">
             Credit Note Details
           </h1>
 
-          <p className="text-gray-500 mt-2">
+          <p className="text-gray-500 dark:text-slate-400 mt-2">
             Detailed breakdown of credited services
           </p>
         </div>
@@ -24,7 +24,7 @@ const CreditNoteItemsSection = ({ creditNote }) => {
         </div>
       </div>
 
-      <div className="mt-10 bg-white border border-orange-200 shadow-sm rounded-xl overflow-hidden">
+      <div className="mt-10 bg-white dark:bg-slate-900 border dark:border-slate-700 border-orange-200 dark:border-orange-500/20 shadow-sm rounded-xl overflow-hidden">
 
         <div className="w-full">
           <table className="w-full text-sm text-left table-fixed border-collapse">
@@ -49,37 +49,37 @@ const CreditNoteItemsSection = ({ creditNote }) => {
                   className="hover:bg-orange-50/50 transition-colors divide-x divide-orange-100"
                 >
 
-                  <td className="py-4 px-3 align-top text-gray-900 font-medium break-words">
+                  <td className="py-4 px-3 align-top text-gray-900 dark:text-slate-100 font-medium break-words">
                     <div className="space-y-1">
                       <p>
                         {item.description || "N/A"}
                       </p>
 
                       {item.sourceType && (
-                        <p className="text-xs text-gray-500 font-normal">
+                        <p className="text-xs text-gray-500 dark:text-slate-400 font-normal">
                           {item.sourceType}
                         </p>
                       )}
                     </div>
                   </td>
 
-                  <td className="py-4 px-2 align-top text-center text-gray-700 font-mono text-xs">
+                  <td className="py-4 px-2 align-top text-center text-gray-700 dark:text-slate-300 font-mono text-xs">
                     {item.sacCode || "N/A"}
                   </td>
 
-                  <td className="py-4 px-2 align-top text-right text-gray-600 font-medium">
+                  <td className="py-4 px-2 align-top text-right text-gray-600 dark:text-slate-400 font-medium">
                     {formatINR(item.originalAmount)}
                   </td>
 
-                  <td className="py-4 px-2 align-top text-right text-gray-600 font-medium">
+                  <td className="py-4 px-2 align-top text-right text-gray-600 dark:text-slate-400 font-medium">
                     {formatINR(item.originalTaxAmount)}
                   </td>
 
-                  <td className="py-4 px-2 align-top text-right text-gray-900 font-bold">
+                  <td className="py-4 px-2 align-top text-right text-gray-900 dark:text-slate-100 font-bold">
                     {formatINR(item.creditAmount)}
                   </td>
 
-                  <td className="py-4 px-2 align-top text-right text-gray-900 font-bold">
+                  <td className="py-4 px-2 align-top text-right text-gray-900 dark:text-slate-100 font-bold">
                     {formatINR(item.taxCreditAmount)}
                   </td>
 
@@ -92,16 +92,16 @@ const CreditNoteItemsSection = ({ creditNote }) => {
 
             </tbody>
 
-            <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200">
+            <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200 dark:border-orange-500/20">
 
               <tr className="divide-x divide-orange-200 bg-orange-100/40">
 
                 <td
                   colSpan={6}
-                  className="py-4 px-4 text-right font-bold text-gray-800 uppercase tracking-wider text-xs"
+                  className="py-4 px-4 text-right font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider text-xs"
                 >
                   Total Credit
-                  <span className="text-[10px] text-gray-500 lowercase ml-1 tracking-normal">
+                  <span className="text-[10px] text-gray-500 dark:text-slate-400 lowercase ml-1 tracking-normal">
                     (Rounded)
                   </span>
                 </td>

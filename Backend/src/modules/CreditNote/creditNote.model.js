@@ -19,6 +19,7 @@ const creditNoteItemSchema = new mongoose.Schema({
       "IP_ADDRESS",
       "MANUAL_SERVICE",
       "OTC",
+      "PRIOR_PERIOD_ADJUSTMENT",
     ],
     required: true,
   },

@@ -105,7 +105,7 @@ const CompanyProfiles = () => {
       {/* Grid of Profiles */}
       {!isLoading && profiles?.length === 0 && (
         <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-12 text-center">
-          <Building2 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+          <Building2 className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-900 dark:text-white">No profiles found</h3>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Add your first company profile to start generating invoices.</p>
         </div>
@@ -113,13 +113,13 @@ const CompanyProfiles = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {profiles?.map((profile) => (
-          <div key={profile._id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col h-full transition-colors relative group">
+          <div key={profile._id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm flex flex-col h-full transition-colors relative group">
 
             {/* Hover Action Buttons inside profile cards */}
             <div className="absolute top-4 right-4 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleOpenEditModal(profile)}
-                className="p-1.5 text-slate-500 hover:text-primary dark:hover:text-indigo-400 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-indigo-400 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Edit Profile"
               >
                 <Edit2 className="w-4 h-4" />
@@ -127,7 +127,7 @@ const CompanyProfiles = () => {
               {profile.isActive && (
                 <button
                   onClick={() => handleDeleteClick(profile._id)}
-                  className="p-1.5 text-slate-500 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
                   title="Deactivate Profile"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -145,18 +145,18 @@ const CompanyProfiles = () => {
             </div>
 
             <div className="space-y-3 flex-1 text-sm">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center justify-between pb-2 border-b dark:border-slate-700 border-slate-100 dark:border-slate-800/60">
                 <span className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase">Status</span>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${profile.isActive ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${profile.isActive ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:text-slate-300 dark:bg-slate-800'}`}>
                   {profile.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <div className="flex items-start text-slate-600 dark:text-slate-300">
-                <FileText className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
+              <div className="flex items-start text-slate-600 dark:text-slate-400">
+                <FileText className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-slate-400 dark:text-slate-500" />
                 <span className="font-mono uppercase tracking-wider">{profile.gstNumber}</span>
               </div>
-              <div className="flex items-start text-slate-600 dark:text-slate-300">
-                <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-slate-400" />
+              <div className="flex items-start text-slate-600 dark:text-slate-400">
+                <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-slate-400 dark:text-slate-500" />
                 <span>
                   {profile.address.street}, {profile.address.city}<br />
                   {profile.address.state} - {profile.address.pincode}
@@ -170,12 +170,12 @@ const CompanyProfiles = () => {
       {/* Form Modal (Add / Edit Polymorphic Shell) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800">
-            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 {editingProfile ? 'Edit Company Profile' : 'Add Company Profile'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -184,26 +184,26 @@ const CompanyProfiles = () => {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profile Label (e.g., Delhi HQ)</label>
                 <input {...register('label')} placeholder="Delhi Main Branch" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" />
-                {errors.label && <p className="text-red-500 text-xs mt-1">{errors.label.message}</p>}
+                {errors.label && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.label.message}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">GST Number</label>
                 <input {...register('gstNumber')} placeholder="07AAAAA0000A1Z5" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white uppercase focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" />
-                {errors.gstNumber && <p className="text-red-500 text-xs mt-1">{errors.gstNumber.message}</p>}
+                {errors.gstNumber && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.gstNumber.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Street Address</label>
                   <input {...register('address.street')} placeholder="123 Business Road, Suite 4B" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" />
-                  {errors.address?.street && <p className="text-red-500 text-xs mt-1">{errors.address.street.message}</p>}
+                  {errors.address?.street && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.address.street.message}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
                   <input {...register('address.city')} placeholder="New Delhi" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" />
-                  {errors.address?.city && <p className="text-red-500 text-xs mt-1">{errors.address.city.message}</p>}
+                  {errors.address?.city && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.address.city.message}</p>}
                 </div>
 
                 <div>
@@ -214,23 +214,23 @@ const CompanyProfiles = () => {
                       <option key={state} value={state}>{state}</option>
                     ))}
                   </select>
-                  {errors.address?.state && <p className="text-red-500 text-xs mt-1">{errors.address.state.message}</p>}
+                  {errors.address?.state && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.address.state.message}</p>}
                 </div>
 
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pincode</label>
                   <input {...register('address.pincode')} placeholder="110001" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none transition-colors" />
-                  {errors.address?.pincode && <p className="text-red-500 text-xs mt-1">{errors.address.pincode.message}</p>}
+                  {errors.address?.pincode && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.address.pincode.message}</p>}
                 </div>
               </div>
 
               {(isCreateError || isUpdateError) && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 rounded-md border border-red-100 dark:border-red-500/20 mt-4">
+                <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 rounded-md border dark:border-slate-700 border-red-100 dark:border-red-500/20 mt-4">
                   {serverError?.message || 'Failed to save profile. Please check your data and try again.'}
                 </div>
               )}
 
-              <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 mt-6">
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
                   Cancel
                 </button>

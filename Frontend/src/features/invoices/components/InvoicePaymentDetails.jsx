@@ -15,9 +15,9 @@ const BANKS = [
 
 export default function InvoicePaymentDetails() {
   return (
-    <div className="mt-8 border border-orange-300 rounded-lg overflow-hidden">
+    <div className="mt-8 border dark:border-slate-700 border-orange-300 dark:border-orange-500/30 rounded-lg overflow-hidden">
 
-      <div className="text-white bg-logo-gradient px-4 py-2 border-b">
+      <div className="text-white bg-logo-gradient px-4 py-2 border-b dark:border-slate-700">
         <h3 className="font-bold text-sm uppercase tracking-wide">
           Payment Instructions
         </h3>
@@ -25,23 +25,23 @@ export default function InvoicePaymentDetails() {
 
       <div className="p-4 space-y-4">
 
-        <p className="text-sm text-slate-700 leading-6">
+        <p className="text-sm text-slate-700 dark:text-slate-300 leading-6">
           You can pay the invoice amount online through NEFT, IMPS, RTGS using any of the bank
           accounts listed below:
         </p>
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-orange-50 text-orange-700">
-              <th className="border px-3 py-2 text-center">
+            <tr className="bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400">
+              <th className="border dark:border-slate-700 px-3 py-2 text-center">
                 Bank
               </th>
-              <th className="border px-3 py-2 text-center">
+              <th className="border dark:border-slate-700 px-3 py-2 text-center">
                 Account Number
               </th>
-              <th className="border px-3 py-2 text-center">
+              <th className="border dark:border-slate-700 px-3 py-2 text-center">
                 IFSC Code
               </th>
-              <th className="border px-3 py-2 text-center">
+              <th className="border dark:border-slate-700 px-3 py-2 text-center">
                 Branch
               </th>
             </tr>
@@ -50,25 +50,25 @@ export default function InvoicePaymentDetails() {
             {BANKS.map((bank) => (
               <tr
                 key={bank.accountNumber}
-                className="hover:bg-slate-50 text-center"
+                className="hover:bg-slate-50 dark:hover:bg-slate-800 text-center"
               >
-                <td className="border px-3 py-2 font-medium">
+                <td className="border dark:border-slate-700 px-3 py-2 font-medium">
                   {bank.bank}
                 </td>
-                <td className="border px-3 py-2 font-mono">
+                <td className="border dark:border-slate-700 px-3 py-2 font-mono">
                   {bank.accountNumber}
                 </td>
-                <td className="border px-3 py-2 font-mono">
+                <td className="border dark:border-slate-700 px-3 py-2 font-mono">
                   {bank.ifsc}
                 </td>
-                <td className="border px-3 py-2">
+                <td className="border dark:border-slate-700 px-3 py-2">
                   {bank.branch}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="text-xs text-slate-500 italic">
+        <p className="text-xs text-slate-500 dark:text-slate-400 italic">
           After completing the payment, kindly share the UTR/Transaction Reference with our accounts team for quicker verification.
         </p>
       </div>

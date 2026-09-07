@@ -81,7 +81,7 @@ export const GlobalSearch = () => {
 
   return (
     <div ref={wrapperRef} className="relative w-full group">
-      <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isOpen ? 'text-[#EA580C]' : 'text-slate-400 group-focus-within:text-[#EA580C]'}`} />
+      <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isOpen ? 'text-[#EA580C]' : 'text-slate-400 dark:text-slate-500 group-focus-within:text-[#EA580C]'}`} />
 
       <input
         type="text"
@@ -89,13 +89,13 @@ export const GlobalSearch = () => {
         onChange={handleSearchChange}
         onFocus={() => setIsOpen(true)}
         placeholder="Search invoices or customers..."
-        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm rounded-full pl-10 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all dark:text-white placeholder:text-slate-400"
+        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm rounded-full pl-10 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all dark:text-white placeholder:text-slate-400"
       />
 
       {searchTerm && (
         <button
           onClick={handleClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600"
         >
           <X className="w-4 h-4" />
         </button>
@@ -103,14 +103,14 @@ export const GlobalSearch = () => {
 
       {/* Autocomplete Dropdown */}
       {isOpen && debouncedSearchTerm.length > 1 && (
-        <div className="absolute top-full mt-2 left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden z-50 flex flex-col max-h-[400px]">
+        <div className="absolute top-full mt-2 left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden z-50 flex flex-col max-h-[400px]">
 
           {isFetching ? (
-            <div className="flex items-center justify-center p-6 text-slate-400">
+            <div className="flex items-center justify-center p-6 text-slate-400 dark:text-slate-500">
               <Loader2 className="w-5 h-5 animate-spin mr-2" /> Searching...
             </div>
           ) : !hasResults ? (
-            <div className="p-6 text-center text-slate-500 text-sm">
+            <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-sm">
               No customers or invoices found for "{debouncedSearchTerm}".
             </div>
           ) : (
@@ -119,7 +119,7 @@ export const GlobalSearch = () => {
               {/* Customers Section */}
               {data.customers.length > 0 && (
                 <div className="mb-2">
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center">
                     <Users className="w-3 h-3 mr-1.5" /> Customers
                   </div>
                   {data.customers.map(customer => (
@@ -129,7 +129,7 @@ export const GlobalSearch = () => {
                       className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex flex-col"
                     >
                       <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{customer.name}</span>
-                      <span className="text-xs text-slate-500 truncate">Create Invoice &rarr;</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate">Create Invoice &rarr;</span>
                     </button>
                   ))}
                 </div>
@@ -138,7 +138,7 @@ export const GlobalSearch = () => {
               {/* Invoices Section */}
               {data.invoices.length > 0 && (
                 <div>
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center border-t border-slate-100 pt-3">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center border-t dark:border-slate-700 border-slate-100 dark:border-slate-800 pt-3">
                     <FileText className="w-3 h-3 mr-1.5" /> Invoices
                   </div>
                   {data.invoices.map(invoice => (
@@ -151,10 +151,10 @@ export const GlobalSearch = () => {
                         <span className="text-sm font-bold text-primary dark:text-indigo-400">
                           {invoice.invoiceNumber || 'Draft'}
                         </span>
-                        <span className="text-xs text-slate-500 truncate">{invoice.customerSnapshot?.name}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{invoice.customerSnapshot?.name}</span>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${invoice.status === 'FINALIZED' ? 'bg-indigo-50 text-primary' :
-                        invoice.status === 'DRAFT' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${invoice.status === 'FINALIZED' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-primary' :
+                        invoice.status === 'DRAFT' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                         }`}>
                         {invoice.status}
                       </span>

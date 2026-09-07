@@ -16,7 +16,7 @@ export const InvoiceStatusSummary = ({ data }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       {statuses.map((s) => (
-        <div key={s.label} className="bg-white dark:bg-slate-900/90 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-center flex flex-col justify-center group">
+        <div key={s.label} className="bg-white dark:bg-slate-900/90 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 text-center flex flex-col justify-center group">
           <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold mb-2 transition-colors group-hover:text-slate-700 dark:group-hover:text-slate-200">{s.label}</p>
           <p className={`text-3xl font-black tracking-tight ${s.color}`}>{s.value}</p>
         </div>
@@ -26,7 +26,7 @@ export const InvoiceStatusSummary = ({ data }) => {
 };
 
 export const PaymentSummary = ({ data }) => (
-  <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition-all duration-300 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 ease-out hover:border-slate-300 dark:hover:border-slate-700">
+  <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all duration-300 mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 ease-out hover:border-slate-300 dark:hover:border-slate-700">
     <h3 className="text-slate-900 dark:text-white font-bold text-lg tracking-tight mb-6">Payment Overview</h3>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
       <div className="group">

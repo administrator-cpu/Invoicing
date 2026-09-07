@@ -55,7 +55,7 @@ const InvoiceDetails = () => {
 
   if (isError || !invoice) {
     return (
-      <div className="text-center py-12 text-red-500 font-medium">
+      <div className="text-center py-12 text-red-500 dark:text-red-400 font-medium">
         Failed to fetch target statement record details.
       </div>
     );
@@ -112,7 +112,7 @@ const InvoiceDetails = () => {
     <div className="space-y-6 max-w-7xl mx-auto w-full px-4 md:px-8 pb-10 md:pb-16">
 
       {/* Action Controller Deck */}
-      <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
@@ -126,7 +126,7 @@ const InvoiceDetails = () => {
               <button
                 onClick={openDeleteModal}
                 disabled={isDeleting || isFinalizing}
-                className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                className="flex items-center px-4 py-2 border dark:border-slate-700 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
                 <Ban className="w-4 h-4 mr-2" /> Delete Draft
               </button>
@@ -154,7 +154,7 @@ const InvoiceDetails = () => {
               {invoice.status === "FINALIZED" && (
                 <button
                   onClick={openCancelModal} disabled={isCancelling}
-                  className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                  className="flex items-center px-4 py-2 border dark:border-slate-700 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   <Ban className="w-4 h-4 mr-2" />
                   Cancel Invoice
@@ -217,57 +217,57 @@ const InvoiceDetails = () => {
       />
 
       {invoice.status === "CANCELLED" && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
+        <div className="bg-red-50 dark:bg-red-500/10 border dark:border-slate-700 border-red-200 dark:border-red-500/20 rounded-xl p-6 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
               {/* Expanding/blinking ring effect */}
               <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-25"></div>
-              <Ban className="relative z-10 w-6 h-6 text-red-600" />
+              <Ban className="relative z-10 w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
 
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-red-700">
+              <h2 className="text-xl font-bold text-red-700 dark:text-red-400">
                 Cancelled Invoice
               </h2>
 
-              <p className="mt-1 text-sm text-red-600">
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                 This invoice has been cancelled and is no longer valid for payment.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 mt-6">
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Cancellation Reason
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                     {invoice.audit?.cancelReason || "Not Provided"}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Cancelled On
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                     {formatDate(invoice.audit?.cancelledAt)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Cancelled By
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                     {invoice.audit?.cancelledBy?.name || "Unknown"}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Remarks
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-800 whitespace-pre-wrap">
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
                     {invoice.audit?.cancelRemarks || "No Remarks"}
                   </p>
                 </div>
@@ -278,7 +278,7 @@ const InvoiceDetails = () => {
         </div>
       )}
 
-      <div className="relative bg-white dark:bg-slate-950 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
+      <div className="relative bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
 
         {invoice.status === "CANCELLED" && (
           <div
@@ -309,7 +309,7 @@ const InvoiceDetails = () => {
         {/* Terms & Conditions */}
         <InvoiceTerms />
 
-        <div className="mt-16 border-t pt-5 text-center text-xs text-gray-500">
+        <div className="mt-16 border-t dark:border-slate-700 pt-5 text-center text-xs text-gray-500 dark:text-slate-400">
           Generated by FAB Five Network Billing System
         </div>
 

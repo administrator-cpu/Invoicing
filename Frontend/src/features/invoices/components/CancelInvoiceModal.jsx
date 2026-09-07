@@ -38,10 +38,10 @@ export default function CancelInvoiceModal({ isOpen, onClose, onConfirm, isLoadi
           animation: alert-shake 2.5s ease-in-out infinite;
         }
       `}</style>
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-start gap-4 p-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-start gap-4 p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="p-3 rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
             <AlertTriangle className="w-6 h-6 animate-shake-delayed" />
           </div>
@@ -63,12 +63,12 @@ export default function CancelInvoiceModal({ isOpen, onClose, onConfirm, isLoadi
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              Cancellation Reason <span className="text-red-500">*</span>
+              Cancellation Reason <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}
               placeholder="Enter cancellation reason"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -79,13 +79,13 @@ export default function CancelInvoiceModal({ isOpen, onClose, onConfirm, isLoadi
             <textarea
               rows={4} value={cancelRemarks} onChange={(e) => setCancelRemarks(e.target.value)}
               placeholder="Optional additional remarks..."
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm resize-none outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
 
           <button
             type="button" onClick={onClose} disabled={isLoading}

@@ -13,7 +13,7 @@ const getStatusBadge = (status) => {
   if (s === 'PENDING') return 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20';
   if (s === 'DISCONNECTED') return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
   if (s === 'CANCELLED' || s === 'REJECTED') return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20';
-  return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+  return 'bg-slate-100 text-slate-700 dark:text-slate-300 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
 };
 
 const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
@@ -25,7 +25,7 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
   return (
     <div
       ref={isLast ? observerRef : null}
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 overflow-hidden"
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 overflow-hidden"
     >
       {/* 1. Collapsed Header View */}
       <div
@@ -34,7 +34,7 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
       >
         {/* Left: Customer Identity */}
         <div className="flex items-start gap-4 flex-1">
-          <div className="w-12 h-12 rounded-full bg-primary/10 dark:bg-indigo-500/20 text-primary dark:text-indigo-400 flex items-center justify-center font-bold text-xl shrink-0 uppercase border border-primary/20">
+          <div className="w-12 h-12 rounded-full bg-primary/10 dark:bg-indigo-500/20 text-primary dark:text-indigo-400 flex items-center justify-center font-bold text-xl shrink-0 uppercase border dark:border-slate-700 border-primary/20">
             {customer.name?.charAt(0) || 'C'}
           </div>
           <div className="space-y-1">
@@ -49,14 +49,14 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
         </div>
 
         {/* Right: Metrics & Actions */}
-        <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-slate-200 dark:border-slate-800 md:border-0">
+        <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-slate-200 dark:border-slate-700 md:border-0">
           <div className="flex items-center text-sm font-medium">
             <div className="flex items-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
-              <Wifi className={`w-4 h-4 mr-2 ${activeCount > 0 ? 'text-green-500' : 'text-slate-400'}`} />
+              <Wifi className={`w-4 h-4 mr-2 ${activeCount > 0 ? 'text-green-500 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'}`} />
               {activeCount} Connection{activeCount !== 1 ? 's' : ''}
             </div>
           </div>
-          <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm">
+          <button className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm">
             {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
         </div>
@@ -64,11 +64,11 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
 
       {/* 2. Expanded Connections Grid */}
       {isExpanded && (
-        <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 animate-fade-in">
+        <div className="p-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 animate-fade-in">
 
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center">
-              <Zap className="w-4 h-4 mr-2 text-amber-500" /> Service Topology
+              <Zap className="w-4 h-4 mr-2 text-amber-500 dark:text-amber-400" /> Service Topology
             </h4>
             <div className="flex items-center gap-2">
 
@@ -77,7 +77,7 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
                   e.stopPropagation();
                   navigate(`/invoices/customer-settings/${customer._id}`);
                 }}
-                className="flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                className="flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 <Mail className="w-3.5 h-3.5 mr-1.5" />
                 Invoice Recipients
@@ -102,7 +102,7 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
           {connections.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {connections.map((conn, idx) => (
-                <div key={conn.crmConnectionId || idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                <div key={conn.crmConnectionId || idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 transition-colors">
 
                   {/* Connection Header */}
                   <div className="flex justify-between items-start mb-3">
@@ -117,16 +117,16 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
                   </div>
 
                   {/* Connection Data Grid */}
-                  <div className="grid grid-cols-2 gap-y-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-sm">
+                  <div className="grid grid-cols-2 gap-y-3 pt-3 border-t border-slate-200 dark:border-slate-700 text-sm">
                     <div>
-                      <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Service Type</span>
+                      <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Service Type</span>
                       <span className="font-medium text-slate-700 dark:text-slate-300">{conn.serviceType || 'Standard Link'}</span>
                     </div>
                     <div></div> {/* Spacer */}
 
                     <div>
-                      <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</span>
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded border ${getStatusBadge(conn.status)}`}>
+                      <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Status</span>
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-bold rounded border dark:border-slate-700 ${getStatusBadge(conn.status)}`}>
                         {conn.status || 'UNKNOWN'}
                       </span>
                     </div>
@@ -136,8 +136,8 @@ const ExpandableCustomerCard = ({ customer, isLast, observerRef }) => {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center">
-              <AlertCircle className="w-8 h-8 text-slate-400 mb-2 opacity-50" />
+            <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center">
+              <AlertCircle className="w-8 h-8 text-slate-400 dark:text-slate-500 mb-2 opacity-50" />
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No connections found.</p>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">This customer currently has no connections attached to their profile.</p>
             </div>
@@ -197,7 +197,7 @@ const Customers = () => {
     <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 pt-4 md:pt-8 pb-12">
       {/* Header & Search */}
       {/* Header, Sort & Search */}
-      <div className="sticky top-0 z-30 mt-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="sticky top-0 z-30 mt-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
 
         <div>
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center">
@@ -217,29 +217,29 @@ const Customers = () => {
           {/* Custom Sort Dropdown */}
           <div className="relative w-full sm:w-48">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <ListFilter className="h-4 w-4 text-slate-400" />
+              <ListFilter className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </div>
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
-              className="block w-full pl-10 pr-10 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner appearance-none cursor-pointer text-sm font-medium"
+              className="block w-full pl-10 pr-10 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner appearance-none cursor-pointer text-sm font-medium"
             >
               <option value="recent">Recently Added</option>
               <option value="alphabetical">A-Z Alphabetical</option>
             </select>
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-slate-400" />
+              <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </div>
           </div>
 
           {/* Search Input */}
           <div className="relative w-full sm:w-72">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-slate-400" />
+              <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner text-sm"
+              className="block w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner text-sm"
               placeholder="Search company..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -254,21 +254,21 @@ const Customers = () => {
 
         {/* State: Initial Loading */}
         {isLoading && allCustomers.length === 0 && (
-          <div className="flex justify-center items-center h-64 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="flex justify-center items-center h-64 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           </div>
         )}
 
         {/* State: Error */}
         {isError && (
-          <div className="flex justify-center items-center h-64 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 font-medium shadow-sm">
+          <div className="flex justify-center items-center h-64 bg-red-50 dark:bg-red-500/10 rounded-xl border dark:border-slate-700 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 font-medium shadow-sm">
             <AlertCircle className="w-5 h-5 mr-2" /> Unable to sync with CRM proxy server.
           </div>
         )}
 
         {/* State: Empty Results */}
         {!isLoading && !isError && allCustomers.length === 0 && (
-          <div className="flex flex-col justify-center items-center h-64 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500">
+          <div className="flex flex-col justify-center items-center h-64 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400">
             <Search className="w-8 h-8 mb-3 opacity-20" />
             <p className="font-medium">No customers found {searchTerm ? `matching "${searchTerm}"` : ''}.</p>
           </div>

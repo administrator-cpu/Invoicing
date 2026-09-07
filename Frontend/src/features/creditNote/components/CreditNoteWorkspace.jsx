@@ -135,9 +135,9 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
 
   return (
     <div
-      className={`rounded-2xl border p-5 transition ${selected
-        ? "border-orange-200 bg-orange-50/30"
-        : "border-gray-200 bg-white"
+      className={`rounded-2xl border dark:border-slate-700 p-5 transition ${selected
+        ? "border-orange-200 dark:border-orange-500/20 bg-orange-50/30"
+        : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900"
         }`}
     >
       <div className="flex items-start gap-4">
@@ -154,35 +154,35 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="font-bold text-gray-900">
+              <p className="font-bold text-gray-900 dark:text-slate-100">
                 {item.description || "Unnamed Item"}
               </p>
 
-              <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-500">
+              <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-500 dark:text-slate-400">
                 <span>
                   Type:{" "}
-                  <strong className="text-gray-700">
+                  <strong className="text-gray-700 dark:text-slate-300">
                     {item.sourceType || "N/A"}
                   </strong>
                 </span>
 
                 <span>
                   Original Amount:{" "}
-                  <strong className="text-gray-700">
+                  <strong className="text-gray-700 dark:text-slate-300">
                     {formatINR(item.originalAmount)}
                   </strong>
                 </span>
 
                 <span>
                   Original Tax:{" "}
-                  <strong className="text-gray-700">
+                  <strong className="text-gray-700 dark:text-slate-300">
                     {formatINR(item.originalTaxAmount)}
                   </strong>
                 </span>
 
                 <span>
                   Original Total:{" "}
-                  <strong className="text-gray-900">
+                  <strong className="text-gray-900 dark:text-slate-100">
                     {formatINR(
                       item.originalTotalAmount ??
                       Number(item.originalAmount || 0) +
@@ -194,7 +194,7 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
                 {item.sacCode && (
                   <span>
                     SAC:{" "}
-                    <strong className="text-gray-700">
+                    <strong className="text-gray-700 dark:text-slate-300">
                       {item.sacCode}
                     </strong>
                   </span>
@@ -205,7 +205,7 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
             <button
               type="button"
               onClick={() => removeItem(index)}
-              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+              className="p-2 rounded-lg text-gray-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
             >
               <Trash2 size={17} />
             </button>
@@ -214,7 +214,7 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
           {selected && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">
+                <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">
                   Credit Amount
                 </label>
 
@@ -225,20 +225,20 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
                   {...register(`items.${index}.creditAmount`, {
                     onChange: invalidatePreview,
                   })}
-                  className="w-full border border-gray-200 bg-white rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                   placeholder="Enter amount"
                 />
 
                 <div className="mt-1 space-y-0.5">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
                     Remaining creditable:{" "}
-                    <span className="font-semibold text-gray-600">
+                    <span className="font-semibold text-gray-600 dark:text-slate-400">
                       {formatINR(maximumCredit)}
                     </span>
                   </p>
 
                   {Number(item.previouslyCreditedAmount) > 0 && (
-                    <p className="text-[11px] text-gray-400">
+                    <p className="text-[11px] text-gray-400 dark:text-slate-500">
                       Already credited:{" "}
                       {formatINR(item.previouslyCreditedAmount)}
                     </p>
@@ -246,31 +246,31 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
                 </div>
 
                 {Number(item.taxCreditAmount) > 0 && (
-                  <div className="mt-2 rounded-lg bg-orange-50 border border-orange-100 px-3 py-2">
+                  <div className="mt-2 rounded-lg bg-orange-50 dark:bg-orange-500/10 border dark:border-slate-700 border-orange-100 dark:border-orange-500/20 px-3 py-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-orange-700 font-medium">
+                      <span className="text-orange-700 dark:text-orange-400 font-medium">
                         Credit GST
                       </span>
 
-                      <span className="text-orange-800 font-bold">
+                      <span className="text-orange-800 dark:text-orange-400 font-bold">
                         {formatINR(item.taxCreditAmount)}
                       </span>
                     </div>
 
                     {Number(item.igstCreditAmount) > 0 && (
-                      <p className="text-[11px] text-orange-600 mt-1">
+                      <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-1">
                         IGST: {formatINR(item.igstCreditAmount)}
                       </p>
                     )}
 
                     {Number(item.cgstCreditAmount) > 0 && (
-                      <p className="text-[11px] text-orange-600 mt-1">
+                      <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-1">
                         CGST: {formatINR(item.cgstCreditAmount)}
                       </p>
                     )}
 
                     {Number(item.sgstCreditAmount) > 0 && (
-                      <p className="text-[11px] text-orange-600 mt-1">
+                      <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-1">
                         SGST: {formatINR(item.sgstCreditAmount)}
                       </p>
                     )}
@@ -281,7 +281,7 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
               {!isConnection && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">
                       Credited Quantity
                     </label>
 
@@ -292,12 +292,12 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
                       {...register(`items.${index}.creditedQty`, {
                         onChange: invalidatePreview,
                       })}
-                      className="w-full border border-gray-200 bg-white rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">
+                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">
                       Credited Rate
                     </label>
 
@@ -308,14 +308,14 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
                       {...register(`items.${index}.creditedRate`, {
                         onChange: invalidatePreview,
                       })}
-                      className="w-full border border-gray-200 bg-white rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">
+                <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 mb-1">
                   SAC Code
                 </label>
 
@@ -323,7 +323,7 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
                   type="text"
                   value={item.sacCode || ""}
                   disabled
-                  className="w-full border border-gray-200 bg-gray-100 rounded-xl p-2.5 text-sm text-gray-500"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 rounded-xl p-2.5 text-sm text-gray-500 dark:text-slate-400"
                 />
               </div>
             </div>
@@ -332,7 +332,7 @@ function CreditNoteLineItem({ index, item, register, setValue, watch, invalidate
           {adjustmentType === "LINE_ITEM" &&
             creditAmount !== "" &&
             Number(creditAmount) > maximumCredit && (
-              <p className="text-xs text-red-600 font-medium mt-3">
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-3">
                 Credit amount exceeds the remaining creditable amount.
               </p>
             )}
@@ -562,24 +562,24 @@ export default function CreditNoteWorkspace({
         onSubmit={handleSubmit(onSubmitDraft)}
         className="min-h-screen bg-[#EAECEF] pb-24"
       >
-        <div className="bg-white px-8 py-4 border-b border-gray-200 sticky top-0 z-40 flex justify-between items-center shadow-sm">
+        <div className="bg-white dark:bg-slate-900 px-8 py-4 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40 flex justify-between items-center shadow-sm">
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors text-gray-500 dark:text-slate-400"
             >
               <ArrowLeft size={20} />
             </button>
 
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">
                 Credit Note Workspace
               </h1>
 
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                 Against Invoice{" "}
-                <span className="font-semibold text-gray-700">
+                <span className="font-semibold text-gray-700 dark:text-slate-300">
                   {invoice?.invoiceNumber || "N/A"}
                 </span>
               </p>
@@ -590,7 +590,7 @@ export default function CreditNoteWorkspace({
             <button
               type="button"
               onClick={() => navigate("/credit-notes")}
-              className="px-6 py-2.5 rounded-full font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+              className="px-6 py-2.5 rounded-full font-medium text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 transition-colors text-sm"
             >
               Cancel
             </button>
@@ -602,7 +602,7 @@ export default function CreditNoteWorkspace({
                 isPreviewing ||
                 selectedItemsCount === 0
               }
-              className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 hover:bg-orange-100 disabled:opacity-50 transition-colors text-sm flex items-center gap-2"
+              className="px-6 py-2.5 rounded-full font-medium text-[#EA580C] bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/20 disabled:opacity-50 transition-colors text-sm flex items-center gap-2"
             >
               <Calculator size={16} />
 
@@ -632,33 +632,33 @@ export default function CreditNoteWorkspace({
         </div>
 
         <div className="max-w-[1600px] mx-auto w-full px-4 md:px-8 py-8 space-y-6">
-          <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
             <div className="flex justify-between items-start">
               <div>
-                <h2 className="text-2xl font-black text-gray-900">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-slate-100">
                   Credit Note
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-6 mt-3 text-sm text-gray-500 font-medium">
+                <div className="flex flex-wrap items-center gap-6 mt-3 text-sm text-gray-500 dark:text-slate-400 font-medium">
                   <span>
                     Invoice:{" "}
-                    <strong className="text-gray-900">
+                    <strong className="text-gray-900 dark:text-slate-100">
                       {invoice?.invoiceNumber || "N/A"}
                     </strong>
                   </span>
 
-                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-300 dark:text-slate-600">|</span>
 
                   <span>
                     Customer:{" "}
-                    <strong className="text-gray-900">
+                    <strong className="text-gray-900 dark:text-slate-100">
                       {customer?.name || "N/A"}
                     </strong>
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 rounded-full text-xs font-bold uppercase tracking-wider">
                 <FileMinus2 size={15} />
                 Draft Credit Note
               </div>
@@ -666,51 +666,51 @@ export default function CreditNoteWorkspace({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4">
                 Customer
               </h3>
 
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-gray-900 dark:text-slate-100">
                 {customer?.name || "N/A"}
               </p>
 
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
                 {customer?.billingProfile?.address.state || "N/A"}
               </p>
 
-              <p className="text-sm font-medium text-gray-500 mt-1">
+              <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">
                 GST : {customer?.billingProfile?.gstNumber || "N/A"}
               </p>
             </div>
 
-            <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
+              <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4">
                 Issuer
               </h3>
 
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-gray-900 dark:text-slate-100">
                 FAB FIVE NETWORK PRIVATE LIMITED
               </p>
 
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
                 {company?.name || company?.label || "N/A"}
               </p>
 
-              <p className="text-sm font-medium text-gray-500 mt-1">
+              <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">
                 GST: {company?.gstNumber || "N/A"}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
+            <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4">
               Credit Note Details
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs text-gray-500 font-medium mb-1">
+                <label className="block text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">
                   Reason
                 </label>
 
@@ -720,12 +720,12 @@ export default function CreditNoteWorkspace({
                     onChange: invalidatePreview,
                   })}
                   placeholder="Enter credit note reason"
-                  className="w-full border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 font-medium mb-1">
+                <label className="block text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">
                   Effective Date
                 </label>
 
@@ -734,12 +734,12 @@ export default function CreditNoteWorkspace({
                   {...register("effectiveDate", {
                     onChange: invalidatePreview,
                   })}
-                  className="w-full border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 font-medium mb-1">
+                <label className="block text-xs text-gray-500 dark:text-slate-400 font-medium mb-1">
                   Remarks
                 </label>
 
@@ -749,20 +749,20 @@ export default function CreditNoteWorkspace({
                     onChange: invalidatePreview,
                   })}
                   placeholder="Optional remarks"
-                  className="w-full border border-gray-200 bg-gray-50 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800">
             <div className="flex justify-between items-center mb-5">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100">
                   Invoice Items
                 </h3>
 
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
                   Select the invoice items you want to credit.
                 </p>
               </div>
@@ -792,10 +792,10 @@ export default function CreditNoteWorkspace({
               ))}
 
               {!items?.length && (
-                <div className="py-12 text-center border border-dashed border-gray-200 rounded-2xl">
-                  <FileMinus2 className="mx-auto text-gray-300 mb-3" size={32} />
+                <div className="py-12 text-center border border-dashed border-gray-200 dark:border-slate-700 rounded-2xl">
+                  <FileMinus2 className="mx-auto text-gray-300 dark:text-slate-600 mb-3" size={32} />
 
-                  <p className="text-sm font-semibold text-gray-500">
+                  <p className="text-sm font-semibold text-gray-500 dark:text-slate-400">
                     No credit items available.
                   </p>
                 </div>
@@ -804,17 +804,17 @@ export default function CreditNoteWorkspace({
           </div>
 
           <div className="flex justify-end">
-            <div className="bg-white rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100 w-full max-w-md">
+            <div className="bg-white dark:bg-slate-900 rounded-[24px] p-6 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border dark:border-slate-700 border-gray-100 dark:border-slate-800 w-full max-w-md">
               <div className="flex items-center gap-2 mb-5">
-                <Calculator size={18} className="text-orange-600" />
+                <Calculator size={18} className="text-orange-600 dark:text-orange-400" />
 
-                <h3 className="text-gray-900 font-bold">
+                <h3 className="text-gray-900 dark:text-slate-100 font-bold">
                   Credit Summary
                 </h3>
               </div>
 
               {!financials ? (
-                <div className="py-8 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <div className="py-8 text-center text-gray-400 dark:text-slate-500 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-200 dark:border-slate-700">
                   <Calculator className="w-8 h-8 mx-auto mb-2 opacity-50" />
 
                   <p className="text-sm font-medium">
@@ -827,23 +827,23 @@ export default function CreditNoteWorkspace({
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3 mb-4 border-b border-gray-100 pb-4">
+                  <div className="space-y-3 mb-4 border-b dark:border-slate-700 border-gray-100 dark:border-slate-800 pb-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-slate-400">
                         Selected Items
                       </span>
 
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">
                         {selectedItemsCount}
                       </span>
                     </div>
 
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-slate-400">
                         Original Invoice Amount
                       </span>
 
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">
                         {formatINR(
                           financials.originalBaseAmount + financials.originalTaxAmount
                         )}
@@ -851,11 +851,11 @@ export default function CreditNoteWorkspace({
                     </div>
 
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-slate-400">
                         Credit Base Amount
                       </span>
 
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">
                         {formatINR(
                           financials.creditBaseAmount
                         )}
@@ -864,11 +864,11 @@ export default function CreditNoteWorkspace({
 
                     {Number(financials.igstCreditAmount) > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">
+                        <span className="text-gray-500 dark:text-slate-400">
                           IGST Credit
                         </span>
 
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-slate-100">
                           {formatINR(
                             financials.igstCreditAmount
                           )}
@@ -878,11 +878,11 @@ export default function CreditNoteWorkspace({
 
                     {Number(financials.cgstCreditAmount) > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">
+                        <span className="text-gray-500 dark:text-slate-400">
                           CGST Credit
                         </span>
 
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-slate-100">
                           {formatINR(
                             financials.cgstCreditAmount
                           )}
@@ -892,11 +892,11 @@ export default function CreditNoteWorkspace({
 
                     {Number(financials.sgstCreditAmount) > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">
+                        <span className="text-gray-500 dark:text-slate-400">
                           SGST Credit
                         </span>
 
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-slate-100">
                           {formatINR(
                             financials.sgstCreditAmount
                           )}
@@ -905,11 +905,11 @@ export default function CreditNoteWorkspace({
                     )}
 
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-slate-400">
                         Total Tax Credit
                       </span>
 
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-slate-100">
                         {formatINR(
                           financials.taxCreditAmount
                         )}
@@ -918,7 +918,7 @@ export default function CreditNoteWorkspace({
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-900 font-black text-lg">
+                    <span className="text-gray-900 dark:text-slate-100 font-black text-lg">
                       Total Credit
                     </span>
 
@@ -929,8 +929,8 @@ export default function CreditNoteWorkspace({
                     </span>
                   </div>
 
-                  <div className="mt-4 px-4 py-3 bg-green-50 rounded-xl border border-green-100">
-                    <p className="text-xs text-green-700 font-medium">
+                  <div className="mt-4 px-4 py-3 bg-green-50 dark:bg-green-500/10 rounded-xl border dark:border-slate-700 border-green-100 dark:border-green-500/20">
+                    <p className="text-xs text-green-700 dark:text-green-400 font-medium">
                       Tax and total are calculated by the backend.
                       This preview is authoritative for the current
                       selected items.

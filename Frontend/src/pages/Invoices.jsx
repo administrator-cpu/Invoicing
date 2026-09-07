@@ -89,7 +89,7 @@ const Invoices = () => {
       case 'PAID':
         return 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-green-100 dark:border-green-500/20';
       default:
-        return 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-100 dark:border-slate-800';
+        return 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-100 dark:border-slate-800';
     }
   };
 
@@ -161,7 +161,7 @@ const Invoices = () => {
 
 
       {/* Invoice and Payment Filtering Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-6 overflow-x-auto whitespace-nowrap scrollbar-none">
+      <div className="flex border-b border-slate-200 dark:border-slate-700 space-x-6 overflow-x-auto whitespace-nowrap scrollbar-none">
         {STATUS_TABS.map((tab) => {
           const isActive = tab.type === 'status'
             ? tab.value === 'ALL'
@@ -190,7 +190,7 @@ const Invoices = () => {
 
       {/* Accounts Receivable Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-5">
-        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
           <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Total Invoice Value <span className="text-slate-400 dark:text-slate-500 font-medium tracking-normal ml-1 capitalize">(Finalized)</span>
           </p>
@@ -199,7 +199,7 @@ const Invoices = () => {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
           <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Total Received
           </p>
@@ -208,7 +208,7 @@ const Invoices = () => {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-rose-300 dark:hover:border-rose-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md hover:border-rose-300 dark:hover:border-rose-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
           <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Outstanding
           </p>
@@ -217,7 +217,7 @@ const Invoices = () => {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
           <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Finalized
           </p>
@@ -226,7 +226,7 @@ const Invoices = () => {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full">
           <p className="text-[11px] tracking-wider uppercase text-slate-500 dark:text-slate-400 font-bold">
             Drafts
           </p>
@@ -237,7 +237,7 @@ const Invoices = () => {
       </div>
 
       {/* TEMPORAL SEARCH AND DATE FILTER TRAY BAR */}
-      <div className="grid grid-cols-1 sm:flex sm:items-end gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm text-sm">
+      <div className="grid grid-cols-1 sm:flex sm:items-end gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm text-sm">
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Exact Date</label>
           <input
@@ -261,7 +261,7 @@ const Invoices = () => {
         {(searchDate || searchMonth) && (
           <button
             onClick={clearTemporalFilters}
-            className="text-xs font-semibold text-red-500 hover:text-red-600 pb-2.5 hover:underline cursor-pointer transition-colors sm:ml-2"
+            className="text-xs font-semibold text-red-500 dark:text-red-400 hover:text-red-600 pb-2.5 hover:underline cursor-pointer transition-colors sm:ml-2"
           >
             Clear Date Rules
           </button>
@@ -269,7 +269,7 @@ const Invoices = () => {
       </div>
 
       {/* Master Ledger Grid Container */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
 
         {isLoading && (
           <div className="flex justify-center items-center h-96">
@@ -278,7 +278,7 @@ const Invoices = () => {
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center h-96 p-6 text-red-500">
+          <div className="flex flex-col items-center justify-center h-96 p-6 text-red-500 dark:text-red-400">
             <ShieldAlert className="w-10 h-10 mb-2" />
             <p className="font-medium">Failed to retrieve historical invoices from data store.</p>
           </div>
@@ -286,7 +286,7 @@ const Invoices = () => {
 
         {!isLoading && !isError && invoices.length === 0 && (
           <div className="flex flex-col items-center justify-center h-96 text-slate-500 dark:text-slate-400 p-6 text-center">
-            <FileText className="w-12 h-12 mb-4 text-slate-300 dark:text-slate-700" />
+            <FileText className="w-12 h-12 mb-4 text-slate-300 dark:text-slate-600" />
             <p className="text-lg font-medium text-slate-900 dark:text-white">No invoices recorded</p>
             <p className="mt-1 text-sm">There are no records matching your current filter criteria.</p>
           </div>
@@ -296,7 +296,7 @@ const Invoices = () => {
           <div className="flex flex-col h-full">
             <div className="w-full px-3">
               <table className="w-full text-left text-sm border-separate border-spacing-0">
-                <thead className="bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-medium text-xs uppercase tracking-wider">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 font-medium text-xs uppercase tracking-wider">
                   <tr>
                     <th className="w-[12%] px-4 py-3">Invoice</th>
                     <th className="w-[20%] px-4 py-3">Customer</th>
@@ -322,15 +322,15 @@ const Invoices = () => {
                             {invoice.invoiceNumber}
                           </span>
                         ) : invoice.status === "DRAFT" ? (
-                          <span className="text-blue-600 font-semibold">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
                             Pending
                           </span>
                         ) : invoice.status === "CANCELLED" ? (
-                          <span className="text-red-600 font-semibold">
+                          <span className="text-red-600 dark:text-red-400 font-semibold">
                             Cancelled
                           </span>
                         ) : (
-                          <span className="text-slate-400">
+                          <span className="text-slate-400 dark:text-slate-500">
                             N/A
                           </span>
                         )}
@@ -343,7 +343,7 @@ const Invoices = () => {
                           {invoice.customerSnapshot?.email}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-400 font-mono text-xs">
                         {new Date(invoice.dates?.invoiceDate).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -351,7 +351,7 @@ const Invoices = () => {
                         })}
                       </td>
                       {/* ADDED DUE DATE ROW CELL */}
-                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-400 font-mono text-xs">
                         {invoice.dates?.dueDate ? new Date(invoice.dates.dueDate).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -365,7 +365,7 @@ const Invoices = () => {
                         {invoice.status === "FINALIZED" ? (
                           <>₹{(invoice.financials?.amountPaid ?? 0).toFixed(2)}</>
                         ) : (
-                          <span className="text-slate-400 italic">N/A</span>
+                          <span className="text-slate-400 dark:text-slate-500 italic">N/A</span>
                         )}
                       </td>
                       {/* <td className="px-3 py-4 text-right font-bold text-red-400 dark:text-white font-mono whitespace-nowrap">
@@ -373,25 +373,25 @@ const Invoices = () => {
                       </td> */}
                       <td className="px-4 py-3 text-center">
                         {invoice.status !== "FINALIZED" ? (
-                          <span className="text-slate-400 italic">
+                          <span className="text-slate-400 dark:text-slate-500 italic">
                             N/A
                           </span>
                         ) : invoice.financials?.balanceDue === 0 ? (
-                          <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-[11px] font-semibold">
                             PAID
                           </span>
                         ) : invoice.financials?.amountPaid > 0 ? (
-                          <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 text-[11px] font-semibold">
                             PARTIAL
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-semibold">
+                          <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-semibold">
                             UNPAID
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyles(invoice.status)}`}>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border dark:border-slate-700 ${getStatusStyles(invoice.status)}`}>
                           {invoice.status}
                         </span>
                       </td>
@@ -403,7 +403,7 @@ const Invoices = () => {
 
             {/* Pagination Controls Footer Row */}
             {pagination.pages > 1 && (
-              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   Showing page <span className="font-medium text-slate-900 dark:text-white">{pagination.page}</span> of <span className="font-medium text-slate-900 dark:text-white">{pagination.pages}</span>
                 </span>
@@ -445,7 +445,7 @@ const Invoices = () => {
                 <select
                   value={gstMonth}
                   onChange={(e) => setGstMonth(Number(e.target.value))}
-                  className="w-full border rounded-lg px-3 py-2 dark:bg-slate-800"
+                  className="w-full border dark:border-slate-700 rounded-lg px-3 py-2 dark:bg-slate-800"
                 >
                   {Array.from({ length: 12 }).map((_, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -465,7 +465,7 @@ const Invoices = () => {
                   type="number"
                   value={gstYear}
                   onChange={(e) => setGstYear(Number(e.target.value))}
-                  className="w-full border rounded-lg px-3 py-2 dark:bg-slate-800"
+                  className="w-full border dark:border-slate-700 rounded-lg px-3 py-2 dark:bg-slate-800"
                 />
               </div>
             </div>
@@ -473,7 +473,7 @@ const Invoices = () => {
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowGSTModal(false)}
-                className="px-4 py-2 rounded-lg border cursor-pointer"
+                className="px-4 py-2 rounded-lg border dark:border-slate-700 cursor-pointer"
               >
                 Cancel
               </button>

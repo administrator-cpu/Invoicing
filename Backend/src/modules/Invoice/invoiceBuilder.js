@@ -1,10 +1,12 @@
 import { buildInvoiceItems, mergeInvoiceItems, buildMultiMonthInvoiceItems } from './invoiceBillingEngine.js';
 import { validateAndRecalculateInvoice } from './invoice.helpers.js';
+import { buildPriorPeriodAdjustmentItems } from './priorPeriodAdjustment.js';
 
-export const buildInvoiceDocument = ({
+export const buildInvoiceDocument = async ({
   connections, manualItems = [],
   billingCycleStart, billingCycleEnd, billingMode = "POSTPAID",
   customerState, companyState, discount = 0,
+  customerId = null,
 }) => {
 
   const cycleStart = new Date(billingCycleStart);
@@ -29,13 +31,26 @@ export const buildInvoiceDocument = ({
     });
 
   const engineItems = isMultiMonth ? mergeInvoiceItems(rawItems) : rawItems;
-  if (engineItems.length === 0) {
+
+  // True-up against the customer's immediately-preceding invoice — catches CRM changes
+  // (upgrade/downgrade, a Notice Period retention/extension, a landed rate revision, a
+  // connection missed entirely) whose effective date fell inside that invoice's cycle but
+  // happened only after it was already finalized. See priorPeriodAdjustment.js.
+  const adjustmentItems = await buildPriorPeriodAdjustmentItems({
+    connections,
+    customerId,
+    currentCycleStart: cycleStart,
+  });
+
+  const allItems = [...engineItems, ...adjustmentItems];
+
+  if (allItems.length === 0) {
     throw new Error("No billable items found for the selected connections and cycle.");
   }
 
   const { verifiedItems, financials } =
     validateAndRecalculateInvoice(
-      engineItems,
+      allItems,
       customerState,
       companyState,
       discount

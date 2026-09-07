@@ -7,7 +7,7 @@ const ProtectedRoute = () => {
 
   // if (isCheckingAuth) {
   //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  //     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-800/50">
   //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
   //     </div>
   //   );

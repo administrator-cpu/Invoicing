@@ -23,14 +23,14 @@ const getDaysLeft = (dueDate) => {
 const StatusBadge = ({ status }) => {
   const styles = {
     PAID: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
-    DRAFT: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+    DRAFT: "bg-slate-50 dark:bg-slate-800/50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
     OVERDUE: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20",
     PARTIAL: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
     FINALIZED: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20",
     CANCELLED: "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
   };
   return (
-    <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase border transition-all duration-300 shadow-sm ${styles[status] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+    <span className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase border dark:border-slate-700 transition-all duration-300 shadow-sm ${styles[status] || 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700'}`}>
       {status}
     </span>
   );
@@ -39,14 +39,14 @@ const StatusBadge = ({ status }) => {
 export const TableCard = ({ title, items, columns, renderRow, emptyMessage }) => {
   const navigate = useNavigate();
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-800 flex flex-col mb-8 group/card overflow-hidden">
-      <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-200 dark:border-slate-700 flex flex-col mb-8 group/card overflow-hidden">
+      <div className="px-6 py-5 border-b dark:border-slate-700 border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
         <h3 className="text-slate-900 dark:text-white font-bold text-lg tracking-tight flex items-center gap-2">
           {title}
         </h3>
         <button
           onClick={() => navigate("/invoices")}
-          className="group flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-[#EA580C] hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-all duration-300 cursor-pointer"
+          className="group flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-[#EA580C] hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-all duration-300 cursor-pointer"
         >
           <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform duration-300" />
         </button>
@@ -63,7 +63,7 @@ export const TableCard = ({ title, items, columns, renderRow, emptyMessage }) =>
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-900">
                 {columns.map((col, idx) => (
-                  <th key={idx} className="px-6 py-4 text-[11px] text-slate-500 dark:text-slate-400 font-bold tracking-widest uppercase border-b border-slate-100 dark:border-slate-800">
+                  <th key={idx} className="px-6 py-4 text-[11px] text-slate-500 dark:text-slate-400 font-bold tracking-widest uppercase border-b dark:border-slate-700 border-slate-100 dark:border-slate-800">
                     {col}
                   </th>
                 ))}
@@ -98,7 +98,7 @@ export const DashboardTables = ({ recentInvoices, upcomingDueInvoices }) => {
             <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white transition-colors group-hover/row:text-[#EA580C]">
               {invoice.invoiceNumber ?? "Pending"}
             </td>
-            <td className="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-300">
+            <td className="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">
               {invoice.customerSnapshot?.name ?? "-"}
             </td>
             <td className="px-6 py-4 text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -142,7 +142,7 @@ export const DashboardTables = ({ recentInvoices, upcomingDueInvoices }) => {
             <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white transition-colors group-hover/row:text-[#EA580C]">
               {invoice.invoiceNumber ?? "Pending"}
             </td>
-            <td className="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-300">
+            <td className="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">
               {invoice.customerSnapshot?.name ?? "-"}
             </td>
             <td className="px-6 py-4 text-sm font-medium text-slate-500 dark:text-slate-400">

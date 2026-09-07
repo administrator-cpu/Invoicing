@@ -4,25 +4,25 @@ const STATUS_CONFIG = {
   NOT_SENT: {
     label: "Not Sent",
     icon: Mail,
-    badge: "bg-slate-100 text-slate-700",
+    badge: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
   },
 
   PROCESSING: {
     label: "Processing",
     icon: Clock3,
-    badge: "bg-blue-100 text-blue-700",
+    badge: "bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400",
   },
 
   SENT: {
     label: "Sent",
     icon: CheckCircle,
-    badge: "bg-green-100 text-green-700",
+    badge: "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400",
   },
 
   FAILED: {
     label: "Failed",
     icon: AlertTriangle,
-    badge: "bg-red-100 text-red-700",
+    badge: "bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400",
   },
 };
 
@@ -32,7 +32,7 @@ const InvoiceEmailCard = ({ invoice, onViewHistory }) => {
   const Icon = config.icon;
 
   return (
-    <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden transition-all">
 
       {/* Main Card Content */}
       <div className="p-5 sm:p-6">
@@ -40,7 +40,7 @@ const InvoiceEmailCard = ({ invoice, onViewHistory }) => {
 
           {/* Header Info */}
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 leading-none">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white leading-none">
               Invoice Email
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -69,7 +69,7 @@ const InvoiceEmailCard = ({ invoice, onViewHistory }) => {
       </div>
 
       {/* Footer Action Area */}
-      <div className="bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 px-5 py-3 sm:px-6">
+      <div className="bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-700 border-slate-100 dark:border-slate-800 px-5 py-3 sm:px-6">
         <button
           onClick={onViewHistory}
           className="group inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-sm"
