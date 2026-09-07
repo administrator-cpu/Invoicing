@@ -69,11 +69,11 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 p-4 transition-colors duration-300">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden p-8 space-y-6">
 
         <div className="space-y-2">
-          <Link to="/login" className="inline-flex items-center text-xs font-semibold text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-2">
+          <Link to="/login" className="inline-flex items-center text-xs font-semibold text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors mb-2">
             <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Back to Gatekeeper
           </Link>
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -89,7 +89,7 @@ const ForgotPassword = () => {
         </div>
 
         {error && (
-          <div className="p-3 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-500/20">
+          <div className="p-3 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400 rounded-lg border dark:border-slate-700 border-red-100 dark:border-red-500/20">
             {error}
           </div>
         )}
@@ -99,7 +99,7 @@ const ForgotPassword = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Company Email Path</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="email" name="email" placeholder="name@company.com" required className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
@@ -114,7 +114,7 @@ const ForgotPassword = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">6-Digit Verification Token</label>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                <KeyRound className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="text" name="otp" maxLength={6} placeholder="123456" required className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-transparent text-slate-900 dark:text-white font-mono tracking-[6px] text-center font-bold outline-none focus:ring-2 focus:ring-primary placeholder:tracking-normal placeholder:text-slate-400 dark:placeholder:text-slate-600" />
               </div>
             </div>
@@ -129,7 +129,7 @@ const ForgotPassword = () => {
             <div>
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">New Permanent Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input type="password" name="password" placeholder="••••••••" required className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>

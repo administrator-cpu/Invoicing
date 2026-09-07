@@ -14,11 +14,11 @@ export default function InvoiceHeader({ invoice }) {
   const documentNumberLabel = isCreditNote ? "Credit Note No." : "Invoice No.";
   const documentDateLabel = isCreditNote ? "Credit Note Date" : "Invoice Date";
   return (
-    <div className="border-b-2 border-orange-200 pb-5">
+    <div className="border-b-2 border-orange-200 dark:border-orange-500/20 pb-5">
 
       {/* Top Right */}
       <div className="flex justify-end mb-3">
-        <p className="text-xs text-gray-500 uppercase tracking-wide">
+        <p className="text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide">
           Original Copy for Recipient
         </p>
       </div>
@@ -44,7 +44,7 @@ export default function InvoiceHeader({ invoice }) {
 
         {/* Invoice Details */}
         <div className="flex justify-end">
-          <div className="space-y-2 text-sm border border-orange-300 rounded-lg px-4 py-3 bg-orange-50/30 min-w-[240px]">
+          <div className="space-y-2 text-sm border dark:border-slate-700 border-orange-300 dark:border-orange-500/30 rounded-lg px-4 py-3 bg-orange-50/30 min-w-[240px]">
 
             <div className="flex justify-between gap-8">
               <span className="font-semibold">{documentNumberLabel}</span>

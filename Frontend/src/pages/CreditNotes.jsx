@@ -70,7 +70,7 @@ const CreditNotes = () => {
         return "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border-red-100 dark:border-red-500/20";
 
       default:
-        return "bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-100 dark:border-slate-800";
+        return "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-100 dark:border-slate-800";
     }
   };
 
@@ -118,7 +118,7 @@ const CreditNotes = () => {
       </div>
 
       {/* Status Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-6 overflow-x-auto whitespace-nowrap scrollbar-none">
+      <div className="flex border-b border-slate-200 dark:border-slate-700 space-x-6 overflow-x-auto whitespace-nowrap scrollbar-none">
         {STATUS_TABS.map((tab) => {
           const isActive = currentStatus === tab.value;
 
@@ -142,11 +142,11 @@ const CreditNotes = () => {
       </div>
 
       {/* Search */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
 
             <input
               type="text"
@@ -179,7 +179,7 @@ const CreditNotes = () => {
       </div>
 
       {/* Credit Notes Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
 
         {isLoading && (
           <div className="flex justify-center items-center h-96">
@@ -188,7 +188,7 @@ const CreditNotes = () => {
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center h-96 p-6 text-red-500">
+          <div className="flex flex-col items-center justify-center h-96 p-6 text-red-500 dark:text-red-400">
             <ShieldAlert className="w-10 h-10 mb-2" />
 
             <p className="font-medium">
@@ -199,7 +199,7 @@ const CreditNotes = () => {
 
         {!isLoading && !isError && creditNotes.length === 0 && (
           <div className="flex flex-col items-center justify-center h-96 text-slate-500 dark:text-slate-400 p-6 text-center">
-            <FileText className="w-12 h-12 mb-4 text-slate-300 dark:text-slate-700" />
+            <FileText className="w-12 h-12 mb-4 text-slate-300 dark:text-slate-600" />
 
             <p className="text-lg font-medium text-slate-900 dark:text-white">
               No credit notes recorded
@@ -217,7 +217,7 @@ const CreditNotes = () => {
             <div className="w-full px-3 overflow-x-auto">
               <table className="w-full min-w-[850px] text-left text-sm border-separate border-spacing-0">
 
-                <thead className="bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 font-medium text-xs uppercase tracking-wider">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 font-medium text-xs uppercase tracking-wider">
                   <tr>
                     <th className="w-[16%] px-4 py-3">
                       Credit Note
@@ -281,12 +281,12 @@ const CreditNotes = () => {
                       </td>
 
                       {/* Original Invoice */}
-                      <td className="px-4 py-4 font-mono text-xs text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-4 font-mono text-xs text-slate-600 dark:text-slate-400">
                         {creditNote.invoiceNumber || "N/A"}
                       </td>
 
                       {/* Date */}
-                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300 font-mono text-xs">
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-400 font-mono text-xs">
                         {formatDate(creditNote.effectiveDate)}
                       </td>
 
@@ -300,7 +300,7 @@ const CreditNotes = () => {
                       {/* Status */}
                       <td className="px-4 py-4 text-center">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyles(
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border dark:border-slate-700 ${getStatusStyles(
                             creditNote.status
                           )}`}
                         >
@@ -317,7 +317,7 @@ const CreditNotes = () => {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
 
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   Showing page{" "}

@@ -12,7 +12,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="max-w-7xl mx-auto w-full px-8 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Operational Overview</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-8">Operational Overview</h1>
         <DashboardSkeleton />
       </div>
     );

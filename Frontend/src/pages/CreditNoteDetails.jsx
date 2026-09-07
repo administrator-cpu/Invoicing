@@ -47,7 +47,7 @@ const CreditNoteDetails = () => {
 
   if (isError || !creditNote) {
     return (
-      <div className="text-center py-12 text-red-500 font-medium">
+      <div className="text-center py-12 text-red-500 dark:text-red-400 font-medium">
         Failed to fetch credit note details.
       </div>
     );
@@ -111,7 +111,7 @@ const CreditNoteDetails = () => {
     <div className="space-y-6 max-w-7xl mx-auto w-full px-4 md:px-8 pb-10 md:pb-16">
 
       {/* Action Controller */}
-      <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row justify-between mt-4 items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
 
         <button
           onClick={() => navigate(-1)}
@@ -128,7 +128,7 @@ const CreditNoteDetails = () => {
               <button
                 onClick={openDeleteModal}
                 disabled={isDeleting || isFinalizing}
-                className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                className="flex items-center px-4 py-2 border dark:border-slate-700 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Draft
@@ -159,7 +159,7 @@ const CreditNoteDetails = () => {
               <button
                 onClick={openCancelModal}
                 disabled={isCancelling}
-                className="flex items-center px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                className="flex items-center px-4 py-2 border dark:border-slate-700 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
                 <Ban className="w-4 h-4 mr-2" />
                 Cancel Credit Note
@@ -209,10 +209,10 @@ const CreditNoteDetails = () => {
 
       {/* Cancelled Notice */}
       {isCancelled && (
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-6 shadow-sm">
+        <div className="bg-red-50 dark:bg-red-500/10 border dark:border-slate-700 border-red-200 dark:border-red-500/20 rounded-xl p-6 shadow-sm">
           <div className="flex items-start gap-4">
 
-            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
               <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-25" />
               <Ban className="relative z-10 w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
@@ -222,14 +222,14 @@ const CreditNoteDetails = () => {
                 Cancelled Credit Note
               </h2>
 
-              <p className="mt-1 text-sm text-red-600 dark:text-red-300">
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                 This credit note has been cancelled and is no longer valid.
               </p>
 
               <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Reason
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
@@ -238,7 +238,7 @@ const CreditNoteDetails = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Remarks
                   </p>
                   <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
@@ -253,7 +253,7 @@ const CreditNoteDetails = () => {
       )}
 
       {/* Main Credit Note Document */}
-      <div className="relative bg-white dark:bg-slate-950 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-800/80 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
+      <div className="relative bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg min-h-[11in] text-slate-800 dark:text-slate-200 printing-sheet">
 
         {isCancelled && (
           <div
@@ -279,7 +279,7 @@ const CreditNoteDetails = () => {
 
           <InvoiceTerms />
 
-          <div className="mt-16 border-t pt-5 text-center text-xs text-gray-500">
+          <div className="mt-16 border-t dark:border-slate-700 pt-5 text-center text-xs text-gray-500 dark:text-slate-400">
             Generated by FAB Five Network Billing System
           </div>
 

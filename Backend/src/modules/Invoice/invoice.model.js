@@ -76,7 +76,7 @@ const invoiceItemSchema = new mongoose.Schema({
   },
   sourceType: {
     type: String,
-    enum: ["CONNECTION", "IP_ADDRESS", "MANUAL_SERVICE", "OTC"],
+    enum: ["CONNECTION", "IP_ADDRESS", "MANUAL_SERVICE", "OTC", "PRIOR_PERIOD_ADJUSTMENT"],
     required: true
   },
   crmHistoryRefId: { type: String, default: null },
@@ -137,7 +137,8 @@ const invoiceItemSchema = new mongoose.Schema({
         "SHIFTING",
         "IP_ADDITION",
         "MANUAL",
-        "MANUAL_PRORATA"
+        "MANUAL_PRORATA",
+        "PRIOR_PERIOD_ADJUSTMENT"
       ]
     },
     daysCharged: {

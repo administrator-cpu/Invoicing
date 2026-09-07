@@ -49,12 +49,12 @@ export default function InvoiceItemsTable({ invoice }) {
 
   if (!invoice.items?.length) {
     return (
-      <div className="mt-10 rounded-xl border border-dashed border-orange-300 p-12 text-center">
-        <p className="text-lg font-semibold text-slate-700">
+      <div className="mt-10 rounded-xl border dark:border-slate-700 border-dashed border-orange-300 dark:border-orange-500/30 p-12 text-center">
+        <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">
           No items available.
         </p>
 
-        <p className="text-sm text-slate-500 mt-2">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
           {isCreditNote
             ? "No items have been credited."
             : "No invoice items were found."}
@@ -64,7 +64,7 @@ export default function InvoiceItemsTable({ invoice }) {
   }
 
   return (
-    <div className="mt-10 bg-white border border-orange-200 shadow-sm rounded-xl overflow-hidden">
+    <div className="mt-10 bg-white dark:bg-slate-900 border dark:border-slate-700 border-orange-200 dark:border-orange-500/20 shadow-sm rounded-xl overflow-hidden">
       <div className="w-full">
         {/* Added 'divide-x divide-orange-100' to the table elements to draw vertical lines between every column */}
         <table className="w-full text-sm text-left table-fixed border-collapse">
@@ -99,30 +99,30 @@ export default function InvoiceItemsTable({ invoice }) {
 
               return (
                 <tr key={item._id} className="hover:bg-orange-50/50 transition-colors divide-x divide-orange-100">
-                  <td className="py-4 px-2 align-top text-gray-900 font-medium break-words">
+                  <td className="py-4 px-2 align-top text-gray-900 dark:text-slate-100 font-medium break-words">
                     <div className="space-y-1">
                       <p>{item.description}</p>
                       {isCreditNote && item.creditReason && (
-                        <p className="text-xs text-orange-600 italic">
+                        <p className="text-xs text-orange-600 dark:text-orange-400 italic">
                           {item.creditReason}
                         </p>
                       )}
                     </div>
                   </td>
-                  <td className="py-4 px-1 align-top text-center font-mono text-gray-500 text-[11px]">
+                  <td className="py-4 px-1 align-top text-center font-mono text-gray-500 dark:text-slate-400 text-[11px]">
                     {item.sacCode || "-"}
                   </td>
-                  <td className="py-4 px-2 align-top text-center text-gray-600 text-[11px] leading-5">
+                  <td className="py-4 px-2 align-top text-center text-gray-600 dark:text-slate-400 text-[11px] leading-5">
                     <span className="block font-medium">{billingCycle.start}</span>
-                    <span className="block text-gray-400">to</span>
+                    <span className="block text-gray-400 dark:text-slate-500">to</span>
                     <span className="block font-medium">{billingCycle.end}</span>
                   </td>
-                  <td className="py-4 px-1 align-top text-center text-gray-700 font-mono text-xs">
+                  <td className="py-4 px-1 align-top text-center text-gray-700 dark:text-slate-300 font-mono text-xs">
                     {item.sourceType === "CONNECTION"
                       ? (item.crmConnectionSnapshot?.bandwidth ?? "-")
                       : (item.qty ?? "-")}
                   </td>
-                  <td className="py-4 px-2 align-top text-gray-500 text-xs whitespace-pre-wrap break-words">
+                  <td className="py-4 px-2 align-top text-gray-500 dark:text-slate-400 text-xs whitespace-pre-wrap break-words">
                     {
                       item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address ||
                       item.technicalDetails?.bEnd?.address ||
@@ -130,20 +130,20 @@ export default function InvoiceItemsTable({ invoice }) {
                       item.technicalDetails?.aEnd?.address || "-"
                     }
                   </td>
-                  <td className="py-4 px-2 align-top text-right text-gray-900 font-medium">
+                  <td className="py-4 px-2 align-top text-right text-gray-900 dark:text-slate-100 font-medium">
                     {formatMoney(amount)}
                   </td>
 
                   {isInterstate ? (
-                    <td className="py-4 px-2 align-top text-right text-gray-600 text-xs">
+                    <td className="py-4 px-2 align-top text-right text-gray-600 dark:text-slate-400 text-xs">
                       {formatMoney(lineTax)}
                     </td>
                   ) : (
                     <>
-                      <td className="py-4 px-2 align-top text-right text-gray-600 text-xs">
+                      <td className="py-4 px-2 align-top text-right text-gray-600 dark:text-slate-400 text-xs">
                         {formatMoney(lineTax / 2)}
                       </td>
-                      <td className="py-4 px-2 align-top text-right text-gray-600 text-xs">
+                      <td className="py-4 px-2 align-top text-right text-gray-600 dark:text-slate-400 text-xs">
                         {formatMoney(lineTax / 2)}
                       </td>
                     </>
@@ -157,10 +157,10 @@ export default function InvoiceItemsTable({ invoice }) {
             })}
           </tbody>
 
-          <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200">
+          <tfoot className="bg-[#fff7ed] border-t-2 border-orange-200 dark:border-orange-500/20">
             <tr className="divide-x divide-orange-200">
-              <td colSpan={isInterstate ? 7 : 8} className="py-4 px-4 text-right font-bold text-gray-800 uppercase tracking-wider text-xs">
-                {totalLabel} <span className="text-[10px] text-gray-500 lowercase ml-1 tracking-normal">(Rounded)</span>
+              <td colSpan={isInterstate ? 7 : 8} className="py-4 px-4 text-right font-bold text-gray-800 dark:text-slate-200 uppercase tracking-wider text-xs">
+                {totalLabel} <span className="text-[10px] text-gray-500 dark:text-slate-400 lowercase ml-1 tracking-normal">(Rounded)</span>
               </td>
               <td className="py-4 px-2 text-right font-black text-lg text-[#ea580c]">
                 {formatMoney(Math.abs(invoice.financials?.grandTotal))}

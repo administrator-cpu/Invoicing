@@ -3,20 +3,20 @@ import { X, Mail, CheckCircle2, AlertTriangle, Clock3, } from "lucide-react";
 const STATUS = {
   SENT: {
     icon: CheckCircle2,
-    color: "text-green-600",
-    bg: "bg-green-50",
+    color: "text-green-600 dark:text-green-400",
+    bg: "bg-green-50 dark:bg-green-500/10",
   },
 
   FAILED: {
     icon: AlertTriangle,
-    color: "text-red-600",
-    bg: "bg-red-50",
+    color: "text-red-600 dark:text-red-400",
+    bg: "bg-red-50 dark:bg-red-500/10",
   },
 
   PROCESSING: {
     icon: Clock3,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-500/10",
   },
 };
 
@@ -27,12 +27,12 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 sm:p-6">
 
       {/* Modal Container */}
-      <div className="bg-white dark:bg-slate-950 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-3xl flex flex-col max-h-full overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-3xl flex flex-col max-h-full overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-5">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6 py-5">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
               Email History
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -41,7 +41,7 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <X className="w-5 h-5" />
           </button>
@@ -58,10 +58,10 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
 
           {!isLoading && history?.length === 0 && (
             <div className="py-16 text-center flex flex-col items-center">
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-full p-5 mb-4">
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-full p-5 mb-4">
                 <Mail className="w-8 h-8 text-slate-400 dark:text-slate-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 No Emails Sent
               </h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
@@ -77,13 +77,13 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
             return (
               <div
                 key={email.id}
-                className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-colors hover:border-slate-300 dark:hover:border-slate-700"
+                className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden transition-colors hover:border-slate-300 dark:hover:border-slate-700"
               >
                 {/* Item Header: Status & Date */}
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 px-5 py-3 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-5 py-3 border-b border-slate-200 dark:border-slate-700">
                   <div className="flex items-center gap-2">
                     <Icon className={`w-4 h-4 ${config.color}`} />
-                    <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
+                    <span className="font-semibold text-sm text-slate-900 dark:text-white">
                       {email.status}
                     </span>
                   </div>
@@ -98,7 +98,7 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
                       Subject
                     </p>
-                    <p className="font-medium text-slate-900 dark:text-slate-100">
+                    <p className="font-medium text-slate-900 dark:text-white">
                       {email.subject}
                     </p>
                   </div>
@@ -183,7 +183,7 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
                 </div>
 
                 {/* Technical Details Footer */}
-                <div className="grid grid-cols-3 gap-4 px-5 py-4 bg-slate-50/50 dark:bg-slate-900/20 border-t border-slate-100 dark:border-slate-800 text-sm">
+                <div className="grid grid-cols-3 gap-4 px-5 py-4 bg-slate-50/50 dark:bg-slate-900/20 border-t dark:border-slate-700 border-slate-100 dark:border-slate-800 text-sm">
                   <div>
                     <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
                       Provider
@@ -210,11 +210,11 @@ const EmailHistoryModal = ({ isOpen, onClose, history = [], isLoading, documentL
 
                 {/* Error Banner */}
                 {email.error && (
-                  <div className="mx-5 mb-5 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-500/10 p-4">
+                  <div className="mx-5 mb-5 rounded-lg border dark:border-slate-700 border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 p-4">
                     <p className="text-sm font-semibold text-red-800 dark:text-red-400 mb-1">
                       Delivery Error
                     </p>
-                    <p className="text-red-600 dark:text-red-300 text-sm leading-relaxed">
+                    <p className="text-red-600 dark:text-red-400 text-sm leading-relaxed">
                       {email.error}
                     </p>
                   </div>

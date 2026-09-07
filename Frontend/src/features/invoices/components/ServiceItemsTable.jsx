@@ -5,22 +5,22 @@ import { getConnectionBillingHistory } from '../hooks/useInvoices.js'
 
 const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
-  if (s === 'ACTIVE') return 'bg-green-100 text-green-700';
-  if (s === 'NOTICE PERIOD') return 'bg-orange-100 text-[#EA580C]';
-  if (s === 'GENERATION') return 'bg-blue-100 text-blue-700';
-  if (s === 'APPROVED') return 'bg-purple-100 text-purple-700';
-  return 'bg-gray-100 text-gray-500';
+  if (s === 'ACTIVE') return 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400';
+  if (s === 'NOTICE PERIOD') return 'bg-orange-100 dark:bg-orange-500/10 text-[#EA580C]';
+  if (s === 'GENERATION') return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400';
+  if (s === 'APPROVED') return 'bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400';
+  return 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400';
 };
 
 const ACTION_META = {
-  ACTIVATED: { label: "Activated", badge: "bg-green-100 text-green-700" },
-  UPGRADE: { label: "Upgrade", badge: "bg-blue-100 text-blue-700" },
-  DOWNGRADE: { label: "Downgrade", badge: "bg-orange-100 text-orange-700" },
-  RATE_REVISION: { label: "Rate Revision", badge: "bg-purple-100 text-purple-700" },
-  NOTICE_PERIOD: { label: "Notice Period", badge: "bg-orange-100 text-[#EA580C]" },
-  RETAINED: { label: "Retained", badge: "bg-teal-100 text-teal-700" },
-  DISCONNECTED: { label: "Disconnected", badge: "bg-red-100 text-red-700" },
-  CURRENT_STATE: { label: "Current State", badge: "bg-emerald-100 text-emerald-700" }
+  ACTIVATED: { label: "Activated", badge: "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400" },
+  UPGRADE: { label: "Upgrade", badge: "bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+  DOWNGRADE: { label: "Downgrade", badge: "bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400" },
+  RATE_REVISION: { label: "Rate Revision", badge: "bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400" },
+  NOTICE_PERIOD: { label: "Notice Period", badge: "bg-orange-100 dark:bg-orange-500/10 text-[#EA580C]" },
+  RETAINED: { label: "Retained", badge: "bg-teal-100 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400" },
+  DISCONNECTED: { label: "Disconnected", badge: "bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400" },
+  CURRENT_STATE: { label: "Current State", badge: "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" }
 };
 
 const formatActivityDate = (date) => {
@@ -143,15 +143,15 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
   };
 
   return (
-    <div className="bg-white rounded-[24px] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] border border-gray-100 overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] border dark:border-slate-700 border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col">
       {/* HEADER SECTION */}
-      <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div className="px-6 py-5 border-b dark:border-slate-700 border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/30">
         <div>
-          <h3 className="text-gray-900 font-bold text-lg">
+          <h3 className="text-gray-900 dark:text-slate-100 font-bold text-lg">
             {mode === "credit-note" ? "Credit Note Items" : "Service Items"}
           </h3>
           {watch("previewExpired") && (
-            <p className="text-xs text-[#EA580C] font-semibold mt-1 bg-orange-50 inline-block px-2 py-0.5 rounded">
+            <p className="text-xs text-[#EA580C] font-semibold mt-1 bg-orange-50 dark:bg-orange-500/10 inline-block px-2 py-0.5 rounded">
               {mode === "credit-note"
                 ? 'Credit note changed. Click "Preview Engine" to recalculate.'
                 : 'Invoice changed. Click "Preview Engine" to recalculate billing.'}
@@ -171,8 +171,8 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
             }}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-sm
               ${editMode
-                ? "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
-                : "bg-white border border-gray-200 text-gray-700 hover:border-[#EA580C] hover:text-[#EA580C]"
+                ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border dark:border-slate-700 border-green-200 dark:border-green-500/20 hover:bg-green-100 dark:hover:bg-green-500/20"
+                : "bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#EA580C] hover:text-[#EA580C]"
               }`}
           >
             {editMode ? <Check size={16} /> : <Pencil size={16} />}
@@ -185,22 +185,22 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
       <div className="overflow-x-auto flex-grow custom-scrollbar">
         <table className="w-full min-w-[1150px] border-collapse text-sm text-left whitespace-nowrap">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
+            <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-700">
               <th className="w-[4%] min-w-[40px] px-2 py-3 text-center"></th>
-              <th className="w-[22%] min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
-              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">SAC Code</th>
-              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Service<br></br>Type</th>
-              <th className="w-[9%] min-w-[100px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">State</th>
-              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">BW/Qty</th>
-              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
-              <th className="w-[12%] min-w-[130px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Billing Period</th>
-              <th className="w-[10%] min-w-[110px] px-2 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Rate</th>
-              <th className="w-[10%] min-w-[110px] px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
+              <th className="w-[22%] min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">SAC Code</th>
+              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Service<br></br>Type</th>
+              <th className="w-[9%] min-w-[100px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">State</th>
+              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">BW/Qty</th>
+              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Status</th>
+              <th className="w-[12%] min-w-[130px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Billing Period</th>
+              <th className="w-[10%] min-w-[110px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-right">Rate</th>
+              <th className="w-[10%] min-w-[110px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-right">Amount</th>
               <th className="w-[3%] min-w-[40px] px-2 py-3 text-center"></th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
             {fields.map((field, index) => {
               const item = watch(`items.${index}`);
               if (!item) { return null; }
@@ -212,14 +212,14 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
               const billingConflict = getBillingConflict(item);
               return (
                 <React.Fragment key={field.id}>
-                  <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white' : 'bg-gray-50 opacity-40'}`}>
+                  <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-800/50 opacity-40'}`}>
 
                     {/* CHECKBOX */}
                     <td className="px-4 py-4 align-middle text-center">
                       <input
                         type="checkbox"
                         {...register(`items.${index}.isSelected`, { onChange: () => invalidatePreview() })}
-                        className="w-4 h-4 text-[#EA580C] bg-white border-gray-300 rounded focus:ring-[#EA580C] cursor-pointer"
+                        className="w-4 h-4 text-[#EA580C] bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 rounded focus:ring-[#EA580C] cursor-pointer"
                       />
                     </td>
 
@@ -229,13 +229,13 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                         disabled={!editMode}
                         {...register(`items.${index}.description`, { onChange: invalidatePreview })}
                         title={item.description}
-                        className="w-full min-w-[180px] text-ellipsis overflow-hidden bg-transparent border border-transparent disabled:opacity-100 disabled:text-gray-900 rounded py-1.5 px-2 text-sm font-semibold text-gray-900 focus:border-[#EA580C] outline-none hover:border-gray-200 transition-colors"
+                        className="w-full min-w-[180px] text-ellipsis overflow-hidden bg-transparent border dark:border-slate-700 border-transparent disabled:opacity-100 disabled:text-gray-900 rounded py-1.5 px-2 text-sm font-semibold text-gray-900 dark:text-slate-100 focus:border-[#EA580C] outline-none hover:border-gray-200 dark:hover:border-slate-600 transition-colors"
                       />
                       {sourceType === "CONNECTION" && (
                         <button
                           type="button"
                           onClick={() => toggleExpanded(index, item.crmConnectionSnapshot?.connectionId)}
-                          className="mt-1.5 ml-2 flex items-center gap-1 text-xs font-bold text-[#EA580C] hover:text-orange-700 transition-colors bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-md w-max"
+                          className="mt-1.5 ml-2 flex items-center gap-1 text-xs font-bold text-[#EA580C] hover:text-orange-700 transition-colors bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/20 px-2 py-1 rounded-md w-max"
                         >
                           <Settings2 size={13} />
                           Billing Components
@@ -244,19 +244,19 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                       )}
                       {item.billingMeta?.calculationType === "PRORATA" &&
                         item.billingMeta?.monthlyBreakdown?.length <= 1 && (
-                          <div className="mt-1.5 ml-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded w-max tracking-wide uppercase">
+                          <div className="mt-1.5 ml-2 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded w-max tracking-wide uppercase">
                             PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
                           </div>
                         )}
                       {item.billingMeta?.monthlyBreakdown?.length > 1 && (
-                        <div className="mt-1.5 ml-2 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-max tracking-wide uppercase">
+                        <div className="mt-1.5 ml-2 text-[10px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded w-max tracking-wide uppercase">
                           {item.billingMeta.monthlyBreakdown.length} Month Billing
                         </div>
                       )}
                       {billingConflict && (
                         <div
                           title={`Periods: ${formatActivityDate(billingConflict.periodStart)} – ${formatActivityDate(billingConflict.periodEnd)}`}
-                          className="mt-1.5 ml-2 flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded w-max tracking-wide uppercase"
+                          className="mt-1.5 ml-2 flex items-center gap-1 text-[10px] font-bold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded w-max tracking-wide uppercase"
                         >
                           <AlertTriangle size={11} />
                           Already Billed On {billingConflict.invoiceNumber || "A Draft Invoice"}
@@ -269,17 +269,18 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                       <input
                         disabled={!editMode}
                         {...register(`items.${index}.sacCode`, { onChange: () => invalidatePreview() })}
-                        className="block mx-auto w-full min-w-[85px] max-w-[100px] border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-center font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
+                        className="block mx-auto w-full min-w-[85px] max-w-[100px] border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-center font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
                         placeholder="998422"
                       />
                     </td>
 
                     {/* SERVICE TYPE */}
                     <td className="px-4 py-4 align-middle">
-                      <span className="text-sm font-semibold text-gray-600 truncate block text-center min-w-[70px]">
+                      <span className="text-sm font-semibold text-gray-600 dark:text-slate-400 truncate block text-center min-w-[70px]">
                         {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
                           sourceType === 'IP_ADDRESS' ? 'IP' :
-                            sourceType === 'OTC' ? '-' : 'Manual'}
+                            sourceType === 'OTC' ? '-' :
+                              sourceType === 'PRIOR_PERIOD_ADJUSTMENT' ? 'Adjustment' : 'Manual'}
                       </span>
                     </td>
 
@@ -298,20 +299,20 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           <input
                             type="text"
                             {...register(`items.${index}.invoiceOverrides.bandwidth`, { onChange: invalidatePreview })}
-                            className="w-full min-w-[70px] max-w-[90px] mx-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none transition-all"
+                            className="w-full min-w-[70px] max-w-[90px] mx-auto border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none transition-all"
                           />
                         ) : (
-                          <span className="text-sm font-bold text-gray-900 block truncate min-w-[50px]">
+                          <span className="text-sm font-bold text-gray-900 dark:text-slate-100 block truncate min-w-[50px]">
                             {item.invoiceOverrides?.bandwidth ?? item.crmConnectionSnapshot?.bandwidth ?? "-"}
                           </span>
                         )
                       ) : sourceType === "OTC" ? (
-                        <span className="text-sm font-bold text-gray-400 block min-w-[50px]">-</span>
+                        <span className="text-sm font-bold text-gray-400 dark:text-slate-500 block min-w-[50px]">-</span>
                       ) : (
                         <input
                           type="number" step="any" disabled={!editMode}
                           {...register(`items.${index}.qty`, { valueAsNumber: true, onChange: () => invalidatePreview() })}
-                          className="w-full min-w-[60px] max-w-[80px] mx-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 font-semibold transition-all"
+                          className="w-full min-w-[60px] max-w-[80px] mx-auto border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 font-semibold transition-all"
                         />
                       )}
                     </td>
@@ -332,13 +333,13 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           disabled={!editMode}
                           type="date"
                           {...register(`items.${index}.periodStart`, { onChange: () => invalidatePreview() })}
-                          className="w-full border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1 text-[11px] text-gray-700 font-medium focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none text-center"
+                          className="w-full border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1 text-[11px] text-gray-700 dark:text-slate-300 font-medium focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none text-center"
                         />
                         <input
                           disabled={!editMode}
                           type="date"
                           {...register(`items.${index}.periodEnd`, { onChange: () => invalidatePreview() })}
-                          className="w-full border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1 text-[11px] text-gray-700 font-medium focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none text-center"
+                          className="w-full border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1 text-[11px] text-gray-700 dark:text-slate-300 font-medium focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none text-center"
                         />
                       </div>
                     </td>
@@ -350,10 +351,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           <input
                             type="number" step="0.01"
                             {...register(`items.${index}.invoiceOverrides.ratePerMb`, { valueAsNumber: true, onChange: invalidatePreview })}
-                            className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
+                            className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
                           />
                         ) : (
-                          <span className="block text-sm font-semibold text-gray-700 min-w-[80px]">
+                          <span className="block text-sm font-semibold text-gray-700 dark:text-slate-300 min-w-[80px]">
                             ₹{(item.invoiceOverrides?.ratePerMb ?? item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
                         )
@@ -365,10 +366,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                               valueAsNumber: true,
                               onChange: invalidatePreview
                             })}
-                            className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
+                            className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
                           />
                         ) : (
-                          <span className="block text-sm font-semibold text-gray-700 min-w-[80px]">
+                          <span className="block text-sm font-semibold text-gray-700 dark:text-slate-300 min-w-[80px]">
                             ₹{Number(item.rate || 0).toLocaleString("en-IN", {
                               minimumFractionDigits: 2
                             })}
@@ -386,7 +387,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                             },
                             onChange: invalidatePreview
                           })}
-                          className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 disabled:border-transparent disabled:bg-transparent bg-white rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:font-semibold disabled:text-gray-700"
+                          className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:font-semibold disabled:text-gray-700"
                         />
                       )}
                     </td>
@@ -407,7 +408,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                             remove(index);
                             invalidatePreview();
                           }}
-                          className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors inline-flex justify-center items-center shrink-0"
+                          className="text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-1.5 rounded-md transition-colors inline-flex justify-center items-center shrink-0"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -420,13 +421,13 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                     <tr>
                       <td
                         colSpan={11}
-                        className="bg-orange-50/30 px-6 py-5 border-b border-orange-100/50"
+                        className="bg-orange-50/30 px-6 py-5 border-b dark:border-slate-700 border-orange-100/50"
                       >
                         <div className="grid grid-cols-2 gap-10 min-w-[900px]">
 
                           {/* LEFT SIDE */}
                           <div>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
+                            <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">
                               Billable Components
                             </p>
 
@@ -438,7 +439,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                               ].map((opt) => (
                                 <label
                                   key={opt.key}
-                                  className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm w-max"
+                                  className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-900 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm w-max"
                                 >
                                   <input
                                     type="checkbox"
@@ -448,7 +449,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                         onChange: invalidatePreview
                                       }
                                     )}
-                                    className="w-4 h-4 rounded border-gray-300 text-[#EA580C]"
+                                    className="w-4 h-4 rounded border-gray-300 dark:border-slate-600 text-[#EA580C]"
                                   />
                                   {opt.label}
                                 </label>
@@ -458,11 +459,11 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
 
                           {/* RIGHT SIDE */}
                           <div>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
+                            <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">
                               Recent Activity
                             </p>
                             {loading ? (
-                              <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+                              <div className="rounded-lg border dark:border-slate-700 border-dashed border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-6 text-center text-sm text-gray-500 dark:text-slate-400">
                                 Loading billing history...
                               </div>
                             ) : activities.length ? (
@@ -470,13 +471,13 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                 {activities.map((activity, i) => {
                                   const meta = ACTION_META[activity.type] || {
                                     label: activity.type.replaceAll("_", " "),
-                                    badge: "bg-gray-100 text-gray-700"
+                                    badge: "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300"
                                   };
 
                                   return (
                                     <div
                                       key={i}
-                                      className="bg-white rounded-lg border border-gray-200 p-3"
+                                      className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-700 p-3"
                                     >
                                       <div className="flex items-center justify-between mb-3">
 
@@ -486,7 +487,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                           {meta.label}
                                         </span>
 
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-gray-500 dark:text-slate-400">
                                           {formatActivityDate(
                                             activity.activatedOn ??
                                             activity.approvedOn ??
@@ -500,7 +501,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
 
                                       </div>
 
-                                      <div className="space-y-1 text-xs text-gray-600">
+                                      <div className="space-y-1 text-xs text-gray-600 dark:text-slate-400">
 
                                         {activity.retainedOn && (
                                           <div>
@@ -610,7 +611,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                         {activity.extensions?.length > 0 && (
                                           <>
                                             {activity.extensions.map((extension, idx) => (
-                                              <div key={idx} className="mt-2 border-t pt-2">
+                                              <div key={idx} className="mt-2 border-t dark:border-slate-700 pt-2">
 
                                                 <div>
                                                   <span className="font-semibold">
@@ -640,7 +641,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                 })}
                               </div>
                             ) : (
-                              <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center text-sm text-gray-500">
+                              <div className="rounded-lg border dark:border-slate-700 border-dashed border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-6 text-center text-sm text-gray-500 dark:text-slate-400">
                                 No billing activity available.
                               </div>
                             )}
@@ -648,7 +649,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
 
                           {item.billingMeta?.monthlyBreakdown?.length > 1 && (
                             <div className="mt-5 col-span-2">
-                              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                              <p className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                                 Billing Breakdown
                               </p>
 
@@ -656,7 +657,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                 {item.billingMeta.monthlyBreakdown.map((month, idx) => (
                                   <div
                                     key={idx}
-                                    className="flex justify-between items-center rounded-lg bg-white border border-gray-200 px-3 py-2"
+                                    className="flex justify-between items-center rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 px-3 py-2"
                                   >
                                     <div>
                                       <div className="text-sm font-semibold">
@@ -666,7 +667,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                                         })}
                                       </div>
 
-                                      <div className="text-xs text-gray-500">
+                                      <div className="text-xs text-gray-500 dark:text-slate-400">
                                         {month.daysCharged}/{month.daysInMonth} Days
                                       </div>
                                     </div>
@@ -692,14 +693,14 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
       </div>
 
       {/* FOOTER ACTIONS */}
-      <div className="bg-gray-50 p-5 border-t border-gray-100 flex flex-wrap gap-4">
-        <button type="button" onClick={() => addManualItem('MANUAL_SERVICE', 'Custom Service Charge', 0)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
+      <div className="bg-gray-50 dark:bg-slate-800/50 p-5 border-t dark:border-slate-700 border-gray-100 dark:border-slate-800 flex flex-wrap gap-4">
+        <button type="button" onClick={() => addManualItem('MANUAL_SERVICE', 'Custom Service Charge', 0)} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
           <PlusCircle size={18} className="text-[#EA580C]" /> Manual Service
         </button>
-        <button type="button" onClick={() => addManualItem('OTC', 'One Time Installation Charge', 3000)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
+        <button type="button" onClick={() => addManualItem('OTC', 'One Time Installation Charge', 3000)} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
           <PlusCircle size={18} className="text-[#EA580C]" /> OTC Charge
         </button>
-        <button type="button" onClick={() => addManualItem('IP_ADDRESS', 'Additional Public IP Charge', 1500)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
+        <button type="button" onClick={() => addManualItem('IP_ADDRESS', 'Additional Public IP Charge', 1500)} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 rounded-full text-sm font-semibold hover:border-[#EA580C] hover:text-[#EA580C] hover:shadow-md transition-all shrink-0">
           <PlusCircle size={18} className="text-[#EA580C]" /> Add IP
         </button>
       </div>

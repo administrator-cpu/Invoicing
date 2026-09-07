@@ -32,7 +32,7 @@ export default function CreditNoteEdit() {
 
   if (isCreditNoteError || !creditNote) {
     return (
-      <div className="p-8 text-center text-red-500">
+      <div className="p-8 text-center text-red-500 dark:text-red-400">
         Failed to load credit note.
       </div>
     );
@@ -40,7 +40,7 @@ export default function CreditNoteEdit() {
 
   if (!invoice) {
     return (
-      <div className="p-8 text-center text-red-500">
+      <div className="p-8 text-center text-red-500 dark:text-red-400">
         Reference invoice is missing from this credit note.
       </div>
     );

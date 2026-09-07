@@ -1,6 +1,6 @@
 export default function InvoiceTerms() {
   return (
-    <div className="border border-orange-300 rounded mt-10">
+    <div className="border dark:border-slate-700 border-orange-300 dark:border-orange-500/30 rounded mt-10">
       <div className="bg-logo-gradient text-white px-4 py-2 font-bold">
         Terms & Conditions
       </div>
