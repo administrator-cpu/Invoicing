@@ -153,11 +153,13 @@ const creditNoteItemSchema = new mongoose.Schema({
 const CreditNoteSchema = new mongoose.Schema(
   {
     creditNoteNumber: {
+      // No `default: null` — leaving this unset until finalization keeps the field
+      // genuinely absent on drafts, which is required for the sparse unique index
+      // below to actually skip them (an explicit `null` still counts as "present").
       type: String,
       unique: true,
       sparse: true,
       index: true,
-      default: null,
     },
 
     invoiceId: {
@@ -261,6 +263,19 @@ const CreditNoteSchema = new mongoose.Schema(
         default: 1,
       },
       checksum: String,
+    },
+
+    email: {
+      status: {
+        type: String,
+        enum: ["NOT_SENT", "PROCESSING", "SENT", "FAILED"],
+        default: "NOT_SENT",
+      },
+      lastSentAt: Date,
+      lastEmailLogId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "EmailLog",
+      },
     },
 
     status: {

@@ -5,12 +5,18 @@ import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, AlertTriangle, 
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
 import InvoicePaymentDetails from "@/features/invoices/components/InvoicePaymentDetails";
 import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
+import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 
 import CreditNoteHeader from "@/features/creditNote/components/CreditNoteHeader";
 import CreditNoteBillingInfo from "@/features/creditNote/components/CreditNoteBillingInfo";
 import CreditNoteItemsSection from "@/features/creditNote/components/CreditNoteItemsSection";
+import CreditNoteEmailCard from "@/features/creditNote/components/CreditNoteEmailCard";
+import { SendCreditNoteModal } from "@/features/creditNote/components/SendCreditNoteModal";
 
-import { useCreditNoteDetails, useFinalizeCreditNote, useCancelCreditNote, useDeleteCreditNote } from "@/features/creditNote/hooks/useCreditNote";
+import {
+  useCreditNoteDetails, useFinalizeCreditNote, useCancelCreditNote, useDeleteCreditNote,
+  useSendCreditNoteEmail, useCreditNoteEmailHistory
+} from "@/features/creditNote/hooks/useCreditNote";
 
 const CreditNoteDetails = () => {
   const { id } = useParams();
@@ -19,6 +25,8 @@ const CreditNoteDetails = () => {
   const [modalConfig, setModalConfig] = useState({
     isOpen: false, title: "", message: "", type: "primary", confirmText: "", onConfirm: () => { }
   });
+  const [emailHistoryOpen, setEmailHistoryOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   const { data, isLoading, isError } = useCreditNoteDetails(id);
   const creditNote = data?.creditNote;
@@ -26,6 +34,8 @@ const CreditNoteDetails = () => {
   const { mutate: finalizeCreditNote, isPending: isFinalizing } = useFinalizeCreditNote();
   const { mutate: cancelCreditNote, isPending: isCancelling } = useCancelCreditNote();
   const { mutate: deleteCreditNote, isPending: isDeleting } = useDeleteCreditNote();
+  const { mutate: sendCreditNoteEmail, isPending: isSendingEmail } = useSendCreditNoteEmail();
+  const { data: emailHistory, isLoading: emailHistoryLoading, } = useCreditNoteEmailHistory(id, emailHistoryOpen, creditNote?.email?.status);
 
   if (isLoading) {
     return (
@@ -162,10 +172,40 @@ const CreditNoteDetails = () => {
                 <Printer className="w-4 h-4 mr-2" />
                 Download Credit Note
               </button>
+
+              <button
+                onClick={() => setIsSendModalOpen(true)}
+                disabled={isSendingEmail || creditNote.email?.status === "PROCESSING"}
+                className="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {
+                  creditNote.email?.status === "PROCESSING"
+                    ? "Sending..."
+                    : creditNote.email?.status === "SENT"
+                      ? "Send Again"
+                      : "Send Credit Note"
+                }
+              </button>
             </>
           )}
         </div>
       </div>
+
+      {isFinalized && (
+        <CreditNoteEmailCard
+          creditNote={creditNote}
+          onViewHistory={() => setEmailHistoryOpen(true)}
+        />
+      )}
+
+      <EmailHistoryModal
+        isOpen={emailHistoryOpen}
+        onClose={() => setEmailHistoryOpen(false)}
+        history={emailHistory}
+        isLoading={emailHistoryLoading}
+        documentLabel="credit note"
+      />
 
       {/* Cancelled Notice */}
       {isCancelled && (
@@ -259,6 +299,14 @@ const CreditNoteDetails = () => {
             isOpen: false
           }))
         }
+      />
+
+      <SendCreditNoteModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        creditNoteId={id}
+        customerId={creditNote.customerId}
+        creditNoteNumber={creditNote.creditNoteNumber}
       />
 
     </div>

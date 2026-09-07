@@ -1,8 +1,8 @@
-import InvoiceCustomerSettings from "./invoiceCustomerSettings.model.js";
+import { InvoiceCustomerSettings } from "./invoice.secondaryModels.js";
 import { getCrmCustomerDetails } from "../../services/crm.service.js";
 import catchAsync from "../../utils/catchAsync.js";
 import AppError from "../../utils/AppError.js";
-import { normalizeInvoiceRecipients } from "../../utils/normalizeInvoiceRecipients.js";
+import { normalizeInvoiceRecipients } from "../../utils/invoice.utils.js";
 
 // export const normalizeInvoiceRecipients = (recipients = []) => {
 //   const TYPES = ["TO", "CC", "BCC"];

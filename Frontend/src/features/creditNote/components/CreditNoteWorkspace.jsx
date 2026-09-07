@@ -384,10 +384,7 @@ export default function CreditNoteWorkspace({
   };
 
   useEffect(() => {
-    if (!invoice) {
-      return;
-    }
-
+    if (!invoice) return;
     let initialItems = buildInitialItems(invoice.items || []);
 
     if (initialCreditNote?.items?.length) {
@@ -843,12 +840,12 @@ export default function CreditNoteWorkspace({
 
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">
-                        Original Base Amount
+                        Original Invoice Amount
                       </span>
 
                       <span className="font-semibold text-gray-900">
                         {formatINR(
-                          financials.originalBaseAmount
+                          financials.originalBaseAmount + financials.originalTaxAmount
                         )}
                       </span>
                     </div>

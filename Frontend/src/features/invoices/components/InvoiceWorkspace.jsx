@@ -18,6 +18,7 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
     if (conn.invoiceOverrides) {
       return {
         ...conn,
+        billedPeriods: conn.billedPeriods || [],
         clientRowId: generateClientRowId(),
         isSelected: conn.selected ?? true,
         billingOptions: conn.billingOptions ?? {
@@ -59,6 +60,7 @@ function buildInitialInvoiceItems(sourceItems, defaults) {
 
     return {
       clientRowId: conn.clientRowId ?? generateClientRowId(),
+      billedPeriods: conn.billedPeriods || [],
       isSelected: conn.selected || false,
       billingOptions: {
         connection: true,

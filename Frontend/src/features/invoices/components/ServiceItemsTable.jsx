@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useFieldArray, useFormContext } from 'react-hook-form';
-import { Trash2, PlusCircle, ChevronDown, ChevronUp, Settings2, Pencil, Check } from 'lucide-react';
+import { Trash2, PlusCircle, ChevronDown, ChevronUp, Settings2, Pencil, Check, AlertTriangle } from 'lucide-react';
 import { getConnectionBillingHistory } from '../hooks/useInvoices.js'
 
 const getStatusBadge = (status) => {
@@ -30,6 +30,27 @@ const formatActivityDate = (date) => {
     month: "short",
     year: "numeric"
   });
+};
+
+/**
+ * @desc Finds a previously-billed period (on another invoice) that overlaps this row's
+ * current period. This is a proactive warning only — `assertNoDuplicateConnectionBilling`
+ * on the backend is what actually blocks the save.
+ */
+const getBillingConflict = (item) => {
+  if (item.sourceType !== "CONNECTION" && item.sourceType !== "IP_ADDRESS") return null;
+  if (!item.billedPeriods?.length) return null;
+
+  const rowStart = new Date(item.periodStart);
+  const rowEnd = new Date(item.periodEnd);
+  if (Number.isNaN(rowStart.getTime()) || Number.isNaN(rowEnd.getTime())) return null;
+
+  return item.billedPeriods.find((period) => {
+    if (period.sourceType !== item.sourceType) return false;
+    const periodStart = new Date(period.periodStart);
+    const periodEnd = new Date(period.periodEnd);
+    return periodStart <= rowEnd && periodEnd >= rowStart;
+  }) || null;
 };
 
 export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) => {
@@ -188,6 +209,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
               const connectionId = item.crmConnectionSnapshot?.connectionId;
               const activities = billingHistory[connectionId] ?? [];
               const loading = billingHistoryLoading[connectionId];
+              const billingConflict = getBillingConflict(item);
               return (
                 <React.Fragment key={field.id}>
                   <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white' : 'bg-gray-50 opacity-40'}`}>
@@ -229,6 +251,15 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                       {item.billingMeta?.monthlyBreakdown?.length > 1 && (
                         <div className="mt-1.5 ml-2 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-max tracking-wide uppercase">
                           {item.billingMeta.monthlyBreakdown.length} Month Billing
+                        </div>
+                      )}
+                      {billingConflict && (
+                        <div
+                          title={`Periods: ${formatActivityDate(billingConflict.periodStart)} – ${formatActivityDate(billingConflict.periodEnd)}`}
+                          className="mt-1.5 ml-2 flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded w-max tracking-wide uppercase"
+                        >
+                          <AlertTriangle size={11} />
+                          Already Billed On {billingConflict.invoiceNumber || "A Draft Invoice"}
                         </div>
                       )}
                     </td>

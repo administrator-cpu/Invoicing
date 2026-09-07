@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
-import InvoiceCustomerReminder from "../modules/Invoice/invoiceCustomerReminder.model.js";
+import { InvoiceCustomerReminder } from "../modules/Invoice/invoice.secondaryModels.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
 import { getCustomerOutstandingBalance } from "../services/bahiKhata.service.js";
 import logger from "../utils/logger.js";
