@@ -308,6 +308,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                         )
                       ) : sourceType === "OTC" ? (
                         <span className="text-sm font-bold text-gray-400 dark:text-slate-500 block min-w-[50px]">-</span>
+                      ) : sourceType === "PRIOR_PERIOD_ADJUSTMENT" ? (
+                        <span className="text-sm font-bold text-gray-900 dark:text-slate-100 block truncate min-w-[50px]">
+                          {item.crmConnectionSnapshot?.bandwidth ?? "-"}
+                        </span>
                       ) : (
                         <input
                           type="number" step="any" disabled={!editMode}

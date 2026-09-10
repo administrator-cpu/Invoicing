@@ -118,7 +118,7 @@ export default function InvoiceItemsTable({ invoice }) {
                     <span className="block font-medium">{billingCycle.end}</span>
                   </td>
                   <td className="py-4 px-1 align-top text-center text-gray-700 dark:text-slate-300 font-mono text-xs">
-                    {item.sourceType === "CONNECTION"
+                    {["CONNECTION", "PRIOR_PERIOD_ADJUSTMENT"].includes(item.sourceType)
                       ? (item.crmConnectionSnapshot?.bandwidth ?? "-")
                       : (item.qty ?? "-")}
                   </td>
