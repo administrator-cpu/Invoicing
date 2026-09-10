@@ -323,6 +323,33 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
   mergedItems.push(...ipItems);
   mergedItems.push(...manualItems);
 
+  const normalizeState = (state = "") => state.trim().toUpperCase();
+  const normalizeGst = (gst = "") => gst.trim().toUpperCase();
+
+  // Resolve the company/customer GST profiles that were actually used on this
+  // invoice, so editing pre-selects them instead of falling back to the
+  // first profile in the list (which silently changes the GST state used
+  // for tax calculation on save).
+  const savedCompanyProfile = companyProfiles.find(
+    profile => profile._id.toString() === invoice.companySnapshot?.profileId?.toString()
+  );
+  const defaultCompanyProfileId = savedCompanyProfile?._id
+    ?? companyProfiles.find(profile => normalizeGst(profile.gstNumber) === normalizeGst(invoice.companySnapshot?.gstNumber))?._id
+    ?? companyProfiles.find(profile => normalizeState(profile.address?.state) === normalizeState(invoice.companySnapshot?.address?.state))?._id
+    ?? companyProfiles?.[0]?._id
+    ?? null;
+
+  const savedCustomerBillingProfile = (customer.billingProfile || []).find(
+    profile => normalizeGst(profile.gstNumber) === normalizeGst(invoice.customerSnapshot?.billingProfile?.gstNumber)
+      && normalizeGst(profile.gstNumber) !== ""
+  );
+  const defaultCustomerBillingProfileId = savedCustomerBillingProfile?._id
+    ?? (customer.billingProfile || []).find(
+      profile => normalizeState(profile.address?.state) === normalizeState(invoice.customerSnapshot?.billingProfile?.address?.state)
+    )?._id
+    ?? customer.billingProfile?.[0]?._id
+    ?? null;
+
   const defaults = {
     invoiceDate: formatDate(invoice.dates.invoiceDate),
     dueDate: formatDate(invoice.dates.dueDate),
@@ -333,7 +360,9 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
     financials: invoice.financials,
     previewVersion: invoice.__v,
     previewGeneratedAt: invoice.audit?.lastEditedAt ?? invoice.createdAt,
-    previewExpired: false
+    previewExpired: false,
+    defaultCompanyProfileId,
+    defaultCustomerBillingProfileId
   };
 
   res.status(200).json({
