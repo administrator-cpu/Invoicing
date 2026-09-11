@@ -17,8 +17,11 @@ export const useInvoiceCustomerSettings = (customerId) => {
 export const useUpdateInvoiceCustomerSettings = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ customerId, recipients }) => {
-      const response = await apiClient.patch(`/invoice-customer-settings/${customerId}`, { recipients });
+    mutationFn: async ({ customerId, recipients, reminderExempt }) => {
+      const response = await apiClient.patch(`/invoice-customer-settings/${customerId}`, {
+        recipients,
+        ...(typeof reminderExempt === "boolean" && { reminderExempt }),
+      });
       return response.data.settings;
     },
     onSuccess: (_, variables) => {

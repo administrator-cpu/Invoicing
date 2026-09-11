@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Mail, Plus, AlertCircle, Trash2, Pencil } from "lucide-react";
+import { ChevronLeft, Mail, Plus, AlertCircle, Trash2, Pencil, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import RecipientModal from "../features/invoices/components/RecipientModal";
 import DeleteRecipientModal from "../features/invoices/components/DeleteRecipientModal";
@@ -15,6 +15,8 @@ export default function InvoiceDeliverySettings() {
 
   const [recipients, setRecipients] = React.useState([]);
   const [originalRecipients, setOriginalRecipients] = React.useState([]);
+  const [reminderExempt, setReminderExempt] = React.useState(false);
+  const [originalReminderExempt, setOriginalReminderExempt] = React.useState(false);
   const [hasChanges, setHasChanges] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [editingIndex, setEditingIndex] = React.useState(null);
@@ -39,11 +41,17 @@ export default function InvoiceDeliverySettings() {
   }, [settings]);
 
   React.useEffect(() => {
+    if (!settings) return;
+    setReminderExempt(!!settings.reminderExempt);
+    setOriginalReminderExempt(!!settings.reminderExempt);
+  }, [settings]);
+
+  React.useEffect(() => {
     setHasChanges(
-      JSON.stringify(recipients) !==
-      JSON.stringify(originalRecipients)
+      JSON.stringify(recipients) !== JSON.stringify(originalRecipients) ||
+      reminderExempt !== originalReminderExempt
     );
-  }, [recipients, originalRecipients]);
+  }, [recipients, originalRecipients, reminderExempt, originalReminderExempt]);
 
   if (isLoading) {
     return (
@@ -127,6 +135,37 @@ export default function InvoiceDeliverySettings() {
             </div>
           </div>
 
+        </div>
+
+        <div className="mx-6 mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6">
+            <div className="flex items-start gap-3">
+              <BellOff className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="font-bold text-lg">
+                  Exclude From Payment Reminders
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  When enabled, this customer is skipped entirely by the automated reminder
+                  cycle (first, second, and suspension notices) — regardless of any unpaid
+                  invoices or outstanding balance.
+                </p>
+              </div>
+            </div>
+
+            <label className="inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={reminderExempt}
+                onChange={(e) => setReminderExempt(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="relative w-11 h-6 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5" />
+              <span className="ml-3 text-sm font-semibold">
+                {reminderExempt ? "Excluded" : "Included"}
+              </span>
+            </label>
+          </div>
         </div>
 
         <div className="p-6 space-y-5">
@@ -280,10 +319,11 @@ export default function InvoiceDeliverySettings() {
               disabled={!hasChanges || isSaving}
               onClick={() => {
                 saveRecipients(
-                  { customerId, recipients },
+                  { customerId, recipients, reminderExempt },
                   {
                     onSuccess: () => {
                       setOriginalRecipients(recipients);
+                      setOriginalReminderExempt(reminderExempt);
                     }
                   }
                 );
