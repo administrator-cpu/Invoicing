@@ -112,6 +112,15 @@ const invoiceCustomerSettingsSchema = new mongoose.Schema(
       type: [recipientSchema],
       default: [],
     },
+
+    // When true, this customer is skipped entirely by the payment reminder cron —
+    // no first/second/suspension reminder is ever queued for them, regardless of
+    // outstanding balance or unpaid invoices. Set by an Admin from the customer's
+    // Invoice Delivery Settings page.
+    reminderExempt: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

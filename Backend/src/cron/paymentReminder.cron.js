@@ -1,13 +1,24 @@
 import cron from "node-cron";
 import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
-import { InvoiceCustomerReminder } from "../modules/Invoice/invoice.secondaryModels.js";
+import { InvoiceCustomerReminder, InvoiceCustomerSettings } from "../modules/Invoice/invoice.secondaryModels.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
 import { getCustomerOutstandingBalance } from "../services/bahiKhata.service.js";
 import logger from "../utils/logger.js";
 
 const TIMEZONE = "Asia/Kolkata";
 let isCronRunning = false;
+
+// Ordered lowest stage first. `day` is the calendar day of the month a stage
+// becomes due. Listed lowest-to-highest so a stage that failed to send (e.g. a
+// transient Bahi-Khata outage) gets retried on the following day's run instead
+// of being silently skipped once a later stage's date arrives — see the stage
+// selection below.
+const REMINDER_STAGES = [
+  { number: 1, day: 15, stageField: "first" },
+  { number: 2, day: 20, stageField: "second" },
+  { number: 3, day: 25, stageField: "suspension" },
+];
 
 export async function processPaymentReminders(overrideDate = null) {
   if (isCronRunning) {
@@ -25,11 +36,10 @@ export async function processPaymentReminders(overrideDate = null) {
       now = DateTime.now().setZone(TIMEZONE).startOf("day");
     }
 
-    const reminderSchedule = { 15: 1, 20: 2, 25: 3, };
-    const reminderNumber = reminderSchedule[now.day];
+    const eligibleStages = REMINDER_STAGES.filter((stage) => now.day >= stage.day);
 
-    if (!reminderNumber) {
-      logger.info(`Payment reminder run skipped. ${now.toFormat("dd LLL yyyy")} is not a reminder date.`);
+    if (!eligibleStages.length) {
+      logger.info(`Payment reminder run skipped. ${now.toFormat("dd LLL yyyy")} is before the first reminder date.`);
       return;
     }
 
@@ -61,9 +71,30 @@ export async function processPaymentReminders(overrideDate = null) {
       }
     }
 
+    // Customers excluded from the reminder cycle are dropped entirely here —
+    // before the outstanding-balance check — so they're skipped regardless of
+    // whether they have unpaid bills.
+    if (customers.size) {
+      const exemptSettings = await InvoiceCustomerSettings.find({
+        customerId: { $in: [...customers.keys()] },
+        reminderExempt: true,
+      }).select("customerId").lean();
+
+      for (const { customerId } of exemptSettings) {
+        customers.delete(customerId);
+      }
+
+      if (exemptSettings.length) {
+        logger.info("Payment reminder exclusions applied.", {
+          excludedCustomerCount: exemptSettings.length,
+          excludedCustomerIds: exemptSettings.map((s) => s.customerId),
+        });
+      }
+    }
+
     logger.info("Payment reminder customer evaluation started.", {
       date: now.toISODate(),
-      reminderNumber,
+      eligibleStages: eligibleStages.map((s) => s.number),
       eligibleInvoiceCount: invoices.length,
       uniqueCustomerCount: customers.size,
     });
@@ -87,7 +118,6 @@ export async function processPaymentReminders(overrideDate = null) {
             {
               crmCustomerId: crmId,
               outstandingBalance,
-              reminderNumber,
             }
           );
 
@@ -99,33 +129,18 @@ export async function processPaymentReminders(overrideDate = null) {
           cycle,
         }).lean();
 
-        const stageField = reminderNumber === 1
-          ? "first"
-          : reminderNumber === 2
-            ? "second"
-            : "suspension";
+        // Pick the lowest-numbered due stage that hasn't been sent yet this cycle.
+        // This makes the flow self-healing: if stage 1 failed to send on the 15th
+        // (e.g. the ledger API was briefly down), it's retried here on the 16th,
+        // 17th, etc., instead of being silently skipped in favor of stage 2 once
+        // the 20th arrives.
+        const stage = eligibleStages.find((s) => !state?.[s.stageField]?.sentAt);
 
-        console.log("[REMINDER DEBUG] Customer state match", {
-          crmCustomerId: crmId,
-          invoiceId: representativeInvoice._id,
-          invoiceNumber: representativeInvoice.invoiceNumber,
-          cycle,
-          reminderNumber,
-          stateFound: Boolean(state),
-          stateCustomerId: state?.customerId ?? null,
-          stateCycle: state?.cycle ?? null,
-          firstSentAt: state?.first?.sentAt ?? null,
-          secondSentAt: state?.second?.sentAt ?? null,
-          suspensionSentAt: state?.suspension?.sentAt ?? null,
-        });
-
-        if (state?.[stageField]?.sentAt) {
+        if (!stage) {
           skipped++;
-          logger.info("Skipping reminder because customer reminder was already sent.", {
+          logger.info("Skipping reminder because every due stage was already sent.", {
             crmCustomerId: crmId,
             cycle,
-            reminderNumber,
-            sentAt: state[stageField].sentAt,
           });
           continue;
         }
@@ -146,7 +161,7 @@ export async function processPaymentReminders(overrideDate = null) {
           }
         );
 
-        await enqueuePaymentReminder(crmId, representativeInvoice._id, reminderNumber, cycle);
+        await enqueuePaymentReminder(crmId, representativeInvoice._id, stage.number, cycle);
 
         queued++;
 
@@ -154,7 +169,7 @@ export async function processPaymentReminders(overrideDate = null) {
           crmCustomerId: crmId,
           invoiceId: representativeInvoice._id,
           invoiceNumber: representativeInvoice.invoiceNumber,
-          reminderNumber,
+          reminderNumber: stage.number,
           cycle,
           outstandingBalance,
         });
@@ -163,7 +178,6 @@ export async function processPaymentReminders(overrideDate = null) {
         logger.error("Failed processing customer payment reminder.", {
           crmCustomerId: crmId,
           invoiceId: representativeInvoice._id,
-          reminderNumber,
           error: error.message,
         });
       }
@@ -171,7 +185,6 @@ export async function processPaymentReminders(overrideDate = null) {
 
     logger.info("Payment Reminder processing completed.", {
       date: now.toISODate(),
-      reminderNumber,
       queued,
       skipped,
       failed,
@@ -193,7 +206,6 @@ export function startPaymentReminderCron() {
   }
 
   cron.schedule("0 9 * * *", () => {
-    // cron.schedule("*/10 * * * *", () => {
     processPaymentReminders();
   }, {
     timezone: TIMEZONE,

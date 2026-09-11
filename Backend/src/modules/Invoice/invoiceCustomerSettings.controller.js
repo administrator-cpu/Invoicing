@@ -107,7 +107,7 @@ export const getInvoiceCustomerSettings = catchAsync(async (req, res, next) => {
 
 export const updateInvoiceCustomerSettings = catchAsync(async (req, res, next) => {
   const { customerId } = req.params;
-  const { recipients = [] } = req.body;
+  const { recipients = [], reminderExempt } = req.body;
   if (!Array.isArray(recipients)) {
     return next(new AppError("Recipients must be an array.", 400));
   }
@@ -147,9 +147,14 @@ export const updateInvoiceCustomerSettings = catchAsync(async (req, res, next) =
 
   const normalizedRecipients = normalizeInvoiceRecipients(uniqueRecipients);
 
+  const update = { recipients: normalizedRecipients };
+  if (typeof reminderExempt === "boolean") {
+    update.reminderExempt = reminderExempt;
+  }
+
   const settings = await InvoiceCustomerSettings.findOneAndUpdate(
     { customerId },
-    { $set: { recipients: normalizedRecipients } },
+    { $set: update },
     {
       new: true,
       runValidators: true,
