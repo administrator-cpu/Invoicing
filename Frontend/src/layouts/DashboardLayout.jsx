@@ -53,7 +53,7 @@ const DashboardLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Invoices', path: '/invoices', icon: FileText },
+    { name: 'Invoices', path: '/invoices', matchPaths: ['/invoices', '/credit-notes'], icon: FileText },
     { name: 'Customers', path: '/customers', icon: Users },
     { name: 'Company Profiles', path: '/company-profiles', icon: Building2 },
   ];
@@ -115,7 +115,7 @@ const DashboardLayout = () => {
         {/* FIX 2: Added overflow-x-hidden to prevent the scrollbar during transition */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-1.5 custom-scrollbar">
           {navItems.map((item) => {
-            const isActive = location.pathname.includes(item.path);
+            const isActive = (item.matchPaths || [item.path]).some((path) => location.pathname.includes(path));
             const Icon = item.icon;
             return (
               <Link
