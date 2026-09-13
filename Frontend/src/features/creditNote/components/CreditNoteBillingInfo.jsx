@@ -18,6 +18,10 @@ const CreditNoteBillingInfo = ({ creditNote }) => {
   const creditBaseAmount = Math.abs(financials.creditBaseAmount || 0);
   const taxCreditAmount = Math.abs(financials.taxCreditAmount || 0);
   const totalCreditAmount = Math.abs(financials.totalCreditAmount || 0);
+  const igstCreditAmount = Math.abs(financials.igstCreditAmount || 0);
+  const cgstCreditAmount = Math.abs(financials.cgstCreditAmount || 0);
+  const sgstCreditAmount = Math.abs(financials.sgstCreditAmount || 0);
+  const isInterstate = igstCreditAmount > 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 items-stretch">
@@ -150,7 +154,35 @@ const CreditNoteBillingInfo = ({ creditNote }) => {
               </span>
             </div>
 
-            <div className="flex justify-between mb-4 font-bold text-gray-900 dark:text-slate-100">
+            {isInterstate ? (
+              <div className="flex justify-between mb-2 text-sm text-gray-600 dark:text-slate-400">
+                <span>IGST Credit</span>
+
+                <span className="font-medium">
+                  {formatINR(igstCreditAmount)}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between mb-2 text-sm text-gray-600 dark:text-slate-400">
+                  <span>CGST Credit</span>
+
+                  <span className="font-medium">
+                    {formatINR(cgstCreditAmount)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between mb-2 text-sm text-gray-600 dark:text-slate-400">
+                  <span>SGST Credit</span>
+
+                  <span className="font-medium">
+                    {formatINR(sgstCreditAmount)}
+                  </span>
+                </div>
+              </>
+            )}
+
+            <div className="flex justify-between mb-4 font-bold border-t dark:border-slate-700 border-gray-100 dark:border-slate-800 pt-3 text-gray-900 dark:text-slate-100">
               <span>Tax Credit</span>
 
               <span className="font-medium">

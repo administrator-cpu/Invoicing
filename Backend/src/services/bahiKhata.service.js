@@ -82,6 +82,51 @@ export const syncInvoiceToBahiKhata = async ({ crmId, invoiceNo, date, amount, d
   }
 };
 
+export const syncCreditNoteToBahiKhata = async ({ crmId, creditNoteNo, date, amount, description = null }) => {
+  if (!crmId) {
+    throw new Error("Missing CRM ID");
+  }
+
+  if (!creditNoteNo) {
+    throw new Error("Missing credit note number");
+  }
+
+  if (amount == null) {
+    throw new Error("Missing credit note amount");
+  }
+
+  try {
+    const response = await axios.post(`${BAHI_KHATA_URL}/integration/webhook/credit-note`,
+      { crmId, creditNoteNo, date, amount, description },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": INTERNAL_BAHIKHATA_SECRET,
+        }
+      }
+    );
+
+    logger.info("Credit note synced to Bahi Khata.", {
+      creditNoteNo,
+      crmId,
+      amount,
+      status: response.status,
+    });
+
+    return response.data;
+  } catch (error) {
+    logger.error("Failed to sync credit note to Bahi Khata.", {
+      creditNoteNo,
+      crmId,
+      amount,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+    });
+
+    throw error;
+  }
+};
+
 export const deleteInvoiceFromBahiKhata = async (invoiceNo) => {
   if (!invoiceNo) {
     throw new Error("Missing invoice number");
