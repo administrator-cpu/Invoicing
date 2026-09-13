@@ -378,7 +378,7 @@ export const calculateCreditNote = async (invoiceId, items, session = null, excl
     calculatedItems.reduce((total, item) => total + Number(item.sgstCreditAmount || 0), 0)
   );
 
-  const totalCreditAmount = round2(creditBaseAmount + taxCreditAmount);
+  const totalCreditAmount = Math.round(creditBaseAmount + taxCreditAmount);
 
   if (totalCreditAmount <= 0) {
     throw new AppError("Credit note total must be greater than zero.", 400);

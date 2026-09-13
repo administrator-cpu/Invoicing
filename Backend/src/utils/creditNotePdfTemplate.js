@@ -305,7 +305,7 @@ function buildBilling(creditNote, isInterstate) {
           <div style="margin-top: auto; padding-top: 12px;">
             <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 10px; color: #111827;">
               <span>Total Credit (INR)</span>
-              <span style="color: #ea580c;">₹${money(financials.totalCreditAmount)}</span>
+              <span style="color: #ea580c;">₹${money(Math.round(financials.totalCreditAmount))}</span>
             </div>
 
             <div style="border-top: 1px solid #fdba74; margin-top: 16px; padding-top: 10px;">
@@ -335,10 +335,6 @@ function buildItems(creditNote, isInterstate) {
     const tdDivideX = "border-right: 1px solid #ffedd5;";
     const tdBase = "padding: 16px 4px; vertical-align: top; text-align: center; font-size: 11px; font-weight: 500; color: #111827;";
 
-    const creditQtyOrRate = item.adjustmentType === "MANUAL"
-      ? "-"
-      : `${item.creditedQty ?? "-"} x ₹${money(item.creditedRate ?? 0)}`;
-
     return `
       <tr style="${rowBorder}">
         <td style="${tdBase} padding: 16px 8px; text-align: left; word-break: normal; overflow-wrap: normal; ${tdDivideX}">
@@ -346,9 +342,6 @@ function buildItems(creditNote, isInterstate) {
         </td>
         <td style="${tdBase} ${tdDivideX}">
           ${item.sacCode || "-"}
-        </td>
-        <td style="${tdBase} ${tdDivideX}">
-          ${creditQtyOrRate}
         </td>
         <td style="${tdBase} white-space: nowrap; ${tdDivideX}">
           ₹${money(item.creditAmount)}
@@ -374,23 +367,21 @@ function buildItems(creditNote, isInterstate) {
   const tableHeaderRows = isInterstate
     ? `
         <tr>
-          <th style="width: 30%; ${thStyle} text-align: left; padding-left: 12px; ${thDivideX}">Description</th>
-          <th style="width: 10%; ${thStyle} ${thDivideX}">SAC</th>
-          <th style="width: 16%; ${thStyle} ${thDivideX}">Qty x Rate</th>
-          <th style="width: 12%; ${thStyle} text-align: right; ${thDivideX}">Credit Amt</th>
-          <th style="width: 12%; ${thStyle} text-align: right; ${thDivideX}">IGST</th>
-          <th style="width: 20%; ${thStyle} text-align: right;">Total Credit</th>
+          <th style="width: 40%; ${thStyle} ${thDivideX}">Description</th>
+          <th style="width: 12%; ${thStyle} ${thDivideX}">SAC</th>
+          <th style="width: 16%; ${thStyle} ${thDivideX}">Credit Amt</th>
+          <th style="width: 12%; ${thStyle} ${thDivideX}">IGST</th>
+          <th style="width: 20%; ${thStyle}">Total Credit</th>
         </tr>
       `
     : `
         <tr>
-          <th style="width: 28%; ${thStyle} text-align: left; padding-left: 12px; ${thDivideX}">Description</th>
-          <th style="width: 9%; ${thStyle} ${thDivideX}">SAC</th>
-          <th style="width: 15%; ${thStyle} ${thDivideX}">Qty x Rate</th>
-          <th style="width: 12%; ${thStyle} text-align: right; ${thDivideX}">Credit Amt</th>
-          <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">CGST</th>
-          <th style="width: 10%; ${thStyle} text-align: right; ${thDivideX}">SGST</th>
-          <th style="width: 16%; ${thStyle} text-align: right;">Total Credit</th>
+          <th style="width: 35%; ${thStyle} ${thDivideX}">Description</th>
+          <th style="width: 11%; ${thStyle} ${thDivideX}">SAC</th>
+          <th style="width: 16%; ${thStyle} ${thDivideX}">Credit Amt</th>
+          <th style="width: 11%; ${thStyle} ${thDivideX}">CGST</th>
+          <th style="width: 11%; ${thStyle} ${thDivideX}">SGST</th>
+          <th style="width: 16%; ${thStyle}">Total Credit</th>
         </tr>
       `;
 
@@ -427,7 +418,7 @@ function buildItems(creditNote, isInterstate) {
           </div>
 
           <div style="font-weight: 900; font-size: 14px; color: #ea580c; white-space: nowrap; min-width: 120px; text-align: center;">
-            ₹${money(creditNote.financials?.totalCreditAmount)}
+            ₹${money(Math.round(creditNote.financials?.totalCreditAmount || 0))}
           </div>
 
         </div>

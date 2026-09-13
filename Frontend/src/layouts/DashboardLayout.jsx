@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Users, Building2, LogOut, Menu,
+  LayoutDashboard, FileText, FileMinus2, Users, Building2, LogOut, Menu,
   X, Sun, Moon, Search, Bell, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import useAuthStore from '@/store/useAuthStore';
@@ -53,7 +53,8 @@ const DashboardLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Invoices', path: '/invoices', matchPaths: ['/invoices', '/credit-notes'], icon: FileText },
+    { name: 'Invoices', path: '/invoices', icon: FileText },
+    { name: 'Credit Notes', path: '/credit-notes', icon: FileMinus2 },
     { name: 'Customers', path: '/customers', icon: Users },
     { name: 'Company Profiles', path: '/company-profiles', icon: Building2 },
   ];

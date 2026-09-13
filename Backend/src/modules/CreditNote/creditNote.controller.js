@@ -7,6 +7,7 @@ import { generateNextDocumentNumber } from "../Invoice/invoice.helpers.js";
 import generateCreditNotePdf from "../../services/creditNotePdfService.js";
 import { saveCreditNotePdf, readCreditNotePdf, creditNotePdfExists } from "../../services/documentStorage.js";
 import { prepareCreditNoteDelivery } from "../../services/deliveryService.js";
+import { syncCreditNoteToBahiKhata } from "../../services/bahiKhata.service.js";
 import { sendEmail } from "../../services/emailService.js";
 import catchAsync from "../../utils/catchAsync.js";
 import AppError from "../../utils/AppError.js";
@@ -448,6 +449,56 @@ export const finalizeCreditNote = catchAsync(async (req, res, next) => {
       creditNoteNumber: creditNote.creditNoteNumber,
       error: error.message,
     });
+  }
+
+  try {
+    const syncResponse = await syncCreditNoteToBahiKhata({
+      crmId: creditNote.customerId,
+      creditNoteNo: creditNote.creditNoteNumber,
+      date: creditNote.effectiveDate,
+      amount: creditNote.financials?.totalCreditAmount,
+      description: `Credit Note for ${creditNote.invoiceNumber}`,
+    });
+
+    const ledgerEntryId = syncResponse?.data?.id ?? syncResponse?.data?.ledgerEntryId ?? null;
+
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      {
+        $set: {
+          ledgerSyncStatus: "SYNCED",
+          ledgerSyncedAt: new Date(),
+          ledgerSyncError: null,
+          ledgerEntryId,
+        },
+        $inc: { ledgerSyncAttempts: 1 },
+      }
+    );
+
+    creditNote.ledgerSyncStatus = "SYNCED";
+    creditNote.ledgerSyncedAt = new Date();
+    creditNote.ledgerSyncError = null;
+    creditNote.ledgerEntryId = ledgerEntryId;
+  } catch (error) {
+    logger.error("Failed to sync finalized credit note to Bahi Khata.", {
+      creditNoteId: creditNote._id,
+      creditNoteNumber: creditNote.creditNoteNumber,
+      error: error.message,
+    });
+
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      {
+        $set: {
+          ledgerSyncStatus: "FAILED",
+          ledgerSyncError: error.message,
+        },
+        $inc: { ledgerSyncAttempts: 1 },
+      }
+    );
+
+    creditNote.ledgerSyncStatus = "FAILED";
+    creditNote.ledgerSyncError = error.message;
   }
 
   return res.status(200).json({
