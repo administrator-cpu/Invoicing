@@ -351,6 +351,7 @@ export default function InvoiceWorkspace({
       billingPeriod: "MONTHLY",
       billingMode: 'PREPAID',
       discount: 0,
+      excludedAdjustmentConnectionIds: [],
     }
   });
 
@@ -396,7 +397,8 @@ export default function InvoiceWorkspace({
         ...defaults,
         selectedGstProfileId: defaults.defaultCustomerBillingProfileId || customer.billingProfile?.[0]?._id || "",
         selectedCompanyProfileId: defaults.defaultCompanyProfileId ?? companyProfiles?.[0]?._id ?? "",
-        items: buildInitialInvoiceItems(sourceItems, defaults)
+        items: buildInitialInvoiceItems(sourceItems, defaults),
+        excludedAdjustmentConnectionIds: defaults.excludedAdjustmentConnectionIds || []
       });
       setInvoiceVersion(defaults.previewVersion ?? null);
     }
@@ -440,6 +442,7 @@ export default function InvoiceWorkspace({
       discount: formData.discount,
       selectedCustomerBillingProfile,
       selectedCompanyProfile,
+      excludedAdjustmentConnectionIds: formData.excludedAdjustmentConnectionIds || [],
       version: watch("previewVersion")
     };
 
@@ -511,6 +514,7 @@ export default function InvoiceWorkspace({
         billingCycleEnd: formData.billingCycleEnd,
         billingMode: formData.billingMode,
         discount: formData.discount,
+        excludedAdjustmentConnectionIds: formData.excludedAdjustmentConnectionIds || [],
       },
       {
         onSettled: () => {

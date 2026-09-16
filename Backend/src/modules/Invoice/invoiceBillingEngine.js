@@ -396,8 +396,8 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       continue;
     }
 
-    const bandwidth = entry.bandwidth ?? "";
-    const ratePerMb = Number(entry.commercials?.ratePerMb ?? 0);
+    const bandwidth = overrides.bandwidth ?? entry.bandwidth ?? "";
+    const ratePerMb = Number(overrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0);
 
     const parsedBandwidth = Number.parseFloat(String(bandwidth));
     const calculatedMrc = Number.isFinite(parsedBandwidth)
