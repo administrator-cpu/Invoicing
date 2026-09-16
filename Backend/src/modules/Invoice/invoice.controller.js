@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { DateTime } from 'luxon';
 import { chromium } from 'playwright';
 import Invoice from './invoice.model.js';
+import { InvoiceCustomerReminder } from './invoice.secondaryModels.js';
 import EmailLog from '../Email/emailLog.model.js';
 import catchAsync from '../../utils/catchAsync.js';
 import AppError from '../../utils/AppError.js';
@@ -1061,7 +1063,47 @@ export const getInvoiceById = catchAsync(async (req, res, next) => {
   });
 });
 
-/** 
+/**
+ * @desc - Payment reminder status for this invoice's customer, for the current
+ *   reminder cycle (calendar month) — reminders are tracked per customer, not per
+ *   invoice, since one reminder covers all of a customer's overdue invoices, so this
+ *   surfaces the same InvoiceCustomerReminder record the payment reminder cron itself
+ *   reads/writes.
+ * @route - GET /api/invoices/:id/reminder-status
+ */
+export const getInvoiceReminderStatus = catchAsync(async (req, res, next) => {
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id))
+    .select("customerSnapshot.crmCustomerId")
+    .lean();
+
+  if (!invoice) return next(new AppError('No invoice found with that ID', 404));
+
+  const crmCustomerId = invoice.customerSnapshot?.crmCustomerId;
+  if (!crmCustomerId) {
+    return res.status(200).json({
+      status: "success",
+      data: { cycle: null, reminder: null },
+    });
+  }
+
+  const cycle = DateTime.now().setZone("Asia/Kolkata").toFormat("yyyy-MM");
+
+  const reminder = await InvoiceCustomerReminder.findOne({
+    customerId: crmCustomerId,
+    cycle,
+  })
+    .populate("first.emailLogId", "status subject sentAt")
+    .populate("second.emailLogId", "status subject sentAt")
+    .populate("suspension.emailLogId", "status subject sentAt")
+    .lean();
+
+  res.status(200).json({
+    status: "success",
+    data: { cycle, reminder },
+  });
+});
+
+/**
  * @desc - Download invoice as PDF
  * @route - GET /api/invoices/:id/pdf
  */

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ToWords } from "to-words";
 import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, FilePlus2, X, AlertTriangle } from 'lucide-react';
 import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
+import PaymentReminderStatusCard from "@/features/invoices/components/PaymentReminderStatusCard";
 import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
@@ -14,7 +15,7 @@ import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSect
 import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
 import {
   useInvoiceDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
-  useSendInvoiceEmail, useInvoiceEmailHistory
+  useSendInvoiceEmail, useInvoiceEmailHistory, useInvoiceReminderStatus
 } from '@/features/invoices/hooks/useInvoices';
 
 const toWords = new ToWords({
@@ -30,6 +31,7 @@ const InvoiceDetails = () => {
 
   const { data: invoice, isLoading, isError } = useInvoiceDetails(id);
   const { data: emailHistory, isLoading: emailHistoryLoading, } = useInvoiceEmailHistory(id, emailHistoryOpen, invoice?.email?.status);
+  const { data: reminderStatus, isLoading: reminderStatusLoading } = useInvoiceReminderStatus(id);
   const { mutate: finalizeInvoice, isPending: isFinalizing } = useFinalizeInvoice();
   const { mutate: cancelInvoice, isPending: isCancelling } = useCancelInvoice();
   const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice();
@@ -202,12 +204,19 @@ const InvoiceDetails = () => {
         </div>
       </div>
 
-      <InvoiceEmailCard
-        invoice={invoice}
-        onViewHistory={() => {
-          setEmailHistoryOpen(true);
-        }}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <InvoiceEmailCard
+          invoice={invoice}
+          onViewHistory={() => {
+            setEmailHistoryOpen(true);
+          }}
+        />
+
+        <PaymentReminderStatusCard
+          data={reminderStatus}
+          isLoading={reminderStatusLoading}
+        />
+      </div>
 
       <EmailHistoryModal
         isOpen={emailHistoryOpen}

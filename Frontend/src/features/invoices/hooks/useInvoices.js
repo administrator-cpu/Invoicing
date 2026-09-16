@@ -151,6 +151,17 @@ export const useSendInvoiceEmail = () => {
   });
 };
 
+export const useInvoiceReminderStatus = (invoiceId, enabled = true) => {
+  return useQuery({
+    queryKey: ["invoice-reminder-status", invoiceId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/invoices/${invoiceId}/reminder-status`);
+      return response.data;
+    },
+    enabled: enabled && !!invoiceId,
+  });
+};
+
 export const useInvoiceEmailHistory = (invoiceId, enabled = true, invoiceStatus) => {
   return useQuery({
     queryKey: ["invoice-email-history", invoiceId],

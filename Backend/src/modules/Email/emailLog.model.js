@@ -8,6 +8,13 @@ const emailLogSchema = new mongoose.Schema(
       required: true,
     },
 
+    // emailWorker.js sets this on every job (including reminders, where it distinguishes
+    // PAYMENT_REMINDER_1/2 and SERVICE_SUSPENSION_NOTICE from a plain invoice send) — it
+    // was missing from the schema, so Mongoose silently stripped it on every save.
+    emailType: {
+      type: String,
+    },
+
     documentId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
