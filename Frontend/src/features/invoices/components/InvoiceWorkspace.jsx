@@ -434,6 +434,7 @@ export default function InvoiceWorkspace({
 
     const previewPayload = {
       version: invoiceVersion,
+      customerId: customer._id || customer.id,
       connections,
       manualItems,
       billingCycleStart: formData.billingCycleStart,
