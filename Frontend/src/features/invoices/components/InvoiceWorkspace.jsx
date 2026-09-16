@@ -514,7 +514,12 @@ export default function InvoiceWorkspace({
         billingCycleEnd: formData.billingCycleEnd,
         billingMode: formData.billingMode,
         discount: formData.discount,
-        excludedAdjustmentConnectionIds: formData.excludedAdjustmentConnectionIds || [],
+        // Read straight from the form store (same as handlePreview does) rather than
+        // trusting the `formData` handleSubmit hands us — this field is never
+        // `register()`-ed (it's toggled purely via setValue from the item table), so
+        // pulling it via getValues() here removes any doubt about it round-tripping
+        // through handleSubmit's own data resolution.
+        excludedAdjustmentConnectionIds: getValues("excludedAdjustmentConnectionIds") || [],
       },
       {
         onSettled: () => {
