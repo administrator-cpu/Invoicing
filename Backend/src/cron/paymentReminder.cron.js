@@ -3,20 +3,16 @@ import { DateTime } from "luxon";
 import Invoice from "../modules/Invoice/invoice.model.js";
 import { InvoiceCustomerReminder, InvoiceCustomerSettings } from "../modules/Invoice/invoice.secondaryModels.js";
 import { enqueuePaymentReminder } from "../queues/emailQueue.js";
-import { getCustomerOutstandingBalance } from "../services/bahiKhata.service.js";
+import {
+  TIMEZONE, REMINDER_START_DATE, getEligibleStages,
+  evaluateCustomerReminderEligibility, recordReminderAttemptFailure,
+} from "../services/paymentReminderEligibility.service.js";
 import logger from "../utils/logger.js";
 
-const TIMEZONE = "Asia/Kolkata";
 let isCronRunning = false;
 
 const MAX_RUN_DURATION_MS = 10 * 60 * 1000;
 let watchdogTimer = null;
-
-const REMINDER_STAGES = [
-  { number: 1, day: 15, stageField: "first" },
-  { number: 2, day: 20, stageField: "second" },
-  { number: 3, day: 25, stageField: "suspension" },
-];
 
 export async function processPaymentReminders(overrideDate = null) {
   if (isCronRunning) {
@@ -41,14 +37,14 @@ export async function processPaymentReminders(overrideDate = null) {
       now = DateTime.now().setZone(TIMEZONE).startOf("day");
     }
 
-    const eligibleStages = REMINDER_STAGES.filter((stage) => now.day >= stage.day);
+    const eligibleStages = getEligibleStages(now);
 
     if (!eligibleStages.length) {
       logger.info(`Payment reminder run skipped. ${now.toFormat("dd LLL yyyy")} is before the first reminder date.`);
       return;
     }
 
-    const reminderStartDate = DateTime.fromISO("2026-07-25", { zone: TIMEZONE }).startOf("day");
+    const reminderStartDate = DateTime.fromISO(REMINDER_START_DATE, { zone: TIMEZONE }).startOf("day");
 
     const invoices = await Invoice.find({
       isDeleted: { $ne: true },
@@ -112,39 +108,17 @@ export async function processPaymentReminders(overrideDate = null) {
 
     for (const [crmId, representativeInvoice] of customers) {
       try {
-        const outstandingBalance =
-          await getCustomerOutstandingBalance(crmId);
+        const evaluation = await evaluateCustomerReminderEligibility({ crmCustomerId: crmId, now });
 
-        if (Number(outstandingBalance) <= 0) {
+        if (!evaluation.eligible) {
           skipped++;
-
-          logger.info(
-            "Skipping reminder because customer has no outstanding balance.",
-            {
-              crmCustomerId: crmId,
-              outstandingBalance,
-            }
-          );
-
-          continue;
-        }
-
-        const state = await InvoiceCustomerReminder.findOne({
-          customerId: crmId,
-          cycle,
-        }).lean();
-
-        const stage = eligibleStages.find((s) => !state?.[s.stageField]?.sentAt);
-
-        if (!stage) {
-          skipped++;
-          logger.info("Skipping reminder because every due stage was already sent.", {
+          logger.info("Skipping reminder — not eligible.", {
             crmCustomerId: crmId,
-            cycle,
+            reason: evaluation.reason,
           });
           continue;
         }
-
+        const { stage, outstandingBalance } = evaluation;
         await InvoiceCustomerReminder.updateOne(
           {
             customerId: crmId,
@@ -179,6 +153,13 @@ export async function processPaymentReminders(overrideDate = null) {
           crmCustomerId: crmId,
           invoiceId: representativeInvoice._id,
           error: error.message,
+        });
+
+        await recordReminderAttemptFailure({ crmCustomerId: crmId, cycle, error }).catch((recordError) => {
+          logger.error("Failed to persist payment reminder attempt failure.", {
+            crmCustomerId: crmId,
+            error: recordError.message,
+          });
         });
       }
     }

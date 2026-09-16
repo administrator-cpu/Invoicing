@@ -3,6 +3,7 @@ import redis from "../config/redis.js";
 import EmailLog from "../modules/Email/emailLog.model.js";
 import Invoice from "../modules/Invoice/invoice.model.js";
 import { InvoiceCustomerReminder } from "../modules/Invoice/invoice.secondaryModels.js";
+import { recordReminderAttemptFailure, clearReminderAttemptFailure } from "../services/paymentReminderEligibility.service.js";
 import { sendEmail } from "../services/emailService.js";
 import { prepareInvoiceDelivery, prepareReminderDelivery } from "../services/deliveryService.js";
 import AppError from "../utils/AppError.js";
@@ -57,7 +58,7 @@ async function processEmailJob(job, options) {
       });
     }
     if (updateInvoice.failed) {
-      await updateInvoice.failed(job.data.invoiceId, emailLog?._id || null);
+      await updateInvoice.failed(job.data.invoiceId, emailLog?._id || null, job.data, error);
     }
     if (error.statusCode === 404) {
       throw new UnrecoverableError(error.message);
@@ -145,6 +146,11 @@ const worker = new Worker(
                 }
               );
 
+              // A prior attempt for this cycle may have failed before this one
+              // succeeded (e.g. a transient send failure that BullMQ retried) — clear
+              // that stale failure now that a reminder has actually gone out.
+              await clearReminderAttemptFailure({ crmCustomerId: payload.customerId, cycle: payload.cycle });
+
               return Invoice.updateOne(
                 { _id: invoiceId },
                 {
@@ -154,7 +160,17 @@ const worker = new Worker(
                 }
               );
             },
-            failed: null,
+            // Runs on every failed attempt (BullMQ retries this job up to
+            // defaultJobOptions.attempts times) — persists the latest error so it's
+            // visible on the invoice details page instead of only ever existing in
+            // worker logs, which is exactly what let a real outage go unnoticed before.
+            failed: (invoiceId, emailLogId, jobData, error) =>
+              recordReminderAttemptFailure({
+                crmCustomerId: jobData.customerId,
+                cycle: jobData.cycle,
+                stageNumber: jobData.reminderNumber,
+                error,
+              }),
           },
         });
 

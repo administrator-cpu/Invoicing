@@ -162,6 +162,23 @@ export const useInvoiceReminderStatus = (invoiceId, enabled = true) => {
   });
 };
 
+export const useSendManualPaymentReminder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId) => {
+      const response = await apiClient.post(`/invoices/${invoiceId}/send-payment-reminder`);
+      return response.data;
+    },
+    onSuccess: (data, invoiceId) => {
+      queryClient.invalidateQueries({ queryKey: ["invoice-reminder-status", invoiceId] });
+      toast.success(data.message || "Payment reminder queued for sending.");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to send payment reminder.");
+    },
+  });
+};
+
 export const useInvoiceEmailHistory = (invoiceId, enabled = true, invoiceStatus) => {
   return useQuery({
     queryKey: ["invoice-email-history", invoiceId],
