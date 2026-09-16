@@ -5,7 +5,7 @@ import {
   updateDraftInvoice, cancelInvoice, deleteDraftInvoice, downloadInvoicePdf, previewInvoicePdf,
   recordPayment, generateAdjustmentInvoice, updatePaymentStatus, sendInvoiceMail, getConnectionBillingHistory,
   createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport, retryInvoiceBahiKhataSync,
-  getInvoiceReminderStatus
+  getInvoiceReminderStatus, sendManualPaymentReminder
 } from './invoice.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
 import verifyInternalApiKey from '../../middlewares/internalApiKeyMiddleware.js';
@@ -39,6 +39,7 @@ router.post('/draft', createDraftInvoice);
 router.post("/:id/retry-bahi-khata-sync", retryInvoiceBahiKhataSync);
 router.post("/:id/credit-note", protect, createCreditNote);
 router.post("/:id/send", sendInvoiceMail);
+router.post("/:id/send-payment-reminder", sendManualPaymentReminder);
 router.patch('/:id/finalize', finalizeInvoice);
 router.put('/:id', updateDraftInvoice);
 router.delete('/:id', deleteDraftInvoice);

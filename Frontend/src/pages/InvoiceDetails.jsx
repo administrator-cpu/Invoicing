@@ -15,7 +15,7 @@ import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSect
 import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
 import {
   useInvoiceDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
-  useSendInvoiceEmail, useInvoiceEmailHistory, useInvoiceReminderStatus
+  useSendInvoiceEmail, useInvoiceEmailHistory, useInvoiceReminderStatus, useSendManualPaymentReminder
 } from '@/features/invoices/hooks/useInvoices';
 
 const toWords = new ToWords({
@@ -32,6 +32,7 @@ const InvoiceDetails = () => {
   const { data: invoice, isLoading, isError } = useInvoiceDetails(id);
   const { data: emailHistory, isLoading: emailHistoryLoading, } = useInvoiceEmailHistory(id, emailHistoryOpen, invoice?.email?.status);
   const { data: reminderStatus, isLoading: reminderStatusLoading } = useInvoiceReminderStatus(id);
+  const { mutate: sendManualReminder, isPending: isSendingReminder } = useSendManualPaymentReminder();
   const { mutate: finalizeInvoice, isPending: isFinalizing } = useFinalizeInvoice();
   const { mutate: cancelInvoice, isPending: isCancelling } = useCancelInvoice();
   const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice();
@@ -215,6 +216,8 @@ const InvoiceDetails = () => {
         <PaymentReminderStatusCard
           data={reminderStatus}
           isLoading={reminderStatusLoading}
+          isSending={isSendingReminder}
+          onSendNow={() => sendManualReminder(id)}
         />
       </div>
 

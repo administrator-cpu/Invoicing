@@ -59,6 +59,24 @@ const invoiceCustomerReminderSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Tracks the most recent failure for this customer's cycle — either the cron/manual
+    // trigger failing before it could even queue a reminder (e.g. the outstanding-balance
+    // lookup errored), or the queued email itself failing to send (worker-level failure).
+    // Cleared the next time a reminder for this customer actually sends successfully, so
+    // it only ever reflects the current, unresolved problem — not stale history.
+    lastAttemptError: {
+      type: String,
+      default: null,
+    },
+    lastAttemptErrorAt: {
+      type: Date,
+      default: null,
+    },
+    lastAttemptStage: {
+      type: Number,
+      default: null,
+    },
   },
   {
     timestamps: true,

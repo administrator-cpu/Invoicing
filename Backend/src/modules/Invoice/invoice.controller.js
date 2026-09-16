@@ -19,7 +19,8 @@ import { getCrmCustomerDetails, getCrmCustomerConnections, getBillingHistory } f
 import { syncFinalizedInvoiceToBahiKhata, deleteInvoiceFromBahiKhata } from "../../services/bahiKhata.service.js";
 import { sendEmail } from '../../services/emailService.js';
 import { prepareInvoiceDelivery } from '../../services/deliveryService.js';
-import { enqueueInvoiceEmail } from "../../queues/emailQueue.js";
+import { enqueueInvoiceEmail, enqueuePaymentReminder } from "../../queues/emailQueue.js";
+import { evaluateInvoiceReminderEligibility } from '../../services/paymentReminderEligibility.service.js';
 import logger from '../../utils/logger.js';
 
 /**
@@ -1068,25 +1069,30 @@ export const getInvoiceById = catchAsync(async (req, res, next) => {
  *   reminder cycle (calendar month) — reminders are tracked per customer, not per
  *   invoice, since one reminder covers all of a customer's overdue invoices, so this
  *   surfaces the same InvoiceCustomerReminder record the payment reminder cron itself
- *   reads/writes.
+ *   reads/writes. Also includes whether a manual reminder can be sent for THIS invoice
+ *   right now, using the exact same criteria the cron itself uses.
  * @route - GET /api/invoices/:id/reminder-status
  */
 export const getInvoiceReminderStatus = catchAsync(async (req, res, next) => {
   const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id))
-    .select("customerSnapshot.crmCustomerId")
+    .select("invoiceType status paymentStatus dates customerSnapshot.crmCustomerId")
     .lean();
 
   if (!invoice) return next(new AppError('No invoice found with that ID', 404));
 
+  const now = DateTime.now().setZone("Asia/Kolkata");
   const crmCustomerId = invoice.customerSnapshot?.crmCustomerId;
+
+  const eligibility = await evaluateInvoiceReminderEligibility({ invoice, now });
+
   if (!crmCustomerId) {
     return res.status(200).json({
       status: "success",
-      data: { cycle: null, reminder: null },
+      data: { cycle: null, reminder: null, eligibility },
     });
   }
 
-  const cycle = DateTime.now().setZone("Asia/Kolkata").toFormat("yyyy-MM");
+  const cycle = now.toFormat("yyyy-MM");
 
   const reminder = await InvoiceCustomerReminder.findOne({
     customerId: crmCustomerId,
@@ -1099,7 +1105,54 @@ export const getInvoiceReminderStatus = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    data: { cycle, reminder },
+    data: { cycle, reminder, eligibility },
+  });
+});
+
+/**
+ * @desc - Manually send a payment reminder for this invoice's customer, right now —
+ *   only allowed when this invoice (and its customer) meets the exact same eligibility
+ *   criteria the automated cron uses, re-verified server-side (never trusts whatever
+ *   the eligibility check returned when the page loaded, since balance/state can change).
+ * @route - POST /api/invoices/:id/send-payment-reminder
+ */
+export const sendManualPaymentReminder = catchAsync(async (req, res, next) => {
+  const invoice = await Invoice.findOne(activeInvoiceFilter(req.params.id))
+    .select("invoiceType status paymentStatus dates customerSnapshot.crmCustomerId")
+    .lean();
+
+  if (!invoice) return next(new AppError('No invoice found with that ID', 404));
+
+  const now = DateTime.now().setZone("Asia/Kolkata");
+  const eligibility = await evaluateInvoiceReminderEligibility({ invoice, now });
+
+  if (!eligibility.eligible) {
+    return next(new AppError(`This invoice is not eligible for a payment reminder right now: ${eligibility.reason}`, 400));
+  }
+
+  const crmCustomerId = invoice.customerSnapshot.crmCustomerId;
+  const { stage, cycle } = eligibility;
+
+  await InvoiceCustomerReminder.updateOne(
+    { customerId: crmCustomerId, cycle },
+    { $setOnInsert: { customerId: crmCustomerId, cycle } },
+    { upsert: true }
+  );
+
+  await enqueuePaymentReminder(crmCustomerId, invoice._id, stage.number, cycle);
+
+  logger.info("Payment reminder manually queued.", {
+    crmCustomerId,
+    invoiceId: invoice._id,
+    reminderNumber: stage.number,
+    cycle,
+    queuedBy: req.user._id,
+  });
+
+  res.status(200).json({
+    status: "success",
+    message: `Reminder stage ${stage.number} queued for sending.`,
+    data: { stage: stage.number, cycle },
   });
 });
 
