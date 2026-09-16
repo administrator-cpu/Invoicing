@@ -5,13 +5,15 @@ import AppError from "../utils/AppError.js";
 const BAHI_KHATA_URL = process.env.BAHI_KHATA_URL;
 const INTERNAL_BAHIKHATA_SECRET = process.env.INTERNAL_BAHIKHATA_SECRET;
 
+const bahiKhataClient = axios.create({ timeout: 15000 });
+
 export const getCustomerOutstandingBalance = async (crmId) => {
   if (!crmId) {
     throw new Error("Missing CRM ID");
   }
 
   try {
-    const response = await axios.get(
+    const response = await bahiKhataClient.get(
       `${BAHI_KHATA_URL}/integration/customers/crm/${crmId}/outstanding`,
       {
         headers: {
@@ -51,7 +53,7 @@ export const syncInvoiceToBahiKhata = async ({ crmId, invoiceNo, date, amount, d
   }
 
   try {
-    const response = await axios.post(`${BAHI_KHATA_URL}/integration/invoices/sync`,
+    const response = await bahiKhataClient.post(`${BAHI_KHATA_URL}/integration/invoices/sync`,
       { crmId, invoiceNo, date, amount, description },
       {
         headers: {
@@ -96,7 +98,7 @@ export const syncCreditNoteToBahiKhata = async ({ crmId, creditNoteNo, date, amo
   }
 
   try {
-    const response = await axios.post(`${BAHI_KHATA_URL}/integration/webhook/credit-note`,
+    const response = await bahiKhataClient.post(`${BAHI_KHATA_URL}/integration/webhook/credit-note`,
       { crmId, creditNoteNo, date, amount, description },
       {
         headers: {
@@ -133,7 +135,7 @@ export const deleteInvoiceFromBahiKhata = async (invoiceNo) => {
   }
 
   try {
-    const response = await axios.delete(`${BAHI_KHATA_URL}/integration/invoices/sync/${encodeURIComponent(invoiceNo)}`,
+    const response = await bahiKhataClient.delete(`${BAHI_KHATA_URL}/integration/invoices/sync/${encodeURIComponent(invoiceNo)}`,
       {
         headers: {
           "Content-Type": "application/json",

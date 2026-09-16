@@ -9,11 +9,9 @@ import logger from "../utils/logger.js";
 const TIMEZONE = "Asia/Kolkata";
 let isCronRunning = false;
 
-// Ordered lowest stage first. `day` is the calendar day of the month a stage
-// becomes due. Listed lowest-to-highest so a stage that failed to send (e.g. a
-// transient Bahi-Khata outage) gets retried on the following day's run instead
-// of being silently skipped once a later stage's date arrives — see the stage
-// selection below.
+const MAX_RUN_DURATION_MS = 10 * 60 * 1000;
+let watchdogTimer = null;
+
 const REMINDER_STAGES = [
   { number: 1, day: 15, stageField: "first" },
   { number: 2, day: 20, stageField: "second" },
@@ -27,6 +25,13 @@ export async function processPaymentReminders(overrideDate = null) {
   }
 
   isCronRunning = true;
+  watchdogTimer = setTimeout(() => {
+    logger.error("Payment reminder run exceeded its time ceiling — forcibly clearing the running flag so future runs aren't permanently blocked.", {
+      maxRunDurationMs: MAX_RUN_DURATION_MS,
+    });
+    isCronRunning = false;
+  }, MAX_RUN_DURATION_MS);
+  watchdogTimer.unref?.();
 
   try {
     let now;
@@ -195,6 +200,10 @@ export async function processPaymentReminders(overrideDate = null) {
       stack: error.stack,
     });
   } finally {
+    if (watchdogTimer) {
+      clearTimeout(watchdogTimer);
+      watchdogTimer = null;
+    }
     isCronRunning = false;
   }
 }
@@ -205,11 +214,11 @@ export function startPaymentReminderCron() {
     return;
   }
 
-  cron.schedule("0 9 * * *", () => {
+  cron.schedule("*/10 * * * *", () => {
     processPaymentReminders();
   }, {
     timezone: TIMEZONE,
   });
 
-  logger.info("Payment Reminder Cron registered for daily execution at 09:00 IST.");
+  logger.info("Payment Reminder Cron registered for execution every 10 minutes (temporary — catching up on missed reminders).");
 }
