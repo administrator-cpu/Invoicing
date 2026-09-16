@@ -31,12 +31,17 @@ const ADJUSTMENT_THRESHOLD = 0.01;
  * overbilling correction) as well as positive. A connection with no prior billed item
  * at all (genuinely new, or missed further back than the lookback) is left alone.
  */
-export async function buildPriorPeriodAdjustmentItems({ connections, customerId, currentCycleStart }) {
+export async function buildPriorPeriodAdjustmentItems({
+  connections, customerId, currentCycleStart, excludedConnectionIds = [],
+}) {
   if (!customerId || !Array.isArray(connections) || connections.length === 0) return [];
 
   const cycleStart = new Date(currentCycleStart);
+  const excludedSet = new Set((excludedConnectionIds || []).filter(Boolean));
 
-  const connectionIds = connections.map((c) => c.crmConnectionId).filter(Boolean);
+  const connectionIds = connections
+    .map((c) => c.crmConnectionId)
+    .filter((id) => id && !excludedSet.has(id));
   if (!connectionIds.length) return [];
 
   // Pull every finalized BASE invoice for this customer that could hold a prior billed
@@ -84,7 +89,7 @@ export async function buildPriorPeriodAdjustmentItems({ connections, customerId,
 
   for (const connection of connections) {
     const connectionId = connection.crmConnectionId;
-    if (!connectionId) continue;
+    if (!connectionId || excludedSet.has(connectionId)) continue;
 
     const billed = lastBilledByConnection.get(connectionId);
     if (!billed) continue; // no prior billed period for this connection — nothing to true-up
@@ -100,8 +105,17 @@ export async function buildPriorPeriodAdjustmentItems({ connections, customerId,
       // Force every billing component on and ignore any current-invoice period override —
       // we want what the connection's real history says for its own prior cycle, not
       // whatever this user happens to have toggled for the invoice they're building now.
+      // Strip invoiceOverrides entirely: those overrides belong to the *current* cycle the
+      // user is editing, and (now that the engine honors bandwidth/rate overrides — see
+      // buildConnectionSegments) leaving them on would recompute the PRIOR cycle using the
+      // NEW cycle's custom rate, fabricating a "Prorata Changes" row even when the prior
+      // invoice was billed correctly and nothing actually changed.
       recomputedItems = buildInvoiceItems({
-        connections: [{ ...connection, billingOptions: { connection: true, ip: true, shifting: true } }],
+        connections: [{
+          ...connection,
+          billingOptions: { connection: true, ip: true, shifting: true },
+          invoiceOverrides: {},
+        }],
         manualItems: [],
         billingCycleStart: prevCycleStart,
         billingCycleEnd: prevCycleEnd,

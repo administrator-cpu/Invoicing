@@ -199,6 +199,13 @@ const InvoiceSchema = new mongoose.Schema({
       type: String,
       enum: ["MANUAL", "AUTO"],
       default: "MANUAL"
+    },
+    // CRM connection IDs whose auto-generated Prior Period Adjustment row the user
+    // explicitly removed for this invoice. Persisted so re-previewing/editing the
+    // draft doesn't silently regenerate a row the user already chose to drop.
+    excludedAdjustmentConnectionIds: {
+      type: [String],
+      default: []
     }
   },
   parentInvoiceId: {

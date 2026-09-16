@@ -6,7 +6,7 @@ export const buildInvoiceDocument = async ({
   connections, manualItems = [],
   billingCycleStart, billingCycleEnd, billingMode = "POSTPAID",
   customerState, companyState, discount = 0,
-  customerId = null,
+  customerId = null, excludedAdjustmentConnectionIds = [],
 }) => {
 
   const cycleStart = new Date(billingCycleStart);
@@ -40,6 +40,7 @@ export const buildInvoiceDocument = async ({
     connections,
     customerId,
     currentCycleStart: cycleStart,
+    excludedConnectionIds: excludedAdjustmentConnectionIds,
   });
 
   const allItems = [...engineItems, ...adjustmentItems];

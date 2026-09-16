@@ -326,10 +326,6 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
   const normalizeState = (state = "") => state.trim().toUpperCase();
   const normalizeGst = (gst = "") => gst.trim().toUpperCase();
 
-  // Resolve the company/customer GST profiles that were actually used on this
-  // invoice, so editing pre-selects them instead of falling back to the
-  // first profile in the list (which silently changes the GST state used
-  // for tax calculation on save).
   const savedCompanyProfile = companyProfiles.find(
     profile => profile._id.toString() === invoice.companySnapshot?.profileId?.toString()
   );
@@ -362,7 +358,8 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
     previewGeneratedAt: invoice.audit?.lastEditedAt ?? invoice.createdAt,
     previewExpired: false,
     defaultCompanyProfileId,
-    defaultCustomerBillingProfileId
+    defaultCustomerBillingProfileId,
+    excludedAdjustmentConnectionIds: invoice.billingConfiguration?.excludedAdjustmentConnectionIds || []
   };
 
   res.status(200).json({
@@ -454,7 +451,8 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
   const {
     version, customerId, connections = [], manualItems = [],
     billingCycleStart, billingCycleEnd, billingMode = "PREPAID",
-    selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
+    selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0,
+    excludedAdjustmentConnectionIds = []
   } = req.body;
 
   const hasConnections = Array.isArray(connections) && connections.length > 0;
@@ -500,7 +498,7 @@ export const previewInvoice = catchAsync(async (req, res, next) => {
       connections, manualItems,
       billingCycleStart: start, billingCycleEnd: end, billingMode,
       customerState, companyState, discount,
-      customerId,
+      customerId, excludedAdjustmentConnectionIds,
     }));
   } catch (err) {
     return next(new AppError(err.message, 400));
@@ -532,7 +530,8 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
     customer, selectedCustomerBillingProfile, selectedCompanyProfile,
     connections = [], manualItems = [],
     billingCycleStart, billingCycleEnd, invoiceDate, dueDate,
-    discount = 0, billingMode = "PREPAID"
+    discount = 0, billingMode = "PREPAID",
+    excludedAdjustmentConnectionIds = []
   } = req.body;
 
   if (!customer || !selectedCustomerBillingProfile || !selectedCompanyProfile) {
@@ -565,7 +564,7 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
       connections, manualItems,
       billingCycleStart: new Date(billingCycleStart), billingCycleEnd: new Date(billingCycleEnd), billingMode,
       customerState, companyState, discount,
-      customerId,
+      customerId, excludedAdjustmentConnectionIds,
     });
 
   await assertNoDuplicateConnectionBilling(verifiedItems);
@@ -586,7 +585,8 @@ export const createDraftInvoice = catchAsync(async (req, res, next) => {
       status: "DRAFT",
       billingConfiguration: {
         billingMode,
-        generationSource: "MANUAL"
+        generationSource: "MANUAL",
+        excludedAdjustmentConnectionIds
       },
       dates: {
         invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
@@ -644,7 +644,8 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
     version, invoiceDate, dueDate,
     connections = [], manualItems = [],
     billingCycleStart, billingCycleEnd, billingMode = "PREPAID",
-    selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0
+    selectedCustomerBillingProfile, selectedCompanyProfile, discount = 0,
+    excludedAdjustmentConnectionIds = []
   } = req.body;
 
   if (version === undefined || version === null) {
@@ -680,6 +681,7 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
       billingCycleStart: new Date(billingCycleStart), billingCycleEnd: new Date(billingCycleEnd), billingMode,
       customerState, companyState, discount,
       customerId: existingInvoice.customerSnapshot.crmCustomerId,
+      excludedAdjustmentConnectionIds,
     }));
   } catch (err) {
     return next(new AppError(err.message, 400));
@@ -690,6 +692,7 @@ export const updateDraftInvoice = catchAsync(async (req, res, next) => {
   const updatePayload = {
     items,
     financials,
+    "billingConfiguration.excludedAdjustmentConnectionIds": excludedAdjustmentConnectionIds,
     "audit.lastEditedAt": new Date(),
     "audit.lastEditedBy": req.user._id
   };
