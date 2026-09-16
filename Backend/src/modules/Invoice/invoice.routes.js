@@ -4,7 +4,8 @@ import {
   finalizeInvoice, getInvoices, getInvoiceById, getInvoiceWorkspace, getInvoiceEditWorkspace,
   updateDraftInvoice, cancelInvoice, deleteDraftInvoice, downloadInvoicePdf, previewInvoicePdf,
   recordPayment, generateAdjustmentInvoice, updatePaymentStatus, sendInvoiceMail, getConnectionBillingHistory,
-  createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport, retryInvoiceBahiKhataSync
+  createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport, retryInvoiceBahiKhataSync,
+  getInvoiceReminderStatus
 } from './invoice.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
 import verifyInternalApiKey from '../../middlewares/internalApiKeyMiddleware.js';
@@ -26,6 +27,7 @@ router.get("/:id/edit-workspace", getInvoiceEditWorkspace);
 router.get("/:id/credit-note-workspace", getCreditNoteWorkspace)
 router.get('/', getInvoices);
 router.get('/:id', getInvoiceById);
+router.get('/:id/reminder-status', getInvoiceReminderStatus);
 router.get('/:id/pdf', downloadInvoicePdf);
 router.get('/:id/pdf/preview', previewInvoicePdf);
 router.get('/billing-history/:crmConnectionId', getConnectionBillingHistory);

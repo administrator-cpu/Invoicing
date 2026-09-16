@@ -134,11 +134,6 @@ export async function processPaymentReminders(overrideDate = null) {
           cycle,
         }).lean();
 
-        // Pick the lowest-numbered due stage that hasn't been sent yet this cycle.
-        // This makes the flow self-healing: if stage 1 failed to send on the 15th
-        // (e.g. the ledger API was briefly down), it's retried here on the 16th,
-        // 17th, etc., instead of being silently skipped in favor of stage 2 once
-        // the 20th arrives.
         const stage = eligibleStages.find((s) => !state?.[s.stageField]?.sentAt);
 
         if (!stage) {
@@ -214,11 +209,11 @@ export function startPaymentReminderCron() {
     return;
   }
 
-  cron.schedule("*/10 * * * *", () => {
+  cron.schedule("0 12-23 * * *", () => {
     processPaymentReminders();
   }, {
     timezone: TIMEZONE,
   });
 
-  logger.info("Payment Reminder Cron registered for execution every 10 minutes (temporary — catching up on missed reminders).");
+  logger.info("Payment Reminder Cron registered: runs at 12:00 IST and hourly through 23:00 as a retry check for anything not yet sent.");
 }
