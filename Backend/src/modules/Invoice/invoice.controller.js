@@ -320,8 +320,17 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
       editable: true
     }));
 
+  const adjustmentItems = invoiceItems
+    .filter(item => item.sourceType === "PRIOR_PERIOD_ADJUSTMENT")
+    .map(item => ({
+      ...item.toObject(),
+      selected: true,
+      editable: false
+    }));
+
   mergedItems.push(...ipItems);
   mergedItems.push(...manualItems);
+  mergedItems.push(...adjustmentItems);
 
   const normalizeState = (state = "") => state.trim().toUpperCase();
   const normalizeGst = (gst = "") => gst.trim().toUpperCase();
