@@ -179,6 +179,23 @@ export const useSendManualPaymentReminder = () => {
   });
 };
 
+export const useRetryInvoiceBahiKhataSync = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (invoiceId) => {
+      const response = await apiClient.post(`/invoices/${invoiceId}/retry-bahi-khata-sync`);
+      return response.data;
+    },
+    onSuccess: (data, invoiceId) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices", "details", invoiceId] });
+      toast.success(data.message || "Invoice synced to Bahi Khata.");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to sync invoice to Bahi Khata.");
+    },
+  });
+};
+
 export const useInvoiceEmailHistory = (invoiceId, enabled = true, invoiceStatus) => {
   return useQuery({
     queryKey: ["invoice-email-history", invoiceId],

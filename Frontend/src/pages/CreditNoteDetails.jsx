@@ -11,11 +11,12 @@ import CreditNoteHeader from "@/features/creditNote/components/CreditNoteHeader"
 import CreditNoteBillingInfo from "@/features/creditNote/components/CreditNoteBillingInfo";
 import CreditNoteItemsSection from "@/features/creditNote/components/CreditNoteItemsSection";
 import CreditNoteEmailCard from "@/features/creditNote/components/CreditNoteEmailCard";
+import LedgerSyncCard from "@/features/invoices/components/LedgerSyncCard";
 import { SendCreditNoteModal } from "@/features/creditNote/components/SendCreditNoteModal";
 
 import {
   useCreditNoteDetails, useFinalizeCreditNote, useCancelCreditNote, useDeleteCreditNote,
-  useSendCreditNoteEmail, useCreditNoteEmailHistory
+  useSendCreditNoteEmail, useCreditNoteEmailHistory, useRetryCreditNoteBahiKhataSync
 } from "@/features/creditNote/hooks/useCreditNote";
 
 const CreditNoteDetails = () => {
@@ -35,6 +36,7 @@ const CreditNoteDetails = () => {
   const { mutate: cancelCreditNote, isPending: isCancelling } = useCancelCreditNote();
   const { mutate: deleteCreditNote, isPending: isDeleting } = useDeleteCreditNote();
   const { mutate: sendCreditNoteEmail, isPending: isSendingEmail } = useSendCreditNoteEmail();
+  const { mutate: retryLedgerSync, isPending: isSyncingLedger } = useRetryCreditNoteBahiKhataSync();
   const { data: emailHistory, isLoading: emailHistoryLoading, } = useCreditNoteEmailHistory(id, emailHistoryOpen, creditNote?.email?.status);
 
   if (isLoading) {
@@ -192,11 +194,23 @@ const CreditNoteDetails = () => {
         </div>
       </div>
 
-      {isFinalized && (
-        <CreditNoteEmailCard
-          creditNote={creditNote}
-          onViewHistory={() => setEmailHistoryOpen(true)}
-        />
+      {(isFinalized || isCancelled) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {isFinalized && (
+            <CreditNoteEmailCard
+              creditNote={creditNote}
+              onViewHistory={() => setEmailHistoryOpen(true)}
+            />
+          )}
+
+          <LedgerSyncCard
+            document={creditNote}
+            documentLabel="Credit Note"
+            isSyncing={isSyncingLedger}
+            disabled={creditNote.status !== "FINALIZED"}
+            onSync={() => retryLedgerSync(id)}
+          />
+        </div>
       )}
 
       <EmailHistoryModal

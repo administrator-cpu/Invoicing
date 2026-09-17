@@ -4,6 +4,7 @@ import { ToWords } from "to-words";
 import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, FilePlus2, X, AlertTriangle } from 'lucide-react';
 import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
 import PaymentReminderStatusCard from "@/features/invoices/components/PaymentReminderStatusCard";
+import LedgerSyncCard from "@/features/invoices/components/LedgerSyncCard";
 import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
@@ -15,7 +16,8 @@ import InvoiceItemsSection from "@/features/invoices/components/InvoiceItemsSect
 import InvoiceTerms from "@/features/invoices/components/InvoiceTerms";
 import {
   useInvoiceDetails, useFinalizeInvoice, useCancelInvoice, useDeleteInvoice,
-  useSendInvoiceEmail, useInvoiceEmailHistory, useInvoiceReminderStatus, useSendManualPaymentReminder
+  useSendInvoiceEmail, useInvoiceEmailHistory, useInvoiceReminderStatus, useSendManualPaymentReminder,
+  useRetryInvoiceBahiKhataSync
 } from '@/features/invoices/hooks/useInvoices';
 
 const toWords = new ToWords({
@@ -33,6 +35,7 @@ const InvoiceDetails = () => {
   const { data: emailHistory, isLoading: emailHistoryLoading, } = useInvoiceEmailHistory(id, emailHistoryOpen, invoice?.email?.status);
   const { data: reminderStatus, isLoading: reminderStatusLoading } = useInvoiceReminderStatus(id);
   const { mutate: sendManualReminder, isPending: isSendingReminder } = useSendManualPaymentReminder();
+  const { mutate: retryLedgerSync, isPending: isSyncingLedger } = useRetryInvoiceBahiKhataSync();
   const { mutate: finalizeInvoice, isPending: isFinalizing } = useFinalizeInvoice();
   const { mutate: cancelInvoice, isPending: isCancelling } = useCancelInvoice();
   const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice();
@@ -110,6 +113,7 @@ const InvoiceDetails = () => {
 
   const isDraft = invoice.status === 'DRAFT';
   const canCreateCreditNote = invoice.invoiceType === "BASE" && invoice.status === "FINALIZED";
+  const showLedgerSync = invoice.status === "FINALIZED" || invoice.status === "CANCELLED";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full px-4 md:px-8 pb-10 md:pb-16">
@@ -205,7 +209,7 @@ const InvoiceDetails = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${showLedgerSync ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4`}>
         <InvoiceEmailCard
           invoice={invoice}
           onViewHistory={() => {
@@ -219,6 +223,16 @@ const InvoiceDetails = () => {
           isSending={isSendingReminder}
           onSendNow={() => sendManualReminder(id)}
         />
+
+        {showLedgerSync && (
+          <LedgerSyncCard
+            document={invoice}
+            documentLabel="Invoice"
+            isSyncing={isSyncingLedger}
+            disabled={invoice.status !== "FINALIZED"}
+            onSync={() => retryLedgerSync(id)}
+          />
+        )}
       </div>
 
       <EmailHistoryModal

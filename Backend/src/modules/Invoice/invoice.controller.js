@@ -16,7 +16,7 @@ import generateInvoicePdf from '../../services/invoicePdfService.js';
 import { buildInvoiceDocument } from './invoiceBuilder.js';
 import { generateGSTReport } from '../../services/invoiceExcelTemplate.js';
 import { getCrmCustomerDetails, getCrmCustomerConnections, getBillingHistory } from "../../services/crm.service.js";
-import { syncFinalizedInvoiceToBahiKhata, deleteInvoiceFromBahiKhata } from "../../services/bahiKhata.service.js";
+import { syncInvoiceLedger, deleteInvoiceFromBahiKhata } from "../../services/bahiKhata.service.js";
 import { sendEmail } from '../../services/emailService.js';
 import { prepareInvoiceDelivery } from '../../services/deliveryService.js';
 import { enqueueInvoiceEmail, enqueuePaymentReminder } from "../../queues/emailQueue.js";
@@ -898,7 +898,8 @@ export const finalizeInvoice = catchAsync(async (req, res, next) => {
     });
   }
 
-  syncFinalizedInvoiceToBahiKhata(finalizedInvoice);
+  const ledgerUpdate = await syncInvoiceLedger(finalizedInvoice);
+  Object.assign(finalizedInvoice, ledgerUpdate);
 
   res.status(200).json({
     status: "success",
@@ -928,14 +929,19 @@ export const retryInvoiceBahiKhataSync = catchAsync(async (req, res, next) => {
     throw new AppError("Cannot sync invoice to Bahi Khata because invoice number is missing.", 400);
   }
 
-  syncFinalizedInvoiceToBahiKhata(invoice);
+  const ledgerUpdate = await syncInvoiceLedger(invoice);
+
+  if (ledgerUpdate.ledgerSyncStatus === "FAILED") {
+    throw new AppError(`Bahi Khata sync failed: ${ledgerUpdate.ledgerSyncError}`, 502);
+  }
 
   res.status(200).json({
     status: "success",
-    message: "Invoice Bahi Khata sync has been triggered.",
+    message: "Invoice successfully synced to Bahi Khata.",
     data: {
       invoiceId: invoice._id,
       invoiceNumber: invoice.invoiceNumber,
+      ...ledgerUpdate,
     },
   });
 });

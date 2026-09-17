@@ -232,6 +232,28 @@ const InvoiceSchema = new mongoose.Schema({
     index: true
   },
 
+  ledgerSyncStatus: {
+    type: String,
+    enum: ["NOT_SYNCED", "PENDING", "SYNCED", "FAILED"],
+    default: "NOT_SYNCED",
+  },
+  ledgerEntryId: {
+    type: String,
+    default: null,
+  },
+  ledgerSyncAttempts: {
+    type: Number,
+    default: 0,
+  },
+  ledgerSyncError: {
+    type: String,
+    default: null,
+  },
+  ledgerSyncedAt: {
+    type: Date,
+    default: null,
+  },
+
   dates: {
     invoiceDate: { type: Date, required: true },
     dueDate: { type: Date, required: true },

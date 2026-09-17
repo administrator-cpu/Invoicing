@@ -182,6 +182,23 @@ export const useSendCreditNoteEmail = () => {
   });
 };
 
+export const useRetryCreditNoteBahiKhataSync = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (creditNoteId) => {
+      const response = await apiClient.post(`/credit-notes/${creditNoteId}/retry-bahi-khata-sync`);
+      return response.data;
+    },
+    onSuccess: (data, creditNoteId) => {
+      queryClient.invalidateQueries({ queryKey: ["credit-notes", "details", creditNoteId] });
+      toast.success(data.message || "Credit note synced to Bahi Khata.");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to sync credit note to Bahi Khata.");
+    },
+  });
+};
+
 export const useCreditNoteEmailHistory = (creditNoteId, enabled = true, creditNoteEmailStatus) => {
   return useQuery({
     queryKey: ["credit-note-email-history", creditNoteId],
