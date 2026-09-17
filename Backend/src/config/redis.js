@@ -16,10 +16,8 @@ const redis = new IORedis(
     enableOfflineQueue: false,
     keepAlive: 10000, // Send a TCP keep-alive ping every 10 seconds
     retryStrategy(times) {
-      // Stop retrying after 10 attempts
-      if (times > 10) {
-        logger.error("Redis connection completely failed after 10 attempts.");
-        return null; // Returning null stops the reconnect loop
+      if (times % 20 === 0) {
+        logger.error(`Redis has been unreachable for ${times} reconnect attempts — still retrying.`, { attempts: times });
       }
       const delay = Math.min(times * 50, 2000);
       return delay;
@@ -40,6 +38,10 @@ redis.on("error", (error) => {
 
 redis.on("ready", () => {
   logger.info("Redis ready");
+});
+
+redis.on("end", () => {
+  logger.error("Redis connection reached terminal 'end' state — it will not reconnect automatically. This should not happen with the current retryStrategy; investigate immediately.");
 });
 
 export default redis;
