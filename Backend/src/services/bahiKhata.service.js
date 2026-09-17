@@ -1,6 +1,8 @@
 import axios from "axios";
 import logger from "../utils/logger.js";
 import AppError from "../utils/AppError.js";
+import Invoice from "../modules/Invoice/invoice.model.js";
+import CreditNote from "../modules/CreditNote/creditNote.model.js";
 
 const BAHI_KHATA_URL = process.env.BAHI_KHATA_URL;
 const INTERNAL_BAHIKHATA_SECRET = process.env.INTERNAL_BAHIKHATA_SECRET;
@@ -162,31 +164,109 @@ export const deleteInvoiceFromBahiKhata = async (invoiceNo) => {
   }
 };
 
-export const syncFinalizedInvoiceToBahiKhata = (invoice) => {
+// Syncs a finalized invoice to Bahi Khata and persists the outcome on the
+// invoice document (ledgerSyncStatus/ledgerSyncedAt/ledgerSyncError/
+// ledgerEntryId/ledgerSyncAttempts) so it's visible on the invoice details
+// page and can be manually retried, instead of only ever existing in logs.
+export const syncInvoiceLedger = async (invoice) => {
   const crmId = invoice.customerSnapshot?.crmCustomerId;
 
   if (!crmId || !invoice.invoiceNumber) {
-    logger.error("Cannot sync finalized invoice to Bahi Khata. Missing required data.", {
+    const message = "Missing CRM customer ID or invoice number.";
+    logger.error("Cannot sync invoice to Bahi Khata. Missing required data.", {
       invoiceId: invoice._id,
       invoiceNumber: invoice.invoiceNumber,
       crmId,
     });
 
-    return;
+    const update = { ledgerSyncStatus: "FAILED", ledgerSyncError: message };
+    await Invoice.updateOne(
+      { _id: invoice._id },
+      { $set: update, $inc: { ledgerSyncAttempts: 1 } }
+    );
+    return update;
   }
 
-  void syncInvoiceToBahiKhata({
-    crmId,
-    invoiceNo: invoice.invoiceNumber,
-    date: invoice.dates?.invoiceDate,
-    amount: invoice.financials?.grandTotal,
-    description: 'Monthly Invoice',
-  }).catch((error) => {
-    logger.error("Background Bahi Khata invoice sync failed.", {
-      invoiceId: invoice._id,
-      invoiceNumber: invoice.invoiceNumber,
+  try {
+    const response = await syncInvoiceToBahiKhata({
       crmId,
-      message: error.message,
+      invoiceNo: invoice.invoiceNumber,
+      date: invoice.dates?.invoiceDate,
+      amount: invoice.financials?.grandTotal,
+      description: "Monthly Invoice",
     });
-  });
+
+    const ledgerEntryId = response?.data?.id ?? response?.data?.ledgerEntryId ?? null;
+    const update = {
+      ledgerSyncStatus: "SYNCED",
+      ledgerSyncedAt: new Date(),
+      ledgerSyncError: null,
+      ledgerEntryId,
+    };
+
+    await Invoice.updateOne(
+      { _id: invoice._id },
+      { $set: update, $inc: { ledgerSyncAttempts: 1 } }
+    );
+    return update;
+  } catch (error) {
+    const update = { ledgerSyncStatus: "FAILED", ledgerSyncError: error.message };
+    await Invoice.updateOne(
+      { _id: invoice._id },
+      { $set: update, $inc: { ledgerSyncAttempts: 1 } }
+    );
+    return update;
+  }
+};
+
+// Same as syncInvoiceLedger, but for credit notes.
+export const syncCreditNoteLedger = async (creditNote) => {
+  const crmId = creditNote.customerId;
+
+  if (!crmId || !creditNote.creditNoteNumber) {
+    const message = "Missing CRM customer ID or credit note number.";
+    logger.error("Cannot sync credit note to Bahi Khata. Missing required data.", {
+      creditNoteId: creditNote._id,
+      creditNoteNumber: creditNote.creditNoteNumber,
+      crmId,
+    });
+
+    const update = { ledgerSyncStatus: "FAILED", ledgerSyncError: message };
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      { $set: update, $inc: { ledgerSyncAttempts: 1 } }
+    );
+    return update;
+  }
+
+  try {
+    const response = await syncCreditNoteToBahiKhata({
+      crmId,
+      creditNoteNo: creditNote.creditNoteNumber,
+      date: creditNote.effectiveDate,
+      amount: creditNote.financials?.totalCreditAmount,
+      description: `Credit Note for ${creditNote.invoiceNumber}`,
+    });
+
+    const ledgerEntryId = response?.data?.id ?? response?.data?.ledgerEntryId ?? null;
+    const update = {
+      ledgerSyncStatus: "SYNCED",
+      ledgerSyncedAt: new Date(),
+      ledgerSyncError: null,
+      ledgerEntryId,
+    };
+
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      { $set: update, $inc: { ledgerSyncAttempts: 1 } }
+    );
+    return update;
+  } catch (error) {
+    const update = { ledgerSyncStatus: "FAILED", ledgerSyncError: error.message };
+    await CreditNote.updateOne(
+      { _id: creditNote._id },
+      { $set: update, $inc: { ledgerSyncAttempts: 1 } }
+    );
+    return update;
+  }
 };

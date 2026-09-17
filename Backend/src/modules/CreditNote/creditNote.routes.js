@@ -2,7 +2,7 @@ import express from 'express';
 import {
   previewCreditNote, createCreditNote, getAllCreditNotes, getCreditNoteById, getCreditNoteCreationData,
   updateCreditNote, finalizeCreditNote, deleteCreditNote, cancelCreditNote,
-  downloadCreditNotePdf, previewCreditNotePdf, sendCreditNoteMail
+  downloadCreditNotePdf, previewCreditNotePdf, sendCreditNoteMail, retryCreditNoteBahiKhataSync
 } from './creditNote.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
 
@@ -23,6 +23,7 @@ router.post("/invoice/:invoiceId", createCreditNote);
 router.post("/:id/send", sendCreditNoteMail);
 router.patch("/:id", updateCreditNote);
 router.patch("/:id/finalize", finalizeCreditNote);
+router.post("/:id/retry-bahi-khata-sync", retryCreditNoteBahiKhataSync);
 router.delete("/:id", deleteCreditNote);
 router.patch("/:id/cancel", cancelCreditNote);
 
