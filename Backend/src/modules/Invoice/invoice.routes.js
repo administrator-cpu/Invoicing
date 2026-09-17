@@ -5,7 +5,7 @@ import {
   updateDraftInvoice, cancelInvoice, deleteDraftInvoice, downloadInvoicePdf, previewInvoicePdf,
   recordPayment, generateAdjustmentInvoice, updatePaymentStatus, sendInvoiceMail, getConnectionBillingHistory,
   createCreditNote, getCreditNoteDetails, getCreditNoteWorkspace, downloadGSTReport, retryInvoiceBahiKhataSync,
-  getInvoiceReminderStatus, sendManualPaymentReminder
+  getInvoiceReminderStatus, sendManualPaymentReminder, reportPaymentSyncError
 } from './invoice.controller.js';
 import { protect, restrictTo } from '../../middlewares/authMiddleware.js';
 import verifyInternalApiKey from '../../middlewares/internalApiKeyMiddleware.js';
@@ -14,6 +14,7 @@ const router = express.Router();
 
 /* Bahi-Khata Webhook */
 router.patch("/internal/:invoiceNo/payment-status", verifyInternalApiKey, updatePaymentStatus);
+router.post("/internal/:invoiceNo/payment-status/error", verifyInternalApiKey, reportPaymentSyncError);
 /* Bahi-Khata Webhook End */
 
 router.use(protect);

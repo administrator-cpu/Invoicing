@@ -1523,10 +1523,22 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
   if (!invoice) {
     return next(new AppError("Invoice not found.", 404));
   }
+
+  // Once an invoice is found, any failure from here on is recorded against it
+  // so a bad sync isn't only visible in Bahi Khata's own logs — it shows up
+  // on this invoice's details page too, symmetric to ledgerSyncError on the
+  // outbound side.
+  const failSync = async (message) => {
+    invoice.paymentSyncStatus = "FAILED";
+    invoice.paymentSyncError = message;
+    invoice.paymentSyncedAt = new Date();
+    await invoice.save();
+  };
+
   if (invoice.status !== "FINALIZED") {
-    return next(
-      new AppError("Only finalized invoices can receive payment updates.", 400)
-    );
+    const message = "Only finalized invoices can receive payment updates.";
+    await failSync(message);
+    return next(new AppError(message, 400));
   }
 
   const statusMap = {
@@ -1535,17 +1547,17 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
     Unpaid: "UNPAID"
   };
 
-  invoice.paymentStatus = statusMap[paymentStatus];
-  invoice.financials.amountPaid = Number(amountPaid);
-  invoice.financials.balanceDue = Number(balanceDue);
-
   const total = invoice.financials.grandTotal;
 
   if (Math.abs((Number(amountPaid) + Number(balanceDue)) - total) > 0.1) {
-    return next(
-      new AppError("Payment totals do not match invoice amount.", 400)
-    );
+    const message = "Payment totals do not match invoice amount.";
+    await failSync(message);
+    return next(new AppError(message, 400));
   }
+
+  invoice.paymentStatus = statusMap[paymentStatus];
+  invoice.financials.amountPaid = Number(amountPaid);
+  invoice.financials.balanceDue = Number(balanceDue);
 
   invoice.paymentHistory.push({
     amount: amountPaid,
@@ -1554,6 +1566,10 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
     ledgerEntryId: ledgerId,
   });
 
+  invoice.paymentSyncStatus = "SYNCED";
+  invoice.paymentSyncError = null;
+  invoice.paymentSyncedAt = new Date();
+
   await invoice.save();
 
   res.status(200).json({
@@ -1561,6 +1577,37 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
     message: "Invoice payment status updated successfully."
   });
 
+});
+
+/**
+ * @desc - Lets Bahi Khata report a payment-sync failure that happened on its
+ *         own side (e.g. it couldn't even form/send the update above) so it's
+ *         still visible against the invoice here, instead of only ever
+ *         existing in Bahi Khata's own logs.
+ * @route - POST /api/v1/invoices/internal/:invoiceNo/payment-status/error
+ */
+export const reportPaymentSyncError = catchAsync(async (req, res, next) => {
+  const { invoiceNo } = req.params;
+  const { error } = req.body;
+
+  if (!error || typeof error !== "string") {
+    return next(new AppError("A string 'error' field is required.", 400));
+  }
+
+  const invoice = await Invoice.findOne({ invoiceNumber: invoiceNo });
+  if (!invoice) {
+    return next(new AppError("Invoice not found.", 404));
+  }
+
+  invoice.paymentSyncStatus = "FAILED";
+  invoice.paymentSyncError = error;
+  invoice.paymentSyncedAt = new Date();
+  await invoice.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "Payment sync error recorded.",
+  });
 });
 
 /**
