@@ -40,6 +40,23 @@ export async function enqueueInvoiceEmail(invoiceId, overrideId = null) {
 export async function enqueuePaymentReminder(customerId, invoiceId, reminderNumber, cycle, overrideId = null) {
   try {
     const idempotencyKey = overrideId || `${cycle}-${customerId}-${reminderNumber}`;
+    const jobId = `reminder-${idempotencyKey}`;
+
+    // BullMQ's add-job script no-ops (via handleDuplicatedJob) whenever a job
+    // with this ID already exists in Redis, EVEN if it's long since reached a
+    // terminal failed/completed state (removeOnFail/removeOnComplete only cap
+    // retention, they don't clear it immediately) — so once a reminder fails
+    // once, every later hourly retry would otherwise silently do nothing.
+    // Clear out a terminal job first so a real new attempt can run.
+    const existingJob = await emailQueue.getJob(jobId);
+    if (existingJob) {
+      const state = await existingJob.getState();
+      if (state === "failed" || state === "completed") {
+        await existingJob.remove();
+      } else {
+        return existingJob;
+      }
+    }
 
     return await emailQueue.add(
       "sendPaymentReminder",
@@ -49,7 +66,7 @@ export async function enqueuePaymentReminder(customerId, invoiceId, reminderNumb
         reminderNumber,
         cycle,
       },
-      { jobId: `reminder-${idempotencyKey}` }
+      { jobId }
     );
   } catch (error) {
     logger.error("Failed to enqueue payment reminder", {
