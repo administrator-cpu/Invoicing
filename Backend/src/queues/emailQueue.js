@@ -14,7 +14,7 @@ const defaultJobOptions = {
 };
 
 const emailQueue = new Queue("emailQueue", {
-  connection: redis.duplicate(),
+  connection: redis.duplicate({ enableOfflineQueue: true }),
   prefix: "invoicing",
   defaultJobOptions,
 });
