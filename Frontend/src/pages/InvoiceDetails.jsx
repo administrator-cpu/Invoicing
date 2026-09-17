@@ -5,6 +5,7 @@ import { ChevronLeft, CheckCircle, Ban, Edit, Printer, FileText, FilePlus2, X, A
 import InvoiceEmailCard from "@/features/invoices/components/InvoiceEmailCard";
 import PaymentReminderStatusCard from "@/features/invoices/components/PaymentReminderStatusCard";
 import LedgerSyncCard from "@/features/invoices/components/LedgerSyncCard";
+import PaymentSyncStatusCard from "@/features/invoices/components/PaymentSyncStatusCard";
 import EmailHistoryModal from "@/features/invoices/components/EmailHistoryModal";
 import InvoiceHeader from "@/features/invoices/components/InvoiceHeader";
 import ConfirmationModal from "@/features/invoices/components/ConfirmationModal";
@@ -209,7 +210,7 @@ const InvoiceDetails = () => {
         </div>
       </div>
 
-      <div className={`grid grid-cols-1 ${showLedgerSync ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InvoiceEmailCard
           invoice={invoice}
           onViewHistory={() => {
@@ -225,13 +226,17 @@ const InvoiceDetails = () => {
         />
 
         {showLedgerSync && (
-          <LedgerSyncCard
-            document={invoice}
-            documentLabel="Invoice"
-            isSyncing={isSyncingLedger}
-            disabled={invoice.status !== "FINALIZED"}
-            onSync={() => retryLedgerSync(id)}
-          />
+          <>
+            <LedgerSyncCard
+              document={invoice}
+              documentLabel="Invoice"
+              isSyncing={isSyncingLedger}
+              disabled={invoice.status !== "FINALIZED"}
+              onSync={() => retryLedgerSync(id)}
+            />
+
+            <PaymentSyncStatusCard invoice={invoice} />
+          </>
         )}
       </div>
 

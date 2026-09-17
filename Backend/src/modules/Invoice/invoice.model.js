@@ -254,6 +254,20 @@ const InvoiceSchema = new mongoose.Schema({
     default: null,
   },
 
+  paymentSyncStatus: {
+    type: String,
+    enum: ["NOT_SYNCED", "SYNCED", "FAILED"],
+    default: "NOT_SYNCED",
+  },
+  paymentSyncError: {
+    type: String,
+    default: null,
+  },
+  paymentSyncedAt: {
+    type: Date,
+    default: null,
+  },
+
   dates: {
     invoiceDate: { type: Date, required: true },
     dueDate: { type: Date, required: true },
