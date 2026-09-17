@@ -179,7 +179,7 @@ const worker = new Worker(
     }
   },
   {
-    connection: redis.duplicate(),
+    connection: redis.duplicate({ enableOfflineQueue: true }),
     prefix: "invoicing",
     concurrency: 5,
     limiter: {
