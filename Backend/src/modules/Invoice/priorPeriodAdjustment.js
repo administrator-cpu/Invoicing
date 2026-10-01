@@ -135,13 +135,26 @@ export async function buildPriorPeriodAdjustmentItems({
     );
 
     // Segments are emitted in chronological order, so the last CONNECTION segment holds
-    // the bandwidth actually in effect at the end of the prior cycle — i.e. the post
-    // upgrade/downgrade bandwidth when one landed mid-cycle. Fall back to the connection's
-    // current bandwidth if the engine produced no CONNECTION segment (e.g. IP-only delta).
+    // the bandwidth/rate/period actually in effect at the end of the prior cycle — i.e.
+    // the post upgrade/downgrade state when one landed mid-cycle. This is also what the
+    // adjustment row's own Rate/Period should reflect (not the full prior invoice's period
+    // and not the delta amount) — mirrors how a normal CONNECTION line shows its own
+    // segment's ratePerMb and overlap period rather than the invoice's full cycle. Fall
+    // back to the last recomputed IP_ADDRESS item when the delta came purely from an IP
+    // change with no CONNECTION segment at all, and finally to the full prior cycle bounds.
     const connectionSegments = recomputedItems.filter((item) => item.sourceType === "CONNECTION");
+    const ipSegments = recomputedItems.filter((item) => item.sourceType === "IP_ADDRESS");
+    const lastSegment = connectionSegments.at(-1) ?? ipSegments.at(-1) ?? null;
+
     const adjustedBandwidth = connectionSegments.at(-1)?.crmConnectionSnapshot?.bandwidth
       ?? connection.bandwidth
       ?? null;
+    // rate is a required Number on the item schema — recomputedItems can legitimately be
+    // empty (e.g. the connection was fully cancelled since the prior cycle, so nothing
+    // recomputes but the prior invoice still overbilled it), so this must never be null.
+    const adjustmentRate = lastSegment?.rate ?? 0;
+    const adjustmentPeriodStart = lastSegment?.periodStart ?? prevCycleStart;
+    const adjustmentPeriodEnd = lastSegment?.periodEnd ?? prevCycleEnd;
 
     // Sum every line actually billed for this connection over that same exact period —
     // covers CONNECTION + IP_ADDRESS lines raised together on that prior invoice.
@@ -172,10 +185,10 @@ export async function buildPriorPeriodAdjustmentItems({
       description: `${connection.opportunityId || connectionId} - ${cycleMonthLabel} Prorata Changes`,
       sacCode: connection.sacCode || "998422",
       qty: 1,
-      rate: delta,
+      rate: adjustmentRate,
       amount: delta,
-      periodStart: prevCycleStart,
-      periodEnd: prevCycleEnd,
+      periodStart: adjustmentPeriodStart,
+      periodEnd: adjustmentPeriodEnd,
       billingMeta: {
         billingMode: prevBillingMode,
         calculationType: "PRIOR_PERIOD_ADJUSTMENT",
