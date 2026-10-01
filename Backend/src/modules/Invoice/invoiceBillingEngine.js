@@ -370,7 +370,13 @@ export function mergeInvoiceItems(items) {
  * @desc - Connection segment builder
  */
 function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) {
-  const SEGMENT_ACTIONS = ["ACTIVATED"];
+  // UPGRADE/DOWNGRADE/RATE_REVISION carry their own bandwidth/commercials in the history
+  // entry, same as ACTIVATED, and must start a new rate segment too — otherwise a mid-cycle
+  // upgrade with no accompanying re-activation is silently ignored: billing keeps using the
+  // original ACTIVATED segment's stale rate forever, in every month after the change, not
+  // just the month it happened in. (buildDescription and the calculationType enum already
+  // anticipate these as segment actions — only this list was left narrowed to ACTIVATED.)
+  const SEGMENT_ACTIONS = ["ACTIVATED", "UPGRADE", "DOWNGRADE", "RATE_REVISION"];
 
   const sortedHistory = [...(connection.history || [])].sort(
     (a, b) => new Date(a.date) - new Date(b.date)

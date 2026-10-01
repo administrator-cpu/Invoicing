@@ -1547,10 +1547,22 @@ export const updatePaymentStatus = catchAsync(async (req, res, next) => {
     Unpaid: "UNPAID"
   };
 
-  const total = invoice.financials.grandTotal;
+  const PAYMENT_TOTAL_TOLERANCE = 2;
 
-  if (Math.abs((Number(amountPaid) + Number(balanceDue)) - total) > 0.1) {
-    const message = "Payment totals do not match invoice amount.";
+  const paidWhole = Math.round(Number(amountPaid));
+  const dueWhole = Math.round(Number(balanceDue));
+  const totalWhole = Math.round(Number(invoice.financials.grandTotal));
+
+  if (![paidWhole, dueWhole, totalWhole].every(Number.isFinite)) {
+    const message = "amountPaid and balanceDue must be valid numbers.";
+    await failSync(message);
+    return next(new AppError(message, 400));
+  }
+
+  const variance = Math.abs(paidWhole + dueWhole - totalWhole);
+
+  if (variance > PAYMENT_TOTAL_TOLERANCE) {
+    const message = `Payment totals do not match invoice amount. Received paid ${paidWhole} + due ${dueWhole} = ${paidWhole + dueWhole}, invoice total is ${totalWhole} (variance ₹${variance}, allowed ₹${PAYMENT_TOTAL_TOLERANCE}).`;
     await failSync(message);
     return next(new AppError(message, 400));
   }
