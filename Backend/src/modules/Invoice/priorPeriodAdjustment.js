@@ -2,6 +2,8 @@ import Invoice from "./invoice.model.js";
 import { buildInvoiceItems } from "./invoiceBillingEngine.js";
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const daysInclusive = (start, end) => Math.floor((new Date(end) - new Date(start)) / MS_PER_DAY) + 1;
 
 // Below this, a difference is treated as rounding noise, not a real correction.
 const ADJUSTMENT_THRESHOLD = 0.01;
@@ -128,21 +130,74 @@ export async function buildPriorPeriodAdjustmentItems({
       continue;
     }
 
-    const shouldHaveBilled = round2(
+    // Sum every line actually billed for this connection over that same exact period —
+    // covers CONNECTION + IP_ADDRESS lines raised together on that prior invoice.
+    const billedItemsForConnection = (billed.items || []).filter(
+      (item) =>
+        item.crmConnectionSnapshot?.connectionId === connectionId &&
+        item.periodStart && item.periodEnd &&
+        new Date(item.periodStart).getTime() === prevCycleStart.getTime() &&
+        new Date(item.periodEnd).getTime() === prevCycleEnd.getTime()
+    );
+
+    const actuallyBilledConnection = round2(
+      billedItemsForConnection
+        .filter((item) => item.sourceType === "CONNECTION")
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    );
+    const actuallyBilledIp = round2(
+      billedItemsForConnection
+        .filter((item) => item.sourceType === "IP_ADDRESS")
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    );
+    const actuallyBilled = round2(actuallyBilledConnection + actuallyBilledIp);
+
+    const connectionSegments = recomputedItems.filter((item) => item.sourceType === "CONNECTION");
+    const ipAmount = round2(
       recomputedItems
-        .filter((item) => ["CONNECTION", "IP_ADDRESS"].includes(item.sourceType))
+        .filter((item) => item.sourceType === "IP_ADDRESS")
         .reduce((sum, item) => sum + Number(item.amount || 0), 0)
     );
 
-    // Segments are emitted in chronological order, so the last CONNECTION segment holds
-    // the bandwidth/rate/period actually in effect at the end of the prior cycle — i.e.
-    // the post upgrade/downgrade state when one landed mid-cycle. This is also what the
-    // adjustment row's own Rate/Period should reflect (not the full prior invoice's period
-    // and not the delta amount) — mirrors how a normal CONNECTION line shows its own
-    // segment's ratePerMb and overlap period rather than the invoice's full cycle. Fall
-    // back to the last recomputed IP_ADDRESS item when the delta came purely from an IP
-    // change with no CONNECTION segment at all, and finally to the full prior cycle bounds.
-    const connectionSegments = recomputedItems.filter((item) => item.sourceType === "CONNECTION");
+    let shouldHaveBilledConnection;
+    if (connectionSegments.length > 1) {
+      // More than one CONNECTION segment means something changed mid-cycle (an
+      // upgrade/downgrade/rate revision landed inside the already-billed period).
+      // The FIRST segment represents whatever state was carried over from before this
+      // cycle began — but CRM's "activation" history entry does not reliably freeze
+      // historical commercials; it can mirror the connection's CURRENT (now-upgraded)
+      // state instead of what was actually true back then. Trusting it would silently
+      // re-rate the entire already-billed period at today's commercials. Instead, derive
+      // that carried-over portion from what was ACTUALLY billed on the prior invoice —
+      // our own locked record, which cannot have drifted. Every segment AFTER the first
+      // corresponds to a genuine change event with commercials captured at that event's
+      // own effective date, which is reliable, so those are trusted as-is.
+      const carryOverSegment = connectionSegments[0];
+      const changedSegments = connectionSegments.slice(1);
+
+      const prevCycleDays = daysInclusive(prevCycleStart, prevCycleEnd);
+      const carryOverDays = daysInclusive(carryOverSegment.periodStart, carryOverSegment.periodEnd);
+      const carryOverDailyRate = prevCycleDays > 0 ? actuallyBilledConnection / prevCycleDays : 0;
+      const carryOverAmount = round2(carryOverDailyRate * carryOverDays);
+
+      const changedAmount = round2(
+        changedSegments.reduce((sum, seg) => sum + Number(seg.amount || 0), 0)
+      );
+
+      shouldHaveBilledConnection = round2(carryOverAmount + changedAmount);
+    } else {
+      shouldHaveBilledConnection = round2(
+        connectionSegments.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+      );
+    }
+
+    const shouldHaveBilled = round2(shouldHaveBilledConnection + ipAmount);
+
+    // The last segment holds the bandwidth/rate/period actually in effect at the end of
+    // the prior cycle — i.e. the post upgrade/downgrade state, which is what the
+    // adjustment row's own Rate/Period should display (not the full prior invoice's
+    // period and not the delta amount) — mirrors how a normal CONNECTION line shows its
+    // own segment's ratePerMb and overlap period rather than the invoice's full cycle.
     const ipSegments = recomputedItems.filter((item) => item.sourceType === "IP_ADDRESS");
     const lastSegment = connectionSegments.at(-1) ?? ipSegments.at(-1) ?? null;
 
@@ -155,21 +210,6 @@ export async function buildPriorPeriodAdjustmentItems({
     const adjustmentRate = lastSegment?.rate ?? 0;
     const adjustmentPeriodStart = lastSegment?.periodStart ?? prevCycleStart;
     const adjustmentPeriodEnd = lastSegment?.periodEnd ?? prevCycleEnd;
-
-    // Sum every line actually billed for this connection over that same exact period —
-    // covers CONNECTION + IP_ADDRESS lines raised together on that prior invoice.
-    const actuallyBilled = round2(
-      (billed.items || [])
-        .filter(
-          (item) =>
-            ["CONNECTION", "IP_ADDRESS"].includes(item.sourceType) &&
-            item.crmConnectionSnapshot?.connectionId === connectionId &&
-            item.periodStart && item.periodEnd &&
-            new Date(item.periodStart).getTime() === prevCycleStart.getTime() &&
-            new Date(item.periodEnd).getTime() === prevCycleEnd.getTime()
-        )
-        .reduce((sum, item) => sum + Number(item.amount || 0), 0)
-    );
 
     const delta = round2(shouldHaveBilled - actuallyBilled);
     if (Math.abs(delta) < ADJUSTMENT_THRESHOLD) continue;
