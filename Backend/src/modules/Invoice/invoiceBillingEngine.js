@@ -536,6 +536,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       },
       statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
       connectionStatus: connection.status,
+      installationAddress: connection.installationAddress ?? null,
     });
   }
 
@@ -592,6 +593,7 @@ function buildIpLines(connection, cycleStart, cycleEnd, billingMode) {
       daysInMonth
     },
     statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
+    installationAddress: connection.installationAddress ?? null,
   }];
 }
 
@@ -634,7 +636,8 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
         calculationType: "SHIFTING",
         daysCharged: 1
       },
-      statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE"
+      statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
+      installationAddress: connection.installationAddress ?? null
     });
   }
 

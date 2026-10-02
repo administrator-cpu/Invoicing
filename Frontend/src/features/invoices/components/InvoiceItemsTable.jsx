@@ -124,6 +124,7 @@ export default function InvoiceItemsTable({ invoice }) {
                   </td>
                   <td className="py-4 px-2 align-top text-gray-500 dark:text-slate-400 text-xs whitespace-pre-wrap break-words">
                     {
+                      item.installationAddress ||
                       item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address ||
                       item.technicalDetails?.bEnd?.address ||
                       item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address ||

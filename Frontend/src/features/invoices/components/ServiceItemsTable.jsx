@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Trash2, PlusCircle, ChevronDown, ChevronUp, Settings2, Pencil, Check, AlertTriangle } from 'lucide-react';
 import { getConnectionBillingHistory } from '../hooks/useInvoices.js'
+import InstallationAddressModal from './InstallationAddressModal.jsx';
 
 const getStatusBadge = (status) => {
   const s = status?.toUpperCase() || '';
@@ -53,6 +55,14 @@ const getBillingConflict = (item) => {
   }) || null;
 };
 
+// B-end is the installation end; ILL connections only carry an A-end address.
+const getCrmAddress = (item) =>
+  item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address ||
+  item.technicalDetails?.bEnd?.address ||
+  item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address ||
+  item.technicalDetails?.aEnd?.address ||
+  "";
+
 export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) => {
   const { control, register, watch, setValue, getValues } = useFormContext();
   const { fields, append, remove, replace } = useFieldArray({
@@ -62,6 +72,8 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
   const [expandedRows, setExpandedRows] = React.useState({});
   const [billingHistory, setBillingHistory] = useState({});
   const [billingHistoryLoading, setBillingHistoryLoading] = useState({});
+  const [addressModalIndex, setAddressModalIndex] = useState(null);
+  const [addressTooltip, setAddressTooltip] = useState(null);
 
   const billingCycleStart = watch('billingCycleStart');
   const billingCycleEnd = watch('billingCycleEnd');
@@ -142,6 +154,25 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
     invalidatePreview();
   };
 
+  const addressModalItem = addressModalIndex != null ? items?.[addressModalIndex] : null;
+
+  const saveInstallationAddress = (address) => {
+    const target = getValues(`items.${addressModalIndex}`);
+    if (!target) return;
+    // Empty, or same as CRM, means "no override" — fall back to the CRM address.
+    const value = address && address !== getCrmAddress(target) ? address : null;
+    const connectionId = target.crmConnectionSnapshot?.connectionId;
+
+    // Every row of the same connection (rate segments, IP line) shares one address.
+    getValues("items").forEach((row, i) => {
+      const sameRow = i === addressModalIndex;
+      const sameConnection = connectionId && row.crmConnectionSnapshot?.connectionId === connectionId;
+      if (sameRow || sameConnection) {
+        setValue(`items.${i}.installationAddress`, value, { shouldDirty: true });
+      }
+    });
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-[0_8px_30px_-12px_rgba(0,0,0,0.06)] border dark:border-slate-700 border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col">
       {/* HEADER SECTION */}
@@ -200,10 +231,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
           <thead>
             <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-700">
               <th className="w-[4%] min-w-[40px] px-2 py-3 text-center"></th>
-              <th className="w-[22%] min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+              <th className="w-[18%] min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
               <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">SAC Code</th>
               <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Service<br></br>Type</th>
-              <th className="w-[9%] min-w-[100px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">State</th>
+              <th className="w-[14%] min-w-[160px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Installation<br></br>Address</th>
               <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">BW/Qty</th>
               <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Status</th>
               <th className="w-[12%] min-w-[130px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Billing Period</th>
@@ -223,6 +254,12 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
               const activities = billingHistory[connectionId] ?? [];
               const loading = billingHistoryLoading[connectionId];
               const billingConflict = getBillingConflict(item);
+              const installationAddress = item.installationAddress || getCrmAddress(item);
+              // Rows the engine derives from a connection (its IP line, shifting marker,
+              // prorata adjustment) inherit the connection row's address, so only the
+              // connection row itself and standalone manual rows are editable.
+              const isManualRow = sourceType !== "CONNECTION" && sourceType !== "PRIOR_PERIOD_ADJUSTMENT" && !connectionId;
+              const canEditAddress = mode !== "credit-note" && (isManualRow || (sourceType === "CONNECTION" && editMode));
               return (
                 <React.Fragment key={field.id}>
                   <tr className={`transition-colors hover:bg-gray-50/50 ${isSelected ? 'bg-white dark:bg-slate-900' : 'bg-gray-50 dark:bg-slate-800/50 opacity-40'}`}>
@@ -297,12 +334,36 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                       </span>
                     </td>
 
-                    {/* STATE */}
-                    <td
-                      title={item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address}
-                      className="px-2 py-4 align-middle text-center max-w-[150px] min-w-[90px] whitespace-normal break-words"
-                    >
-                      {item.crmConnectionSnapshot?.technicalDetails?.bEnd?.state || "N/A"}
+                    {/* INSTALLATION ADDRESS */}
+                    <td className="px-2 py-4 align-middle max-w-[200px] min-w-[160px] whitespace-normal">
+                      <div className="flex items-start justify-center gap-1.5">
+                        {installationAddress ? (
+                          <span
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setAddressTooltip({ text: installationAddress, left: rect.left + rect.width / 2, top: rect.top });
+                            }}
+                            onMouseLeave={() => setAddressTooltip(null)}
+                            className="text-xs text-gray-600 dark:text-slate-400 break-words text-center cursor-default"
+                            style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden" }}
+                          >
+                            {installationAddress}
+                          </span>
+                        ) : !canEditAddress ? (
+                          <span className="text-xs text-gray-400 dark:text-slate-500">N/A</span>
+                        ) : null}
+                        {canEditAddress && (
+                          <button
+                            type="button"
+                            title={installationAddress ? "Edit installation address" : "Add installation address"}
+                            onClick={() => setAddressModalIndex(index)}
+                            className="shrink-0 flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-slate-500 hover:text-[#EA580C] transition-colors"
+                          >
+                            <Pencil size={13} />
+                            {!installationAddress && "Add address"}
+                          </button>
+                        )}
+                      </div>
                     </td>
 
                     {/* BW / QTY */}
@@ -737,6 +798,27 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
           <PlusCircle size={18} className="text-[#EA580C]" /> Add IP
         </button>
       </div>
+
+      {/* Rendered in a portal: the table's scroll container would clip an in-cell tooltip. */}
+      {addressTooltip && createPortal(
+        <div
+          style={{ left: addressTooltip.left, top: addressTooltip.top - 8, transform: "translate(-50%, -100%)" }}
+          className="fixed z-50 pointer-events-none w-max max-w-[320px] rounded-xl bg-gray-900 dark:bg-slate-700 px-3.5 py-2.5 shadow-xl"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-1">Installation Address</p>
+          <p className="text-xs leading-relaxed text-white whitespace-normal break-words">{addressTooltip.text}</p>
+          <span className="absolute left-1/2 top-full -translate-x-1/2 -mt-1 w-2 h-2 rotate-45 bg-gray-900 dark:bg-slate-700" />
+        </div>,
+        document.body
+      )}
+
+      <InstallationAddressModal
+        isOpen={!!addressModalItem}
+        onClose={() => setAddressModalIndex(null)}
+        onSave={saveInstallationAddress}
+        currentAddress={addressModalItem ? (addressModalItem.installationAddress || getCrmAddress(addressModalItem)) : ""}
+        crmAddress={addressModalItem ? getCrmAddress(addressModalItem) : ""}
+      />
     </div>
   );
 };

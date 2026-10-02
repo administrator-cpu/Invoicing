@@ -70,6 +70,12 @@ const invoiceItemSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // User-entered installation address for this line. When null, the address is taken
+  // from the CRM snapshot (B-end, falling back to A-end).
+  installationAddress: {
+    type: String,
+    default: null
+  },
   description: {
     type: String,
     required: true
