@@ -145,6 +145,7 @@ function buildConnectionsPayload(formData) {
 
     return {
       clientRowId: item.clientRowId,
+      installationAddress: item.installationAddress?.trim() || null,
       invoiceOverrides: overrides,
       billingOptions: item.billingOptions,
       crmConnectionId: connectionId,
@@ -182,6 +183,7 @@ function buildManualItemsPayload(formData) {
     .map(item => ({
       clientRowId: item.clientRowId,
       description: item.description,
+      installationAddress: item.installationAddress?.trim() || null,
       qty: item.qty,
       sacCode: item.sacCode,
       rate: item.rate,

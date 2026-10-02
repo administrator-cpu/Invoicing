@@ -463,6 +463,7 @@ function buildItems(invoice, isInterstate) {
     const lineTax = taxableAmount * 0.18;
 
     const installationAddress =
+      item.installationAddress ||
       item.crmConnectionSnapshot?.technicalDetails?.bEnd?.address ||
       item.technicalDetails?.bEnd?.address ||
       item.crmConnectionSnapshot?.technicalDetails?.aEnd?.address ||
