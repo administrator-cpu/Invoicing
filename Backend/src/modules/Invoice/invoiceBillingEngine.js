@@ -17,6 +17,24 @@ const BILLING_HISTORY_ACTIONS = [
   "TERMINATED"
 ];
 
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+/**
+ * @desc Normalizes any date to its Indian calendar day, as UTC midnight of that day.
+ * CRM history dates arrive both as UTC midnight ("2026-09-18T00:00:00Z") and as IST
+ * midnight serialized to UTC ("2026-09-17T18:30:00Z"); billing cycle dates arrive as
+ * "YYYY-MM-DD" strings (UTC midnight). Mixing those shapes made day counts drift by one
+ * (e.g. a Sep 18 upgrade split Sep into 16 + 13 days), so every date the engine does day
+ * arithmetic on goes through this first.
+ */
+export function toBillingDay(date) {
+  if (date == null || date === "") return null;
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  const ist = new Date(d.getTime() + IST_OFFSET_MS);
+  return new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()));
+}
+
 function extractStateFromAddress(address = "") {
   if (!address) return "";
   const lastPart = address.split(",").pop()?.trim() || "";
@@ -98,10 +116,8 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
     return [];
   }
 
-  const cycleStart = new Date(billingCycleStart);
-  const cycleEnd = new Date(billingCycleEnd);
-  // const segmentStart = respectConnectionPeriod ? new Date(conn.periodStart || cycleStart) : cycleStart;
-  // const segmentEnd = respectConnectionPeriod ? new Date(conn.periodEnd || cycleEnd) : cycleEnd;
+  const cycleStart = toBillingDay(billingCycleStart);
+  const cycleEnd = toBillingDay(billingCycleEnd);
 
   const allItems = [];
 
@@ -114,8 +130,8 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
         bandwidth: billingSnapshot.bandwidth,
         commercials: billingSnapshot.commercials,
       };
-      const segmentStart = respectConnectionPeriod ? new Date(conn.periodStart || cycleStart) : cycleStart;
-      const segmentEnd = respectConnectionPeriod ? new Date(conn.periodEnd || cycleEnd) : cycleEnd;
+      const segmentStart = respectConnectionPeriod ? toBillingDay(conn.periodStart || cycleStart) : cycleStart;
+      const segmentEnd = respectConnectionPeriod ? toBillingDay(conn.periodEnd || cycleEnd) : cycleEnd;
       if (options.connection === false && options.ip === false && options.shifting === false) {
         throw new AppError(`At least one billing component must be selected for ${conn.opportunityId}.`, 400);
       }
@@ -144,8 +160,8 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
   }
 
   const validatedManualItems = manualItems.map(item => {
-    const pStart = new Date(item.periodStart || cycleStart);
-    const pEnd = new Date(item.periodEnd || cycleEnd);
+    const pStart = toBillingDay(item.periodStart || cycleStart);
+    const pEnd = toBillingDay(item.periodEnd || cycleEnd);
     const daysInMonth = getDaysInMonth(pStart);
     const billedDays = daysInclusive(pStart, pEnd);
     const monthlyAmount = round2(Number(item.qty) * Number(item.rate));
@@ -383,11 +399,11 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
   );
 
   const terminationEntry = sortedHistory.find((h) => h.action === "TERMINATED");
-  const terminationDate = terminationEntry ? new Date(terminationEntry.date) : null;
+  const terminationDate = terminationEntry ? toBillingDay(terminationEntry.date) : null;
 
   const noticeTerminationDate =
     connection.status === "Notice Period" && connection.terminationDetails?.finalDate
-      ? new Date(connection.terminationDetails.finalDate)
+      ? toBillingDay(connection.terminationDetails.finalDate)
       : null;
 
   if (terminationDate && terminationDate < cycleStart) {
@@ -414,7 +430,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       continue;
     }
 
-    const effectiveDate = new Date(entry.date);
+    const effectiveDate = toBillingDay(entry.date);
 
     rateSegments.push({
       effectiveDate,
@@ -531,6 +547,9 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
         monthlyRatePerMb: segment.ratePerMb,
         originalPeriodStart: overlap.start,
         originalPeriodEnd: overlap.end,
+        // Identifies which rate segment (history event) this row belongs to, so the
+        // prior-period true-up can tell a carried-over rate from a mid-cycle change.
+        segmentEffectiveDate: segment.effectiveDate,
         daysCharged: billedDays,
         daysInMonth,
       },
@@ -608,7 +627,7 @@ function buildShiftingMarkers(connection, cycleStart, cycleEnd) {
   for (const entry of sortedHistory) {
     if (entry.action !== "SHIFTING") continue;
 
-    const eventDate = new Date(entry.date);
+    const eventDate = toBillingDay(entry.date);
     if (eventDate < cycleStart || eventDate > cycleEnd) continue;
 
     markers.push({
@@ -653,20 +672,21 @@ function getOverlap(startA, endA, startB, endB) {
   return start > end ? null : { start, end };
 }
 
-function daysInclusive(start, end) {
+export function daysInclusive(start, end) {
   return Math.floor((new Date(end) - new Date(start)) / MS_PER_DAY) + 1;
 }
 
-function getDaysInMonth(date) {
+// Dates reaching here are billing days (UTC midnight, see toBillingDay), so read them in UTC.
+export function getDaysInMonth(date) {
   const d = new Date(date);
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
-function splitBillingPeriods(startDate, endDate) {
+export function splitBillingPeriods(startDate, endDate) {
   const periods = [];
 
-  const overallStart = new Date(startDate);
-  const overallEnd = new Date(endDate);
+  const overallStart = toBillingDay(startDate);
+  const overallEnd = toBillingDay(endDate);
 
   let year = overallStart.getUTCFullYear();
   let month = overallStart.getUTCMonth();
