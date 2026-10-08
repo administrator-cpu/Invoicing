@@ -9,7 +9,7 @@ import AppError from '../../utils/AppError.js';
 import { getBrowser } from '../../services/pdfBrowser.js';
 import { generateNextDocumentNumber, validateAndRecalculateInvoice, assertNoDuplicateConnectionBilling } from './invoice.helpers.js';
 import { generateBillingFingerprint, activeInvoiceFilter } from '../../utils/invoice.utils.js';
-import { buildInvoiceItems, buildRecentActivity } from './invoiceBillingEngine.js';
+import { buildInvoiceItems, buildRecentActivity, withBillableCommercials } from './invoiceBillingEngine.js';
 import CompanyProfile from '../CompanyProfile/companyProfile.model.js';
 import { saveInvoicePdf, readInvoicePdf, pdfExists } from '../../services/documentStorage.js';
 import generateInvoicePdf from '../../services/invoicePdfService.js';
@@ -140,7 +140,7 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
     }
   }
 
-  const crmConnections = Array.isArray(connections?.connections) ? connections.connections : [];
+  const crmConnections = (Array.isArray(connections?.connections) ? connections.connections : []).map(withBillableCommercials);
 
   const mergedConnections = crmConnections.map(connection => {
     const bEndState = extractState(connection.technicalDetails?.bEnd?.address);
@@ -172,6 +172,9 @@ export const getInvoiceWorkspace = catchAsync(async (req, res, next) => {
             periodStart: null,
             periodEnd: null
           },
+          // Last month's hand edits are not carried forward — this month is priced from
+          // the CRM's current commercials once previewed.
+          manualOverrides: null,
           periodStart: null,
           periodEnd: null,
           selected: true,
@@ -268,7 +271,7 @@ export const getInvoiceEditWorkspace = catchAsync(async (req, res, next) => {
     getBilledPeriodsByConnection(customerId, invoice._id)
   ]);
 
-  const mergedItems = (connections.connections || []).map(connection => {
+  const mergedItems = (connections.connections || []).map(withBillableCommercials).map(connection => {
     const savedItem = invoiceItemMap.get(connection.crmConnectionId?.toString());
     const billedPeriods = billedPeriodsByConnection.get(connection.crmConnectionId?.toString()) || [];
 
