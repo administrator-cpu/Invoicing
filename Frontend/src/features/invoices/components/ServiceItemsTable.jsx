@@ -154,6 +154,23 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
     invalidatePreview();
   };
 
+  // Only values typed in here are sent to the engine as overrides (see
+  // normalizeManualOverrides). A connection split into several segment rows shares one
+  // override, so the edit is applied to all of its rows.
+  const markManualOverride = (index, field, value) => {
+    const connectionId = getValues(`items.${index}.crmConnectionSnapshot.connectionId`);
+    getValues("items").forEach((row, i) => {
+      const sameConnection = i === index || (
+        connectionId && row.sourceType === "CONNECTION" && row.crmConnectionSnapshot?.connectionId === connectionId
+      );
+      if (!sameConnection) return;
+      setValue(`items.${i}.manualOverrides.${field}`, value);
+      if (i !== index) {
+        setValue(`items.${i}.invoiceOverrides.${field}`, field === "ratePerMb" ? Number(value) : value);
+      }
+    });
+  };
+
   const addressModalItem = addressModalIndex != null ? items?.[addressModalIndex] : null;
 
   const saveInstallationAddress = (address) => {
@@ -227,16 +244,13 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
 
       {/* TABLE SECTION */}
       <div className="overflow-x-auto flex-grow custom-scrollbar">
-        <table className="w-full min-w-[1150px] border-collapse text-sm text-left whitespace-nowrap">
+        <table className="w-full border-collapse text-sm text-left whitespace-nowrap">
           <thead>
             <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-700">
               <th className="w-[4%] min-w-[40px] px-2 py-3 text-center"></th>
-              <th className="w-[18%] min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
-              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">SAC Code</th>
-              <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Service<br></br>Type</th>
+              <th className="min-w-[200px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
               <th className="w-[14%] min-w-[160px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Installation<br></br>Address</th>
               <th className="w-[7%] min-w-[80px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">BW/Qty</th>
-              <th className="w-[8%] min-w-[90px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Status</th>
               <th className="w-[12%] min-w-[130px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-center">Billing Period</th>
               <th className="w-[10%] min-w-[110px] px-2 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-right">Rate</th>
               <th className="w-[10%] min-w-[110px] px-4 py-3 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-right">Amount</th>
@@ -255,6 +269,11 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
               const loading = billingHistoryLoading[connectionId];
               const billingConflict = getBillingConflict(item);
               const installationAddress = item.installationAddress || getCrmAddress(item);
+              const serviceTypeLabel = sourceType === "CONNECTION" ? item.crmConnectionSnapshot?.serviceType :
+                sourceType === "IP_ADDRESS" ? "IP" :
+                  sourceType === "OTC" ? "OTC" :
+                    sourceType === "PRIOR_PERIOD_ADJUSTMENT" ? "Adjustment" : "Manual";
+              const statusLabel = sourceType === "CONNECTION" ? item.status : item.statusSnapshot;
               // Rows the engine derives from a connection (its IP line, shifting marker,
               // prorata adjustment) inherit the connection row's address, so only the
               // connection row itself and standalone manual rows are editable.
@@ -274,35 +293,73 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                     </td>
 
                     {/* DESCRIPTION */}
-                    <td className="px-4 py-4 align-middle">
-                      <input
-                        disabled={!editMode}
-                        {...register(`items.${index}.description`, { onChange: invalidatePreview })}
-                        title={item.description}
-                        className="w-full min-w-[180px] text-ellipsis overflow-hidden bg-transparent border dark:border-slate-700 border-transparent disabled:opacity-100 disabled:text-gray-900 rounded py-1.5 px-2 text-sm font-semibold text-gray-900 dark:text-slate-100 focus:border-[#EA580C] outline-none hover:border-gray-200 dark:hover:border-slate-600 transition-colors"
-                      />
-                      {sourceType === "CONNECTION" && (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpanded(index, item.crmConnectionSnapshot?.connectionId)}
-                          className="mt-1.5 ml-2 flex items-center gap-1 text-xs font-bold text-[#EA580C] hover:text-orange-700 transition-colors bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/20 px-2 py-1 rounded-md w-max"
+                    <td className="px-4 py-4 align-middle whitespace-normal">
+                      {editMode ? (
+                        <input
+                          {...register(`items.${index}.description`, { onChange: invalidatePreview })}
+                          title={item.description}
+                          className="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded py-1.5 px-2 text-sm font-semibold text-gray-900 dark:text-slate-100 focus:border-[#EA580C] outline-none transition-colors"
+                        />
+                      ) : (
+                        <p
+                          title={item.description}
+                          className="px-2 text-sm font-semibold text-gray-900 dark:text-slate-100 break-words"
+                          style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden" }}
                         >
-                          <Settings2 size={13} />
-                          Billing Components
-                          {expandedRows[index] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                        </button>
+                          {item.description}
+                        </p>
                       )}
-                      {item.billingMeta?.calculationType === "PRORATA" &&
-                        item.billingMeta?.monthlyBreakdown?.length <= 1 && (
-                          <div className="mt-1.5 ml-2 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded w-max tracking-wide uppercase">
-                            PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
-                          </div>
+
+                      {/* Service type, status, SAC code and billing badges — kept here instead of in
+                          their own columns so the table fits without horizontal scroll. */}
+                      <div className="mt-1.5 ml-2 flex flex-wrap items-center gap-1.5">
+                        {serviceTypeLabel && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                            {serviceTypeLabel}
+                          </span>
                         )}
-                      {item.billingMeta?.monthlyBreakdown?.length > 1 && (
-                        <div className="mt-1.5 ml-2 text-[10px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded w-max tracking-wide uppercase">
-                          {item.billingMeta.monthlyBreakdown.length} Month Billing
-                        </div>
-                      )}
+                        {statusLabel && (
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${getStatusBadge(statusLabel)}`}>
+                            {statusLabel}
+                          </span>
+                        )}
+                        {editMode ? (
+                          <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                            SAC
+                            <input
+                              {...register(`items.${index}.sacCode`, { onChange: () => invalidatePreview() })}
+                              placeholder="998422"
+                              className="w-[72px] border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md px-1.5 py-0.5 text-[11px] text-center font-mono text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
+                            />
+                          </label>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                            SAC <span className="font-mono">{item.sacCode || "-"}</span>
+                          </span>
+                        )}
+                        {item.billingMeta?.calculationType === "PRORATA" &&
+                          item.billingMeta?.monthlyBreakdown?.length <= 1 && (
+                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md tracking-wide uppercase">
+                              PRORATA • {item.billingMeta.daysCharged}/{item.billingMeta.daysInMonth} Days
+                            </span>
+                          )}
+                        {item.billingMeta?.monthlyBreakdown?.length > 1 && (
+                          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md tracking-wide uppercase">
+                            {item.billingMeta.monthlyBreakdown.length} Month Billing
+                          </span>
+                        )}
+                        {sourceType === "CONNECTION" && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(index, item.crmConnectionSnapshot?.connectionId)}
+                            className="flex items-center gap-1 text-[11px] font-bold text-[#EA580C] hover:text-orange-700 transition-colors bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/20 px-2 py-0.5 rounded-md"
+                          >
+                            <Settings2 size={12} />
+                            Billing Components
+                            {expandedRows[index] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                          </button>
+                        )}
+                      </div>
                       {billingConflict && (
                         <div
                           title={`Periods: ${formatActivityDate(billingConflict.periodStart)} – ${formatActivityDate(billingConflict.periodEnd)}`}
@@ -312,26 +369,6 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           Already Billed On {billingConflict.invoiceNumber || "A Draft Invoice"}
                         </div>
                       )}
-                    </td>
-
-                    {/* SAC CODE */}
-                    <td className="px-4 py-4 align-middle text-center">
-                      <input
-                        disabled={!editMode}
-                        {...register(`items.${index}.sacCode`, { onChange: () => invalidatePreview() })}
-                        className="block mx-auto w-full min-w-[85px] max-w-[100px] border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-center font-mono focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 transition-all"
-                        placeholder="998422"
-                      />
-                    </td>
-
-                    {/* SERVICE TYPE */}
-                    <td className="px-4 py-4 align-middle">
-                      <span className="text-sm font-semibold text-gray-600 dark:text-slate-400 truncate block text-center min-w-[70px]">
-                        {sourceType === 'CONNECTION' ? item.crmConnectionSnapshot.serviceType :
-                          sourceType === 'IP_ADDRESS' ? 'IP' :
-                            sourceType === 'OTC' ? '-' :
-                              sourceType === 'PRIOR_PERIOD_ADJUSTMENT' ? 'Adjustment' : 'Manual'}
-                      </span>
                     </td>
 
                     {/* INSTALLATION ADDRESS */}
@@ -372,7 +409,9 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                         editMode ? (
                           <input
                             type="text"
-                            {...register(`items.${index}.invoiceOverrides.bandwidth`, { onChange: invalidatePreview })}
+                            {...register(`items.${index}.invoiceOverrides.bandwidth`, {
+                              onChange: (e) => { markManualOverride(index, "bandwidth", e.target.value); invalidatePreview(); }
+                            })}
                             className="w-full min-w-[70px] max-w-[90px] mx-auto border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none transition-all"
                           />
                         ) : (
@@ -393,15 +432,6 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                           className="w-full min-w-[60px] max-w-[80px] mx-auto border border-gray-200 dark:border-slate-700 disabled:border-transparent disabled:bg-transparent bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-center focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none disabled:text-gray-900 font-semibold transition-all"
                         />
                       )}
-                    </td>
-
-                    {/* STATUS */}
-                    <td className="px-4 py-4 align-middle">
-                      <div className="flex justify-center min-w-[80px]">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase ${getStatusBadge(sourceType === 'CONNECTION' ? item.status : item.statusSnapshot)}`}>
-                          {sourceType === 'CONNECTION' ? item.status : item.statusSnapshot}
-                        </span>
-                      </div>
                     </td>
 
                     {/* BILLING PERIOD */}
@@ -428,7 +458,10 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                         editMode ? (
                           <input
                             type="number" step="0.01"
-                            {...register(`items.${index}.invoiceOverrides.ratePerMb`, { valueAsNumber: true, onChange: invalidatePreview })}
+                            {...register(`items.${index}.invoiceOverrides.ratePerMb`, {
+                              valueAsNumber: true,
+                              onChange: (e) => { markManualOverride(index, "ratePerMb", e.target.value); invalidatePreview(); }
+                            })}
                             className="w-full min-w-[90px] max-w-[120px] ml-auto border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md p-1.5 text-sm text-right focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] outline-none"
                           />
                         ) : (
@@ -510,7 +543,7 @@ export const ServiceItemsTable = ({ mode = "invoice", editMode, setEditMode }) =
                   {sourceType === "CONNECTION" && expandedRows[index] && (
                     <tr>
                       <td
-                        colSpan={11}
+                        colSpan={8}
                         className="bg-orange-50/30 px-6 py-5 border-b dark:border-slate-700 border-orange-100/50"
                       >
                         <div className="grid grid-cols-2 gap-10 min-w-[900px]">

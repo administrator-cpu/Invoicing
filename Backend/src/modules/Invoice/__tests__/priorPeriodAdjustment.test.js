@@ -99,6 +99,40 @@ describe("buildPriorPeriodAdjustmentItems", () => {
     expect(rows.map((r) => r.amount)).toEqual([2666.67]);
   });
 
+  it("starts an upgrade at its activation, not when it was raised (300 Mbps/12000 -> 500 Mbps/20000 on Sep 21)", async () => {
+    await insertPriorInvoice({
+      cycleStart: SEP.start, cycleEnd: SEP.end,
+      items: [billedItem({ periodStart: SEP.start, periodEnd: SEP.end, amount: 12000 })],
+    });
+    const conn = makeConnection({
+      bandwidth: 500, ratePerMb: 40,
+      history: [
+        historyEntry("ACTIVATED", utcDay("2026-01-10"), 300, 40),
+        historyEntry("UPGRADE", utcDay("2026-09-09"), 500, 40), // raised
+        historyEntry("ACTIVATED", utcDay("2026-09-21"), 500, 40), // went live
+      ],
+    });
+    const rows = await adjust([conn]);
+    // Sep 21-30 = 10 days x (20000 - 12000) / 30. Treating Sep 9 as effective gave 5866.67.
+    expect(rows.map((r) => r.amount)).toEqual([2666.67]);
+    expect(ymd(rows[0].periodStart)).toBe("2026-09-21");
+  });
+
+  it("still bills an upgrade from its own date when no activation follows it", async () => {
+    await insertPriorInvoice({
+      cycleStart: SEP.start, cycleEnd: SEP.end,
+      items: [billedItem({ periodStart: SEP.start, periodEnd: SEP.end, amount: 12000 })],
+    });
+    const conn = makeConnection({
+      bandwidth: 500, ratePerMb: 40,
+      history: [
+        historyEntry("ACTIVATED", utcDay("2026-01-10"), 300, 40),
+        historyEntry("UPGRADE", utcDay("2026-09-21"), 500, 40),
+      ],
+    });
+    expect((await adjust([conn])).map((r) => r.amount)).toEqual([2666.67]);
+  });
+
   it("charges the whole month when the upgrade predates the prior cycle", async () => {
     await sepInvoiceBilledAtOldRate();
     const rows = await adjust([upgradedConnection(utcDay, "2026-08-25")]);

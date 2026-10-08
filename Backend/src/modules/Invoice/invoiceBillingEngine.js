@@ -41,6 +41,68 @@ function extractStateFromAddress(address = "") {
   return lastPart.split("-")[0].trim();
 }
 
+// History actions that start a new rate segment. UPGRADE/DOWNGRADE/RATE_REVISION carry
+// their own bandwidth/commercials in the history entry, same as ACTIVATED.
+const SEGMENT_ACTIONS = ["ACTIVATED", "UPGRADE", "DOWNGRADE", "RATE_REVISION"];
+const CHANGE_ACTIONS = ["UPGRADE", "DOWNGRADE", "RATE_REVISION"];
+
+// Lifecycle stages where a commercial change has been raised but is not live yet. The
+// connection keeps running on its last activated commercials until it is ACTIVATED.
+const PENDING_CHANGE_STATUSES = ["GENERATION", "APPROVED"];
+
+export function hasPendingCommercialChange(connection) {
+  return PENDING_CHANGE_STATUSES.includes(String(connection?.status ?? "").trim().toUpperCase());
+}
+
+/**
+ * @desc The connection's history sorted by date, minus any change that is not live yet:
+ * while the connection is in Generation/Approved, upgrades/downgrades/rate revisions
+ * logged after its last activation are still pending, so they must not start a segment.
+ */
+function getEffectiveHistory(connection) {
+  const sorted = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (!hasPendingCommercialChange(connection)) return sorted;
+
+  const lastActivatedIndex = sorted.findLastIndex((entry) => entry.action === "ACTIVATED");
+  if (lastActivatedIndex === -1) return sorted;
+
+  return sorted.filter((entry, index) => index <= lastActivatedIndex || !CHANGE_ACTIONS.includes(entry.action));
+}
+
+/**
+ * @desc Bandwidth/commercials the connection is billed on right now — the current CRM
+ * values, or, while a change is pending, the last activated ones.
+ */
+export function getBillableCommercials(connection) {
+  if (hasPendingCommercialChange(connection)) {
+    const lastLive = getEffectiveHistory(connection)
+      .filter((entry) => SEGMENT_ACTIONS.includes(entry.action))
+      .at(-1);
+    if (lastLive) {
+      return { bandwidth: lastLive.bandwidth, commercials: lastLive.commercials };
+    }
+  }
+  return getBillingCommercialSnapshot(connection);
+}
+
+/**
+ * @desc The CRM connection as the invoice workspace should present it. While a change is
+ * pending, its top-level bandwidth/commercials can already show the not-yet-live values;
+ * the workspace pre-fills its rate/bandwidth fields from them and the engine applies those
+ * fields as overrides, so they are swapped for the last activated ones here. The pending
+ * values stay available on `pendingCommercials`.
+ */
+export function withBillableCommercials(connection) {
+  if (!hasPendingCommercialChange(connection)) return connection;
+  const { bandwidth, commercials } = getBillableCommercials(connection);
+  return {
+    ...connection,
+    bandwidth,
+    commercials: { ...connection.commercials, ...commercials },
+    pendingCommercials: { bandwidth: connection.bandwidth, commercials: connection.commercials },
+  };
+}
+
 function getBillingCommercialSnapshot(connection) {
   const history = [...(connection.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -124,7 +186,7 @@ export const buildInvoiceItems = ({ connections, manualItems = [], billingCycleS
   if (hasConnections) {
     for (const conn of connections) {
       const options = conn.billingOptions || {};
-      const billingSnapshot = getBillingCommercialSnapshot(conn);
+      const billingSnapshot = getBillableCommercials(conn);
       const normalizedConnection = {
         ...conn,
         bandwidth: billingSnapshot.bandwidth,
@@ -386,17 +448,11 @@ export function mergeInvoiceItems(items) {
  * @desc - Connection segment builder
  */
 function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) {
-  // UPGRADE/DOWNGRADE/RATE_REVISION carry their own bandwidth/commercials in the history
-  // entry, same as ACTIVATED, and must start a new rate segment too — otherwise a mid-cycle
-  // upgrade with no accompanying re-activation is silently ignored: billing keeps using the
-  // original ACTIVATED segment's stale rate forever, in every month after the change, not
-  // just the month it happened in. (buildDescription and the calculationType enum already
-  // anticipate these as segment actions — only this list was left narrowed to ACTIVATED.)
-  const SEGMENT_ACTIONS = ["ACTIVATED", "UPGRADE", "DOWNGRADE", "RATE_REVISION"];
-
-  const sortedHistory = [...(connection.history || [])].sort(
-    (a, b) => new Date(a.date) - new Date(b.date)
-  );
+  // UPGRADE/DOWNGRADE/RATE_REVISION must start a new rate segment too (see SEGMENT_ACTIONS)
+  // — otherwise a mid-cycle upgrade with no accompanying re-activation is silently ignored
+  // and billing keeps using the original ACTIVATED segment's stale rate forever. A change
+  // still pending activation (Generation/Approved) is excluded by getEffectiveHistory.
+  const sortedHistory = getEffectiveHistory(connection);
 
   const terminationEntry = sortedHistory.find((h) => h.action === "TERMINATED");
   const terminationDate = terminationEntry ? toBillingDay(terminationEntry.date) : null;
@@ -411,15 +467,35 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
   }
 
   const overrides = connection.invoiceOverrides || {};
+  // Hand-entered rate/bandwidth only; null/blank means "price from the CRM history".
+  const manualOverrides = {
+    bandwidth: overrides.bandwidth == null || String(overrides.bandwidth).trim() === "" ? null : String(overrides.bandwidth).trim(),
+    ratePerMb: overrides.ratePerMb === "" || overrides.ratePerMb == null || !Number.isFinite(Number(overrides.ratePerMb))
+      ? null
+      : Number(overrides.ratePerMb),
+  };
   const rateSegments = [];
 
-  for (const entry of sortedHistory) {
-    if (!SEGMENT_ACTIONS.includes(entry.action)) {
+  const segmentEntries = sortedHistory.filter((entry) => SEGMENT_ACTIONS.includes(entry.action));
+
+  for (const [index, entry] of segmentEntries.entries()) {
+    // CRM can log an upgrade/downgrade when it is raised (already carrying the new
+    // commercials) and again as ACTIVATED when it actually goes live. The new rate only
+    // applies from activation, so a change entry immediately followed by its own
+    // activation (same bandwidth and rate) does not start a segment of its own —
+    // otherwise the days between request and activation are billed at the new rate.
+    const nextEntry = segmentEntries[index + 1];
+    if (
+      entry.action !== "ACTIVATED" &&
+      nextEntry?.action === "ACTIVATED" &&
+      String(nextEntry.bandwidth ?? "") === String(entry.bandwidth ?? "") &&
+      Number(nextEntry.commercials?.ratePerMb ?? 0) === Number(entry.commercials?.ratePerMb ?? 0)
+    ) {
       continue;
     }
 
-    const bandwidth = overrides.bandwidth ?? entry.bandwidth ?? "";
-    const ratePerMb = Number(overrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0);
+    const bandwidth = manualOverrides.bandwidth ?? entry.bandwidth ?? "";
+    const ratePerMb = Number(manualOverrides.ratePerMb ?? entry.commercials?.ratePerMb ?? 0);
 
     const parsedBandwidth = Number.parseFloat(String(bandwidth));
     const calculatedMrc = Number.isFinite(parsedBandwidth)
@@ -556,6 +632,7 @@ function buildConnectionSegments(connection, cycleStart, cycleEnd, billingMode) 
       statusSnapshot: connection.isBillable ? "BILLABLE" : "NON_BILLABLE",
       connectionStatus: connection.status,
       installationAddress: connection.installationAddress ?? null,
+      manualOverrides,
     });
   }
 

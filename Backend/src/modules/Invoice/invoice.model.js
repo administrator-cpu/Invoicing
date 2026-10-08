@@ -44,6 +44,12 @@ const invoiceItemSchema = new mongoose.Schema({
     periodStart: { type: Date, default: null },
     periodEnd: { type: Date, default: null },
   },
+  // Rate/bandwidth the user typed in by hand for this draft (null = priced from CRM).
+  // Kept so a reopened draft keeps the edit; never carried into the next month's invoice.
+  manualOverrides: {
+    bandwidth: { type: String, default: null },
+    ratePerMb: { type: Number, default: null },
+  },
   billingOptions: {
     connection: { type: Boolean, default: true },
     ip: { type: Boolean, default: true },

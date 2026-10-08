@@ -48,6 +48,20 @@ describe("buildInvoiceItems — connection segments", () => {
     expect(ymd(rows[1].periodStart)).toBe("2026-09-18");
   });
 
+  it("bills a raised-then-activated upgrade from its activation date", () => {
+    const conn = makeConnection({
+      bandwidth: 500, ratePerMb: 40,
+      history: [
+        historyEntry("ACTIVATED", utcDay("2026-01-10"), 300, 40),
+        historyEntry("UPGRADE", utcDay("2026-09-09"), 500, 40),
+        historyEntry("ACTIVATED", utcDay("2026-09-21"), 500, 40),
+      ],
+    });
+    const rows = connectionRows(build(conn));
+    expect(rows.map((r) => r.billingMeta.daysCharged)).toEqual([20, 10]);
+    expect(rows.map((r) => r.amount)).toEqual([8000, 6666.67]);
+  });
+
   it("handles DOWNGRADE and RATE_REVISION as new segments", () => {
     const conn = makeConnection({
       bandwidth: 50, ratePerMb: 40,

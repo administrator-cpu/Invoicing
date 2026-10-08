@@ -262,6 +262,7 @@ export const validateAndRecalculateInvoice = (incomingItems, customerState, comp
       crmConnectionSnapshot: item.crmConnectionSnapshot || null,
       connectionStatus: item.connectionStatus ?? item.crmConnectionSnapshot?.status ?? null,
       installationAddress: item.installationAddress?.trim() || null,
+      manualOverrides: item.manualOverrides ?? null,
       sourceType,
       crmHistoryRefId: item.crmHistoryRefId || null,
       description: item.description,
